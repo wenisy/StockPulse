@@ -14,11 +14,11 @@ const dateString = today.toISOString().split('T')[0];
 async function fetchStockPrice(symbol) {
     return new Promise((resolve, reject) => {
         const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d`;
-        console.log(`请求Yahoo Finance: ${url}`);
+        console.log(`[${new Date().toISOString()}] 请求Yahoo Finance: ${url}`);
 
         const req = https.get(url, (res) => {
             let data = '';
-            console.log(`${symbol} HTTP状态码: ${res.statusCode}`);
+            console.log(`[${new Date().toISOString()}] ${symbol} HTTP状态码: ${res.statusCode}`);
 
             if (res.statusCode !== 200) {
                 return reject(new Error(`HTTP状态码错误: ${res.statusCode}`));
@@ -67,33 +67,32 @@ async function updatePrices() {
         let pricesData = fs.existsSync(pricesPath) ? JSON.parse(fs.readFileSync(pricesPath, 'utf8')) : {};
 
         const stocks = symbolsData.stocks;
-        console.log(`开始获取 ${stocks.length} 支股票的价格...`);
+        console.log(`[${new Date().toISOString()}] 开始获取 ${stocks.length} 支股票的价格...`);
 
         // 串行处理每个股票
         for (const stock of stocks) {
             try {
-                console.log(`获取 ${stock.name} (${stock.symbol}) 的价格...`);
+                console.log(`[${new Date().toISOString()}] 获取 ${stock.name} (${stock.symbol}) 的价格...`);
                 const price = await fetchStockPrice(stock.symbol);
-                console.log(`${stock.name} (${stock.symbol}): ${price}`);
+                console.log(`[${new Date().toISOString()}] ${stock.name} (${stock.symbol}): ${price}`);
 
                 pricesData[stock.symbol] = {
                     price,
                     name: stock.name,
                     lastUpdated: dateString
                 };
-
-                // 等待10秒再处理下一个股票
-                console.log('等待10秒...');
-                await wait(10000); // 10秒
             } catch (error) {
-                console.error(`获取 ${stock.symbol} 失败: ${error.message}`);
+                console.error(`[${new Date().toISOString()}] 获取 ${stock.symbol} 失败: ${error.message}`);
             }
+            // 无论成功还是失败，都等待10秒
+            console.log(`[${new Date().toISOString()}] 等待10秒...`);
+            await wait(10000); // 10秒
         }
 
         fs.writeFileSync(pricesPath, JSON.stringify(pricesData, null, 2));
-        console.log(`价格数据已保存到 ${pricesPath}`);
+        console.log(`[${new Date().toISOString()}] 价格数据已保存到 ${pricesPath}`);
     } catch (error) {
-        console.error('更新价格出错:', error);
+        console.error(`[${new Date().toISOString()}] 更新价格出错:`, error);
         process.exit(1);
     }
 }

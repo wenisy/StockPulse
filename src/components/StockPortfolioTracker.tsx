@@ -141,19 +141,39 @@ const StockPortfolioTracker: React.FC = () => {
     const [stockSymbols, setStockSymbols] = useState<StockSymbol[]>([]);
     const [priceData, setPriceData] = useState<PriceData>({});
     const [isLoading, setIsLoading] = useState(false);
+    const [debugInfo, setDebugInfo] = useState<string>('');
 
     const latestYear = Math.max(...years.map(Number)).toString();
+
+    // 获取基础路径
+    const getBasePath = () => {
+        // 检查当前URL来确定是在GitHub Pages上还是本地开发环境
+        if (window.location.hostname.includes('github.io')) {
+            // 在GitHub Pages上，需要加上仓库名
+            return '/StockPulse';
+        }
+        // 本地开发环境
+        return '';
+    };
 
     // 获取股票符号列表
     useEffect(() => {
         const fetchSymbols = async () => {
             try {
-                // 根据你的仓库名调整路径
-                const response = await fetch('/StockPulse/data/symbols.json');
-                const data = await response.json();
-                setStockSymbols(data.stocks || []);
+                const url = `${getBasePath()}/data/symbols.json`;
+                setDebugInfo(prev => prev + `\n尝试获取股票符号数据：${url}`);
+
+                const response = await fetch(url);
+                setDebugInfo(prev => prev + `\n股票符号响应状态：${response.status}`);
+
+                if (response.ok) {
+                    const data = await response.json();
+                    setStockSymbols(data.stocks || []);
+                    setDebugInfo(prev => prev + `\n成功获取${data.stocks?.length || 0}个股票符号`);
+                }
             } catch (error) {
                 console.error('获取股票符号失败:', error);
+                setDebugInfo(prev => prev + `\n获取股票符号失败: ${error}`);
             }
         };
 
@@ -164,17 +184,27 @@ const StockPortfolioTracker: React.FC = () => {
     useEffect(() => {
         const fetchLatestPrices = async () => {
             try {
-                // 根据你的仓库名调整路径
-                const response = await fetch('/StockPulse/data/prices.json');
+                const url = `${getBasePath()}/data/prices.json`;
+                setDebugInfo(prev => prev + `\n尝试获取价格数据：${url}`);
+
+                // 添加时间戳防止缓存
+                const timestamp = new Date().getTime();
+                const response = await fetch(`${url}?t=${timestamp}`);
+                setDebugInfo(prev => prev + `\n价格数据响应状态：${response.status}`);
+
                 if (response.ok) {
                     const data = await response.json();
+                    setDebugInfo(prev => prev + `\n成功获取价格数据，包含${Object.keys(data).length}个股票`);
                     setPriceData(data);
 
                     // 自动更新最新年份的股票价格
                     updateLatestPrices(data);
+                } else {
+                    setDebugInfo(prev => prev + `\n获取价格数据失败: ${response.status}`);
                 }
             } catch (error) {
                 console.error('获取最新价格时出错:', error);
+                setDebugInfo(prev => prev + `\n获取最新价格时出错: ${error}`);
             }
         };
 
@@ -198,11 +228,19 @@ const StockPortfolioTracker: React.FC = () => {
 
     const refreshPrices = async () => {
         setIsLoading(true);
+        setDebugInfo('开始刷新价格...');
         try {
-            // 根据你的仓库名调整路径
-            const response = await fetch('/StockPulse/data/prices.json');
+            const url = `${getBasePath()}/data/prices.json`;
+            setDebugInfo(prev => prev + `\n尝试获取价格数据：${url}`);
+
+            // 添加时间戳防止缓存
+            const timestamp = new Date().getTime();
+            const response = await fetch(`${url}?t=${timestamp}`);
+            setDebugInfo(prev => prev + `\n价格数据响应状态：${response.status}`);
+
             if (response.ok) {
                 const data = await response.json();
+                setDebugInfo(prev => prev + `\n成功获取价格数据，包含${Object.keys(data).length}个股票`);
                 setPriceData(data);
 
                 setYearData((prevYearData) => {
@@ -212,6 +250,7 @@ const StockPortfolioTracker: React.FC = () => {
                     updatedYearData[selectedYear].stocks.forEach(stock => {
                         if (stock.symbol && data[stock.symbol]) {
                             stock.price = data[stock.symbol].price;
+                            setDebugInfo(prev => prev + `\n更新 ${stock.name} (${stock.symbol}) 价格为 ${data[stock.symbol].price}`);
                         }
                     });
 
@@ -228,14 +267,88 @@ const StockPortfolioTracker: React.FC = () => {
                     onCancel: () => setAlertInfo(null),
                 });
             } else {
-                throw new Error('获取价格数据失败');
+                throw new Error(`获取价格数据失败: ${response.status}`);
             }
         } catch (error) {
             console.error('刷新价格时出错:', error);
+            setDebugInfo(prev => prev + `\n刷新价格时出错: ${error}`);
             setAlertInfo({
                 isOpen: true,
                 title: '更新失败',
                 description: '获取最新价格时发生错误，请稍后再试',
+                onCancel: () => setAlertInfo(null),
+            });
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    // 直接从API获取股票价格（备用方案）
+    const fetchStockPrice = async (symbol) => {
+        try {
+            setDebugInfo(prev => prev + `\n尝试直接从Yahoo Finance API获取 ${symbol} 价格`);
+            const response = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d`);
+
+            if (response.ok) {
+                const data = await response.json();
+                if (data.chart && data.chart.result && data.chart.result[0] && data.chart.result[0].meta) {
+                    const price = data.chart.result[0].meta.regularMarketPrice;
+                    setDebugInfo(prev => prev + `\n成功获取 ${symbol} 价格：${price}`);
+                    return price;
+                }
+            }
+            setDebugInfo(prev => prev + `\nAPI请求失败: ${response.status}`);
+            return null;
+        } catch (error) {
+            console.error(`获取 ${symbol} 价格出错:`, error);
+            setDebugInfo(prev => prev + `\n获取 ${symbol} 价格出错: ${error}`);
+            return null;
+        }
+    };
+
+    // 直接从API更新价格（备用方案）
+    const refreshPricesFromAPI = async () => {
+        setIsLoading(true);
+        setDebugInfo('开始从API刷新价格...');
+        try {
+            // 更新当前选中年份的股票价格
+            const updatedYearData = { ...yearData };
+            const stocksToUpdate = updatedYearData[selectedYear].stocks;
+
+            for (const stock of stocksToUpdate) {
+                if (stock.symbol) {
+                    const price = await fetchStockPrice(stock.symbol);
+                    if (price !== null) {
+                        stock.price = price;
+
+                        // 同时更新priceData
+                        setPriceData(prev => ({
+                            ...prev,
+                            [stock.symbol]: {
+                                price,
+                                name: stock.name,
+                                lastUpdated: new Date().toISOString().split('T')[0]
+                            }
+                        }));
+                    }
+                }
+            }
+
+            setYearData(updatedYearData);
+
+            setAlertInfo({
+                isOpen: true,
+                title: '价格已更新',
+                description: `股票价格已从API直接更新（${new Date().toLocaleString()}）`,
+                onCancel: () => setAlertInfo(null),
+            });
+        } catch (error) {
+            console.error('从API刷新价格时出错:', error);
+            setDebugInfo(prev => prev + `\n从API刷新价格时出错: ${error}`);
+            setAlertInfo({
+                isOpen: true,
+                title: '更新失败',
+                description: '从API获取最新价格时发生错误，请稍后再试',
                 onCancel: () => setAlertInfo(null),
             });
         } finally {
@@ -736,7 +849,8 @@ const StockPortfolioTracker: React.FC = () => {
                                             );
                                         })}
                                     </ul>
-                                </div><div>
+                                </div>
+                                <div>
                                     <h3 className="font-semibold">股票买卖历史</h3>
                                     <ul>
                                         {yearDataItem.stockTransactions.map((tx, index) => (
@@ -939,7 +1053,11 @@ const StockPortfolioTracker: React.FC = () => {
                         <Button onClick={handlePasteData}>粘贴数据</Button>
                         <Button onClick={refreshPrices} disabled={isLoading} className="flex items-center gap-2">
                             <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-                            刷新股票价格
+                            刷新价格(静态)
+                        </Button>
+                        <Button onClick={refreshPricesFromAPI} disabled={isLoading} className="flex items-center gap-2 bg-green-600 hover:bg-green-700">
+                            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                            从API获取价格
                         </Button>
                     </div>
                     {priceData && Object.keys(priceData).length > 0 && (
@@ -970,6 +1088,23 @@ const StockPortfolioTracker: React.FC = () => {
                         >
                             股价变化图（柱状图）
                         </Button>
+                    </div>
+                </div>
+
+                {/* 调试信息区域 */}
+                <div className="mt-4 p-3 bg-gray-100 rounded-md text-xs text-gray-700 max-h-40 overflow-auto">
+                    <h3 className="font-semibold mb-1">调试信息:</h3>
+                    <div>
+                        <p>基础路径: {getBasePath()}</p>
+                        <p>当前URL: {window.location.href}</p>
+                        <p>价格数据状态: {Object.keys(priceData).length > 0 ? '已加载' : '未加载'}</p>
+                        {Object.keys(priceData).length > 0 && (
+                            <>
+                                <p>已加载股票: {Object.keys(priceData).join(', ')}</p>
+                                <p>最后更新: {Object.values(priceData)[0]?.lastUpdated || '未知'}</p>
+                            </>
+                        )}
+                        <pre className="mt-2 whitespace-pre-wrap">{debugInfo}</pre>
                     </div>
                 </div>
             </div>

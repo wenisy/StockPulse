@@ -1055,10 +1055,6 @@ const StockPortfolioTracker: React.FC = () => {
                             <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
                             刷新价格(静态)
                         </Button>
-                        <Button onClick={refreshPricesFromAPI} disabled={isLoading} className="flex items-center gap-2 bg-green-600 hover:bg-green-700">
-                            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-                            从API获取价格
-                        </Button>
                     </div>
                     {priceData && Object.keys(priceData).length > 0 && (
                         <p className="text-xs mt-2 text-gray-500">
@@ -1088,23 +1084,6 @@ const StockPortfolioTracker: React.FC = () => {
                         >
                             股价变化图（柱状图）
                         </Button>
-                    </div>
-                </div>
-
-                {/* 调试信息区域 */}
-                <div className="mt-4 p-3 bg-gray-100 rounded-md text-xs text-gray-700 max-h-40 overflow-auto">
-                    <h3 className="font-semibold mb-1">调试信息:</h3>
-                    <div>
-                        <p>基础路径: {getBasePath()}</p>
-                        <p>当前URL: {typeof window !== 'undefined' ? window?.location.href : ""}</p>
-                        <p>价格数据状态: {Object.keys(priceData).length > 0 ? '已加载' : '未加载'}</p>
-                        {Object.keys(priceData).length > 0 && (
-                            <>
-                                <p>已加载股票: {Object.keys(priceData).join(', ')}</p>
-                                <p>最后更新: {Object.values(priceData)[0]?.lastUpdated || '未知'}</p>
-                            </>
-                        )}
-                        <pre className="mt-2 whitespace-pre-wrap">{debugInfo}</pre>
                     </div>
                 </div>
             </div>

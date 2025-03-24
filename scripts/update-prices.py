@@ -14,6 +14,32 @@ with open(symbols_path, 'r') as f:
 prices_data = {}
 exchange_rates = {}  # 用于缓存汇率，避免重复请求
 
+# 获取 HKD/USD 汇率
+print("获取 HKD/USD 汇率...")
+currency_pair = yf.Ticker("HKDUSD=X")
+exchange_rate = currency_pair.info['regularMarketPrice']
+exchange_rates['HKD'] = exchange_rate
+prices_data['HKD'] = {
+    'price': exchange_rate,
+    'name': 'HKD-USD',
+    'lastUpdated': time.strftime('%Y-%m-%d')
+}
+print(f"当前 HKD/USD 汇率: {exchange_rate}")
+time.sleep(10)  # 避免频繁请求
+
+# 获取 CNY/USD 汇率
+print("获取 CNY/USD 汇率...")
+currency_pair = yf.Ticker("CNYUSD=X")
+exchange_rate = currency_pair.info['regularMarketPrice']
+exchange_rates['CNY'] = exchange_rate
+prices_data['CNY'] = {
+    'price': exchange_rate,
+    'name': 'CNY-USD',
+    'lastUpdated': time.strftime('%Y-%m-%d')
+}
+print(f"当前 CNY/USD 汇率: {exchange_rate}")
+time.sleep(10)  # 避免频繁请求
+
 # 获取股票价格并处理
 for stock in symbols_data['stocks']:
     symbol = stock['symbol']
@@ -39,13 +65,12 @@ for stock in symbols_data['stocks']:
                 currency_pair = yf.Ticker(f"{currency}USD=X")
                 exchange_rate = currency_pair.info['regularMarketPrice']
                 exchange_rates[currency] = exchange_rate
-                # 将汇率添加到 prices_data
                 prices_data[currency] = {
                     'price': exchange_rate,
                     'name': f"{currency}-USD",
                     'lastUpdated': time.strftime('%Y-%m-%d')
                 }
-                time.sleep(10)  # 在获取汇率后等待 10 秒，避免频繁请求
+                time.sleep(10)  # 避免频繁请求
             usd_price = price * exchange_rates[currency]
             prices_data[symbol] = {
                 'price': usd_price,          # 转换为 USD 的价格
@@ -63,4 +88,5 @@ for stock in symbols_data['stocks']:
 # 保存价格数据
 with open(prices_path, 'w') as f:
     json.dump(prices_data, f, indent=2)
-    
+
+print("价格数据已保存到 prices.json")

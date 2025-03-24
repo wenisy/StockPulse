@@ -1096,7 +1096,7 @@ const StockPortfolioTracker: React.FC = () => {
                     <h3 className="font-semibold mb-1">调试信息:</h3>
                     <div>
                         <p>基础路径: {getBasePath()}</p>
-                        <p>当前URL: {window?.location.href}</p>
+                        <p>当前URL: {typeof window !== 'undefined' ? window?.location.href : ""}</p>
                         <p>价格数据状态: {Object.keys(priceData).length > 0 ? '已加载' : '未加载'}</p>
                         {Object.keys(priceData).length > 0 && (
                             <>

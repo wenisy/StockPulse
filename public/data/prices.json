@@ -1,36 +1,36 @@
 {
   "0700.HK": {
-    "price": 130.17260442404933,
-    "name": "腾讯",
+    "price": 513.0,
+    "name": "\u817e\u8baf",
     "lastUpdated": "2025-03-24"
   },
   "TSLA": {
-    "price": 124.39736158938108,
-    "name": "特斯拉",
+    "price": 248.71,
+    "name": "\u7279\u65af\u62c9",
     "lastUpdated": "2025-03-24"
   },
   "VST": {
-    "price": 98.84238309487372,
+    "price": 130.58,
     "name": "Vistra Energy",
     "lastUpdated": "2025-03-24"
   },
   "PLTR": {
-    "price": 147.00595415959424,
+    "price": 90.96,
     "name": "Palantir",
     "lastUpdated": "2025-03-24"
   },
   "RKLB": {
-    "price": 65.23807804890518,
+    "price": 18.94,
     "name": "Rocket Lab",
     "lastUpdated": "2025-03-24"
   },
   "GOOGL": {
-    "price": 90.55705929725511,
+    "price": 163.99,
     "name": "Google",
     "lastUpdated": "2025-03-24"
   },
   "VOO": {
-    "price": 75.4295707579688,
+    "price": 520.26,
     "name": "Vanguard S&P 500 ETF",
     "lastUpdated": "2025-03-24"
   }

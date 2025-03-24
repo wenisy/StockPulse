@@ -2,11 +2,11 @@
     "stocks": [
         {
             "symbol": "0700.HK",
-            "name": "腾讯"
+            "name": "Tencent"
         },
         {
             "symbol": "TSLA",
-            "name": "特斯拉"
+            "name": "Tesla"
         },
         {
             "symbol": "VST",

@@ -824,7 +824,12 @@ const StockPortfolioTracker: React.FC = () => {
                             <LineChart data={lineChartData}>
                                 <CartesianGrid strokeDasharray="3 3" />
                                 <XAxis dataKey="year" />
-                                <YAxis tickFormatter={(value) => formatLargeNumber(value, currency)} />
+                                <YAxis tickCount={5} tick={{ fontSize: 12 }}
+                                    tickFormatter={(value) => {
+                                        if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
+                                        if (value >= 1000) return `${(value / 1000).toFixed(1)}K`;
+                                        return value.toFixed(0);
+                                    }} />
                                 <Tooltip formatter={(value: number) => [formatLargeNumber(value, currency), '']} />
                                 <Legend onClick={handleLegendClick} />
                                 {Object.keys(lineChartData[0] || {}).filter((key) => key !== 'year').map((stock, index) => (

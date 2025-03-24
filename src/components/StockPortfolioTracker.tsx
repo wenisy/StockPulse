@@ -143,7 +143,7 @@ const StockPortfolioTracker: React.FC = () => {
     const [priceData, setPriceData] = useState<PriceData>({});
     const [isLoading, setIsLoading] = useState(false);
     const [currency, setCurrency] = useState('USD'); // 默认货币为 USD
-    const [exchangeRates, setExchangeRates] = useState<{ [key: string]: number }>({ USD: 1, HKD: 0.12864384 }); // 汇率，USD 为基准
+    const [exchangeRates, setExchangeRates] = useState<{ [key: string]: number }>({ USD: 1, HKD: 0.12864384, CNY: 0.14 }); // 汇率，USD 为基准
 
     const latestYear = Math.max(...years.map(Number)).toString();
 
@@ -323,9 +323,9 @@ const StockPortfolioTracker: React.FC = () => {
 
     const prepareBarChartData = useCallback(() => {
         const latestStocks = new Set(yearData[latestYear].stocks.map((stock) => stock.name));
-        const result: { name: string; [year: string]: number }[] = [];
+        const result: { name: string;[year: string]: number }[] = [];
         latestStocks.forEach((stockName) => {
-            const stockData: { name: string; [year: string]: number } = { name: stockName };
+            const stockData: { name: string;[year: string]: number } = { name: stockName };
             Object.keys(yearData).forEach((year) => {
                 const stockInYear = yearData[year].stocks.find((s) => s.name === stockName);
                 stockData[year] = stockInYear ? stockInYear.price : 0;

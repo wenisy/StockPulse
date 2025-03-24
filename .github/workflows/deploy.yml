@@ -3,7 +3,14 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [ main ]
-  workflow_dispatch:
+    paths-ignore:
+      - 'public/data/prices.json'  # 忽略仅更改 prices.json 的推送
+  workflow_run:
+    workflows: ["Update Stock Prices"]  # 在 "Update Stock Prices" 完成后触发
+    branches: [main]
+    types:
+      - completed  # 仅在工作流成功完成时触发
+  workflow_dispatch:  # 保留手动触发
 
 permissions:
   contents: read

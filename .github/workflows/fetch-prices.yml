@@ -1,32 +1,33 @@
-name: Fetch Stock Prices
+name: Update Stock Prices
 
 on:
   schedule:
     - cron: "10 21 * * *"  # 每天北京时间 5:10 AM 运行
   workflow_dispatch:     # 允许手动触发
+
 permissions:
-    contents: write      # 给予写入内容的权限
+  contents: write       # 给予写入内容的权限
 
 jobs:
-  fetch-prices:
+  update-prices:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         
-      - name: Setup Node.js
-        uses: actions/setup-node@v2
+      - name: Setup Python
+        uses: actions/setup-python@v4
         with:
-          node-version: '18'
+          python-version: '3.9'
           
       - name: Install dependencies
-        run: npm ci
+        run: pip install yfinance
         
-      - name: Create data directory if it doesn't exist
+      - name: Create data directory if it doesn’t exist
         run: mkdir -p public/data
         
-      - name: Fetch stock prices
-        run: node scripts/fetchPrices.js
+      - name: Update stock prices
+        run: python scripts/update-prices.py
         
       - name: Commit and push updated prices
         run: |

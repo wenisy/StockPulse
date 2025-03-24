@@ -148,7 +148,7 @@ const StockPortfolioTracker: React.FC = () => {
     // 获取基础路径
     const getBasePath = () => {
         // 检查当前URL来确定是在GitHub Pages上还是本地开发环境
-        if (window.location.hostname.includes('github.io')) {
+        if (window?.location.hostname.includes('github.io')) {
             // 在GitHub Pages上，需要加上仓库名
             return '/StockPulse';
         }
@@ -1096,7 +1096,7 @@ const StockPortfolioTracker: React.FC = () => {
                     <h3 className="font-semibold mb-1">调试信息:</h3>
                     <div>
                         <p>基础路径: {getBasePath()}</p>
-                        <p>当前URL: {window.location.href}</p>
+                        <p>当前URL: {window?.location.href}</p>
                         <p>价格数据状态: {Object.keys(priceData).length > 0 ? '已加载' : '未加载'}</p>
                         {Object.keys(priceData).length > 0 && (
                             <>

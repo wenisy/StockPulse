@@ -35,15 +35,15 @@ import {
 interface Stock {
     name: string;
     shares: number;
-    price: number;
-    costPrice: number;
+    price: number; // 股票的原始价格（USD）
+    costPrice: number; // 成本价格（USD）
     id: string;
-    totalCost: number; // 记录买入总金额
+    totalCost: number; // 记录买入总金额（USD）
     symbol?: string; // 股票代码
 }
 
 interface CashTransaction {
-    amount: number;
+    amount: number; // 交易金额（USD）
     type: 'deposit' | 'withdraw' | 'buy' | 'sell';
     date: string;
     stockName?: string; // 对于股票交易，记录股票名称
@@ -53,7 +53,7 @@ interface StockTransaction {
     stockName: string;
     type: 'buy' | 'sell';
     shares: number;
-    price: number;
+    price: number; // 交易价格（USD）
     date: string;
 }
 
@@ -61,7 +61,7 @@ interface YearData {
     stocks: Stock[];
     cashTransactions: CashTransaction[];
     stockTransactions: StockTransaction[];
-    cashBalance: number;
+    cashBalance: number; // 现金余额（USD）
 }
 
 interface StockSymbol {
@@ -71,7 +71,8 @@ interface StockSymbol {
 
 interface PriceData {
     [symbol: string]: {
-        price: number;
+        price: number; // USD 价格
+        hkdPrice?: number; // 港股的 HKD 价格
         name: string;
         lastUpdated: string;
     };
@@ -141,14 +142,14 @@ const StockPortfolioTracker: React.FC = () => {
     const [stockSymbols, setStockSymbols] = useState<StockSymbol[]>([]);
     const [priceData, setPriceData] = useState<PriceData>({});
     const [isLoading, setIsLoading] = useState(false);
-    const [debugInfo, setDebugInfo] = useState<string>('');
+    const [currency, setCurrency] = useState('USD'); // 默认货币为 USD
+    const [exchangeRates, setExchangeRates] = useState<{ [key: string]: number }>({ USD: 1, HKD: 0.12864384 }); // 汇率，USD 为基准
 
     const latestYear = Math.max(...years.map(Number)).toString();
 
     // 获取基础路径
     const getBasePath = () => {
         if (typeof window !== 'undefined') {
-            // Now it's safe to use window
             if (window.location.hostname.includes('github.io')) {
                 return '/StockPulse';
             }
@@ -161,117 +162,100 @@ const StockPortfolioTracker: React.FC = () => {
         const fetchSymbols = async () => {
             try {
                 const url = `${getBasePath()}/data/symbols.json`;
-                setDebugInfo(prev => prev + `\n尝试获取股票符号数据：${url}`);
-
                 const response = await fetch(url);
-                setDebugInfo(prev => prev + `\n股票符号响应状态：${response.status}`);
-
                 if (response.ok) {
                     const data = await response.json();
                     setStockSymbols(data.stocks || []);
-                    setDebugInfo(prev => prev + `\n成功获取${data.stocks?.length || 0}个股票符号`);
                 }
             } catch (error) {
                 console.error('获取股票符号失败:', error);
-                setDebugInfo(prev => prev + `\n获取股票符号失败: ${error}`);
             }
         };
-
         fetchSymbols();
     }, []);
 
-    // 获取最新价格
+    // 获取最新价格和汇率
     useEffect(() => {
         const fetchLatestPrices = async () => {
             try {
                 const url = `${getBasePath()}/data/prices.json`;
-                setDebugInfo(prev => prev + `\n尝试获取价格数据：${url}`);
-
-                // 添加时间戳防止缓存
                 const timestamp = new Date().getTime();
                 const response = await fetch(`${url}?t=${timestamp}`);
-                setDebugInfo(prev => prev + `\n价格数据响应状态：${response.status}`);
-
                 if (response.ok) {
                     const data = await response.json();
-                    setDebugInfo(prev => prev + `\n成功获取价格数据，包含${Object.keys(data).length}个股票`);
                     setPriceData(data);
 
-                    // 自动更新最新年份的股票价格
+                    // 提取汇率
+                    const rates: { [key: string]: number } = { USD: 1 };
+                    if (data['HKD']) rates['HKD'] = data['HKD'].price; // HKD to USD
+                    if (data['CNY']) rates['CNY'] = data['CNY'].price; // CNY to USD
+                    setExchangeRates(rates);
+
+                    // 更新最新年份的股票价格
                     updateLatestPrices(data);
-                } else {
-                    setDebugInfo(prev => prev + `\n获取价格数据失败: ${response.status}`);
                 }
             } catch (error) {
                 console.error('获取最新价格时出错:', error);
-                setDebugInfo(prev => prev + `\n获取最新价格时出错: ${error}`);
             }
         };
-
         fetchLatestPrices();
     }, []);
 
     const updateLatestPrices = (prices: PriceData) => {
         setYearData((prevYearData) => {
             const updatedYearData = { ...prevYearData };
-
-            // 只更新最新年份的价格
             updatedYearData[latestYear].stocks.forEach(stock => {
                 if (stock.symbol && prices[stock.symbol]) {
-                    stock.price = prices[stock.symbol].price;
+                    if (stock.symbol.endsWith('.HK') && prices[stock.symbol].hkdPrice) {
+                        stock.price = prices[stock.symbol].hkdPrice * exchangeRates['HKD'];
+                    } else {
+                        stock.price = prices[stock.symbol].price;
+                    }
                 }
             });
-
             return updatedYearData;
         });
     };
 
     const refreshPrices = async () => {
         setIsLoading(true);
-        setDebugInfo('开始刷新价格...');
         try {
             const url = `${getBasePath()}/data/prices.json`;
-            setDebugInfo(prev => prev + `\n尝试获取价格数据：${url}`);
-
-            // 添加时间戳防止缓存
             const timestamp = new Date().getTime();
             const response = await fetch(`${url}?t=${timestamp}`);
-            setDebugInfo(prev => prev + `\n价格数据响应状态：${response.status}`);
-
             if (response.ok) {
                 const data = await response.json();
-                setDebugInfo(prev => prev + `\n成功获取价格数据，包含${Object.keys(data).length}个股票`);
                 setPriceData(data);
+
+                // 更新汇率
+                const rates: { [key: string]: number } = { USD: 1 };
+                if (data['HKD']) rates['HKD'] = data['HKD'].price;
+                if (data['CNY']) rates['CNY'] = data['CNY'].price;
+                setExchangeRates(rates);
 
                 setYearData((prevYearData) => {
                     const updatedYearData = { ...prevYearData };
-
-                    // 更新当前选中年份的股票价格
                     updatedYearData[selectedYear].stocks.forEach(stock => {
                         if (stock.symbol && data[stock.symbol]) {
-                            stock.price = data[stock.symbol].price;
-                            setDebugInfo(prev => prev + `\n更新 ${stock.name} (${stock.symbol}) 价格为 ${data[stock.symbol].price}`);
+                            if (stock.symbol.endsWith('.HK') && data[stock.symbol].hkdPrice) {
+                                stock.price = data[stock.symbol].hkdPrice * rates['HKD'];
+                            } else {
+                                stock.price = data[stock.symbol].price;
+                            }
                         }
                     });
-
                     return updatedYearData;
                 });
-
-                // 获取当前时间作为更新时间
-                const updateTime = new Date().toLocaleString();
 
                 setAlertInfo({
                     isOpen: true,
                     title: '价格已更新',
-                    description: `股票价格已更新至最新数据（${updateTime}）`,
+                    description: `股票价格已更新至最新数据（${new Date().toLocaleString()}）`,
                     onCancel: () => setAlertInfo(null),
                 });
-            } else {
-                throw new Error(`获取价格数据失败: ${response.status}`);
             }
         } catch (error) {
             console.error('刷新价格时出错:', error);
-            setDebugInfo(prev => prev + `\n刷新价格时出错: ${error}`);
             setAlertInfo({
                 isOpen: true,
                 title: '更新失败',
@@ -283,83 +267,19 @@ const StockPortfolioTracker: React.FC = () => {
         }
     };
 
-    // 直接从API获取股票价格（备用方案）
-    const fetchStockPrice = async (symbol) => {
-        try {
-            setDebugInfo(prev => prev + `\n尝试直接从Yahoo Finance API获取 ${symbol} 价格`);
-            const response = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d`);
-
-            if (response.ok) {
-                const data = await response.json();
-                if (data.chart && data.chart.result && data.chart.result[0] && data.chart.result[0].meta) {
-                    const price = data.chart.result[0].meta.regularMarketPrice;
-                    setDebugInfo(prev => prev + `\n成功获取 ${symbol} 价格：${price}`);
-                    return price;
-                }
-            }
-            setDebugInfo(prev => prev + `\nAPI请求失败: ${response.status}`);
-            return null;
-        } catch (error) {
-            console.error(`获取 ${symbol} 价格出错:`, error);
-            setDebugInfo(prev => prev + `\n获取 ${symbol} 价格出错: ${error}`);
-            return null;
-        }
+    // 将金额转换为目标货币
+    const convertToCurrency = (amount: number, targetCurrency: string): number => {
+        const rate = exchangeRates[targetCurrency] || 1;
+        return amount / rate; // 假设数据以 USD 存储，转换为目标货币
     };
 
-    // 直接从API更新价格（备用方案）
-    const refreshPricesFromAPI = async () => {
-        setIsLoading(true);
-        setDebugInfo('开始从API刷新价格...');
-        try {
-            // 更新当前选中年份的股票价格
-            const updatedYearData = { ...yearData };
-            const stocksToUpdate = updatedYearData[selectedYear].stocks;
-
-            for (const stock of stocksToUpdate) {
-                if (stock.symbol) {
-                    const price = await fetchStockPrice(stock.symbol);
-                    if (price !== null) {
-                        stock.price = price;
-
-                        // 同时更新priceData
-                        setPriceData(prev => ({
-                            ...prev,
-                            [stock.symbol]: {
-                                price,
-                                name: stock.name,
-                                lastUpdated: new Date().toISOString().split('T')[0]
-                            }
-                        }));
-                    }
-                }
-            }
-
-            setYearData(updatedYearData);
-
-            setAlertInfo({
-                isOpen: true,
-                title: '价格已更新',
-                description: `股票价格已从API直接更新（${new Date().toLocaleString()}）`,
-                onCancel: () => setAlertInfo(null),
-            });
-        } catch (error) {
-            console.error('从API刷新价格时出错:', error);
-            setDebugInfo(prev => prev + `\n从API刷新价格时出错: ${error}`);
-            setAlertInfo({
-                isOpen: true,
-                title: '更新失败',
-                description: '从API获取最新价格时发生错误，请稍后再试',
-                onCancel: () => setAlertInfo(null),
-            });
-        } finally {
-            setIsLoading(false);
-        }
+    const formatLargeNumber = (num: number, targetCurrency: string) => {
+        const convertedNum = convertToCurrency(num, targetCurrency);
+        return new Intl.NumberFormat('zh-CN', { maximumFractionDigits: 2 }).format(convertedNum);
     };
 
     const calculateYearlyValues = useCallback(() => {
-        const yearlyValues: {
-            [year: string]: { [stockName: string]: number; 总计: number };
-        } = {};
+        const yearlyValues: { [year: string]: { [stockName: string]: number; 总计: number } } = {};
         Object.keys(yearData).forEach((year) => {
             yearlyValues[year] = {};
             let yearTotal = 0;
@@ -388,9 +308,7 @@ const StockPortfolioTracker: React.FC = () => {
         const allStocks = new Set<string>();
         Object.values(yearData).forEach((yearDataItem) => {
             yearDataItem.stocks.forEach((stock) => {
-                if (latestStocks.has(stock.name)) {
-                    allStocks.add(stock.name);
-                }
+                if (latestStocks.has(stock.name)) allStocks.add(stock.name);
             });
         });
         return Object.keys(yearData).map((year) => {
@@ -405,9 +323,9 @@ const StockPortfolioTracker: React.FC = () => {
 
     const prepareBarChartData = useCallback(() => {
         const latestStocks = new Set(yearData[latestYear].stocks.map((stock) => stock.name));
-        const result: { name: string;[year: string]: number }[] = [];
+        const result: { name: string; [year: string]: number }[] = [];
         latestStocks.forEach((stockName) => {
-            const stockData: { name: string;[year: string]: number } = { name: stockName };
+            const stockData: { name: string; [year: string]: number } = { name: stockName };
             Object.keys(yearData).forEach((year) => {
                 const stockInYear = yearData[year].stocks.find((s) => s.name === stockName);
                 stockData[year] = stockInYear ? stockInYear.price : 0;
@@ -430,7 +348,6 @@ const StockPortfolioTracker: React.FC = () => {
 
     const addCashTransaction = () => {
         if (!cashTransactionAmount || !selectedYear) return;
-
         const amount = parseFloat(cashTransactionAmount);
         if (isNaN(amount)) return;
 
@@ -440,10 +357,8 @@ const StockPortfolioTracker: React.FC = () => {
             type: cashTransactionType,
             date: new Date().toISOString().split('T')[0],
         };
-
         updatedYearData[selectedYear].cashTransactions.push(cashTransaction);
         updatedYearData[selectedYear].cashBalance += cashTransaction.amount;
-
         setYearData(updatedYearData);
         setCashTransactionAmount('');
     };
@@ -482,19 +397,7 @@ const StockPortfolioTracker: React.FC = () => {
                     description: '购买股票的现金不足，现金余额将变为负数',
                     onConfirm: () => {
                         updatedYearData[selectedYear].cashBalance -= transactionCost;
-                        updateStock(
-                            updatedYearData,
-                            selectedYear,
-                            stockName,
-                            newSharesValue,
-                            yearEndPrice || transactionPrice,
-                            newCostPrice,
-                            newTotalCost,
-                            transactionShares,
-                            transactionPrice,
-                            transactionType,
-                            stockSymbol
-                        );
+                        updateStock(updatedYearData, selectedYear, stockName, newSharesValue, yearEndPrice || transactionPrice, newCostPrice, newTotalCost, transactionShares, transactionPrice, transactionType, stockSymbol);
                         setYearData(updatedYearData);
                         resetForm();
                         setAlertInfo(null);
@@ -502,10 +405,8 @@ const StockPortfolioTracker: React.FC = () => {
                     onCancel: () => setAlertInfo(null),
                 });
                 return;
-            } else {
-                // 不直接更新现金余额，等待确认
             }
-        } else if (transactionType === 'sell') {
+        } else {
             if (transactionShares > oldShares) {
                 setAlertInfo({
                     isOpen: true,
@@ -519,60 +420,39 @@ const StockPortfolioTracker: React.FC = () => {
             transactionCost = transactionShares * transactionPrice;
             newTotalCost = oldTotalCost - transactionCost;
             newCostPrice = newSharesValue > 0 ? newTotalCost / newSharesValue : 0;
-            // 不直接更新现金余额，等待确认
         }
 
-        const displayYearEndPrice = yearEndPrice !== null
-            ? yearEndPrice
-            : (currentStock ? currentStock.price : transactionPrice);
-        const displayYearEndPriceText = yearEndPrice !== null
-            ? displayYearEndPrice.toFixed(2)
-            : `${displayYearEndPrice.toFixed(2)}（未填入）`;
-
+        const displayYearEndPrice = yearEndPrice !== null ? yearEndPrice : (currentStock ? currentStock.price : transactionPrice);
+        const displayYearEndPriceText = yearEndPrice !== null ? displayYearEndPrice.toFixed(2) : `${displayYearEndPrice.toFixed(2)}（未填入）`;
         const oldCostPrice = currentStock ? currentStock.costPrice : 0;
 
         const description = `
-      股票: ${stockName}
-      交易类型: ${transactionType === 'buy' ? '买入' : '卖出'}
-      股数: ${transactionShares}
-      交易价格: ${transactionPrice.toFixed(2)}
-      当前价格: ${displayYearEndPriceText}
-      原成本价: ${oldCostPrice.toFixed(2)}
-      新成本价: ${newCostPrice.toFixed(2)}
-      ${stockSymbol ? `股票代码: ${stockSymbol}` : ''}
-    `;
+            股票: ${stockName}
+            交易类型: ${transactionType === 'buy' ? '买入' : '卖出'}
+            股数: ${transactionShares}
+            交易价格: ${transactionPrice.toFixed(2)}
+            当前价格: ${displayYearEndPriceText}
+            原成本价: ${oldCostPrice.toFixed(2)}
+            新成本价: ${newCostPrice.toFixed(2)}
+            ${stockSymbol ? `股票代码: ${stockSymbol}` : ''}
+        `;
 
         setAlertInfo({
             isOpen: true,
             title: '确认交易',
             description,
             onConfirm: () => {
-                // 在确认时更新现金余额
                 if (transactionType === 'buy') {
                     updatedYearData[selectedYear].cashBalance -= transactionCost;
-                } else if (transactionType === 'sell') {
+                } else {
                     updatedYearData[selectedYear].cashBalance += transactionCost;
                 }
-                updateStock(
-                    updatedYearData,
-                    selectedYear,
-                    stockName,
-                    newSharesValue,
-                    displayYearEndPrice,
-                    newCostPrice,
-                    newTotalCost,
-                    transactionShares,
-                    transactionPrice,
-                    transactionType,
-                    stockSymbol
-                );
+                updateStock(updatedYearData, selectedYear, stockName, newSharesValue, displayYearEndPrice, newCostPrice, newTotalCost, transactionShares, transactionPrice, transactionType, stockSymbol);
                 setYearData(updatedYearData);
                 resetForm();
                 setAlertInfo(null);
             },
-            onCancel: () => {
-                setAlertInfo(null);
-            },
+            onCancel: () => setAlertInfo(null),
         });
     };
 
@@ -591,37 +471,14 @@ const StockPortfolioTracker: React.FC = () => {
     ) => {
         const stockIndex = updatedYearData[year].stocks.findIndex((s) => s.name === stockName);
         if (stockIndex !== -1) {
-            updatedYearData[year].stocks[stockIndex] = {
-                ...updatedYearData[year].stocks[stockIndex],
-                shares,
-                price,
-                costPrice,
-                totalCost,
-                symbol: symbol || updatedYearData[year].stocks[stockIndex].symbol
-            };
+            updatedYearData[year].stocks[stockIndex] = { ...updatedYearData[year].stocks[stockIndex], shares, price, costPrice, totalCost, symbol: symbol || updatedYearData[year].stocks[stockIndex].symbol };
         } else {
-            updatedYearData[year].stocks.push({
-                name: stockName,
-                shares,
-                price,
-                costPrice,
-                id: uuidv4(),
-                totalCost,
-                symbol
-            });
+            updatedYearData[year].stocks.push({ name: stockName, shares, price, costPrice, id: uuidv4(), totalCost, symbol });
         }
 
-        // 记录股票交易
-        const stockTransaction: StockTransaction = {
-            stockName,
-            type: transactionType,
-            shares: transactionShares,
-            price: transactionPrice,
-            date: new Date().toISOString().split('T')[0],
-        };
+        const stockTransaction: StockTransaction = { stockName, type: transactionType, shares: transactionShares, price: transactionPrice, date: new Date().toISOString().split('T')[0] };
         updatedYearData[year].stockTransactions.push(stockTransaction);
 
-        // 记录现金变化
         const cashTransaction: CashTransaction = {
             amount: transactionType === 'buy' ? -transactionShares * transactionPrice : transactionShares * transactionPrice,
             type: transactionType,
@@ -642,9 +499,7 @@ const StockPortfolioTracker: React.FC = () => {
 
     const handleEditRow = (stockName: string) => {
         setEditingStockName(stockName);
-        const initialEditedData: {
-            [year: string]: { quantity: string; unitPrice: string; costPrice: string; symbol?: string };
-        } = {};
+        const initialEditedData: { [year: string]: { quantity: string; unitPrice: string; costPrice: string; symbol?: string } } = {};
         years.forEach((year) => {
             const stock = yearData[year]?.stocks.find((s) => s.name === stockName);
             initialEditedData[year] = {
@@ -674,24 +529,9 @@ const StockPortfolioTracker: React.FC = () => {
                 if (!isNaN(shares) && !isNaN(price) && !isNaN(costPrice)) {
                     const stockIndex = updatedYearData[year].stocks.findIndex((s) => s.name === stockName);
                     if (stockIndex !== -1) {
-                        updatedYearData[year].stocks[stockIndex] = {
-                            ...updatedYearData[year].stocks[stockIndex],
-                            shares,
-                            price,
-                            costPrice,
-                            totalCost: shares * costPrice,
-                            symbol
-                        };
+                        updatedYearData[year].stocks[stockIndex] = { ...updatedYearData[year].stocks[stockIndex], shares, price, costPrice, totalCost: shares * costPrice, symbol };
                     } else {
-                        updatedYearData[year].stocks.push({
-                            name: stockName,
-                            shares,
-                            price,
-                            costPrice,
-                            id: uuidv4(),
-                            totalCost: shares * costPrice,
-                            symbol
-                        });
+                        updatedYearData[year].stocks.push({ name: stockName, shares, price, costPrice, id: uuidv4(), totalCost: shares * costPrice, symbol });
                     }
                 } else {
                     updatedYearData[year].stocks = updatedYearData[year].stocks.filter((s) => s.name !== stockName);
@@ -703,16 +543,9 @@ const StockPortfolioTracker: React.FC = () => {
         setEditedRowData(null);
     };
 
-    const handleInputChange = (
-        year: string,
-        field: 'quantity' | 'unitPrice' | 'costPrice' | 'symbol',
-        value: string
-    ) => {
+    const handleInputChange = (year: string, field: 'quantity' | 'unitPrice' | 'costPrice' | 'symbol', value: string) => {
         if (editingStockName && editedRowData) {
-            setEditedRowData((prev) => ({
-                ...prev,
-                [year]: { ...prev[year], [field]: value },
-            }));
+            setEditedRowData((prev) => ({ ...prev!, [year]: { ...prev![year], [field]: value } }));
         }
     };
 
@@ -720,10 +553,7 @@ const StockPortfolioTracker: React.FC = () => {
         setYearData((prevYearData) => {
             const updatedYearData: { [year: string]: YearData } = {};
             Object.keys(prevYearData).forEach((year) => {
-                updatedYearData[year] = {
-                    ...prevYearData[year],
-                    stocks: prevYearData[year].stocks.filter((stock) => stock.name !== stockName),
-                };
+                updatedYearData[year] = { ...prevYearData[year], stocks: prevYearData[year].stocks.filter((stock) => stock.name !== stockName) };
             });
             return updatedYearData;
         });
@@ -746,23 +576,10 @@ const StockPortfolioTracker: React.FC = () => {
         const rows = stockNames.map((stockName) => {
             const row: ({ name: string; symbol?: string } | { shares: number; price: number; costPrice: number; symbol?: string } | null)[] = [];
             const stockInLatestYear = yearData[latestYear].stocks.find((s) => s.name === stockName);
-            // 第一列包含 name 和 symbol
-            row.push({
-                name: stockName,
-                symbol: stockInLatestYear?.symbol
-            });
+            row.push({ name: stockName, symbol: stockInLatestYear?.symbol });
             years.forEach((year) => {
                 const stockInYear = yearData[year].stocks.find((s) => s.name === stockName);
-                row.push(
-                    stockInYear
-                        ? {
-                            shares: stockInYear.shares,
-                            price: stockInYear.price,
-                            costPrice: stockInYear.costPrice,
-                            symbol: stockInYear.symbol
-                        }
-                        : null
-                );
+                row.push(stockInYear ? { shares: stockInYear.shares, price: stockInYear.price, costPrice: stockInYear.costPrice, symbol: stockInYear.symbol } : null);
             });
             row.push(null); // 操作列
             return row;
@@ -770,10 +587,6 @@ const StockPortfolioTracker: React.FC = () => {
         const totalRow = ['总计', ...years.map(() => null), null];
         return { headers, rows, totalRow };
     }, [yearData, years, latestYear]);
-
-    const formatLargeNumber = (num: number) => {
-        return new Intl.NumberFormat('zh-CN', { maximumFractionDigits: 2 }).format(num);
-    };
 
     const lineChartData = prepareLineChartData();
     const barChartData = prepareBarChartData();
@@ -795,7 +608,6 @@ const StockPortfolioTracker: React.FC = () => {
         const savedData = localStorage.getItem('stockPortfolioData');
         const savedYears = localStorage.getItem('stockPortfolioYears');
         const savedSelectedYear = localStorage.getItem('stockPortfolioSelectedYear');
-
         if (savedData) setYearData(JSON.parse(savedData));
         if (savedYears) setYears(JSON.parse(savedYears));
         if (savedSelectedYear) setSelectedYear(savedSelectedYear);
@@ -816,7 +628,7 @@ const StockPortfolioTracker: React.FC = () => {
                 (acc, tx) => acc + (tx.type === 'deposit' ? tx.amount : tx.type === 'withdraw' ? -tx.amount : 0),
                 0
             );
-        };
+        }
         return cumulativeInvested;
     };
 
@@ -850,7 +662,7 @@ const StockPortfolioTracker: React.FC = () => {
                                             const description = tx.type === 'deposit' ? '存入' : tx.type === 'withdraw' ? '取出' : tx.type === 'buy' ? `买入${tx.stockName}` : `卖出${tx.stockName}`;
                                             return (
                                                 <li key={index} className={colorClass}>
-                                                    {tx.date}: {description} {formatLargeNumber(Math.abs(tx.amount))}
+                                                    {tx.date}: {description} {formatLargeNumber(Math.abs(tx.amount), currency)}
                                                 </li>
                                             );
                                         })}
@@ -861,25 +673,25 @@ const StockPortfolioTracker: React.FC = () => {
                                     <ul>
                                         {yearDataItem.stockTransactions.map((tx, index) => (
                                             <li key={index}>
-                                                {tx.date}: {tx.type === 'buy' ? '买入' : '卖出'} {tx.stockName} {tx.shares}股，价格 {tx.price.toFixed(2)}
+                                                {tx.date}: {tx.type === 'buy' ? '买入' : '卖出'} {tx.stockName} {tx.shares}股，价格 {formatLargeNumber(tx.price, currency)}
                                             </li>
                                         ))}
                                     </ul>
                                 </div>
                                 <div>
                                     <h3 className="font-semibold">当年总持仓</h3>
-                                    <p>¥{formatLargeNumber(totalPortfolioValue)} (股票: ¥{formatLargeNumber(stockValue)}, 现金: ¥{formatLargeNumber(yearDataItem.cashBalance)})</p>
+                                    <p>{formatLargeNumber(totalPortfolioValue, currency)} (股票: {formatLargeNumber(stockValue, currency)}, 现金: {formatLargeNumber(yearDataItem.cashBalance, currency)})</p>
                                 </div>
                                 <div>
                                     <h3 className="font-semibold">累计投入现金</h3>
-                                    <p>当年: ¥{formatLargeNumber(yearlyInvested)}, 历史累计: ¥{formatLargeNumber(cumulativeInvested)}</p>
+                                    <p>当年: {formatLargeNumber(yearlyInvested, currency)}, 历史累计: {formatLargeNumber(cumulativeInvested, currency)}</p>
                                 </div>
                                 <div>
                                     <h3 className="font-semibold">投资增长（有记录以来）</h3>
                                     <ul>
-                                        <li>总持仓金额: ¥{formatLargeNumber(totalPortfolioValue)}</li>
-                                        <li>历史累计投入: ¥{formatLargeNumber(cumulativeInvested)}</li>
-                                        <li>赚的金额: ¥{formatLargeNumber(growth)}</li>
+                                        <li>总持仓金额: {formatLargeNumber(totalPortfolioValue, currency)}</li>
+                                        <li>历史累计投入: {formatLargeNumber(cumulativeInvested, currency)}</li>
+                                        <li>赚的金额: {formatLargeNumber(growth, currency)}</li>
                                         <li>成长比例: {growthRate.toFixed(2)}%</li>
                                     </ul>
                                 </div>
@@ -892,13 +704,8 @@ const StockPortfolioTracker: React.FC = () => {
         );
     };
 
-    const handleCopyData = () => {
-        setIsCopyDialogOpen(true);
-    };
-
-    const handlePasteData = () => {
-        setIsPasteDialogOpen(true);
-    };
+    const handleCopyData = () => setIsCopyDialogOpen(true);
+    const handlePasteData = () => setIsPasteDialogOpen(true);
 
     const confirmPasteData = () => {
         try {
@@ -906,21 +713,11 @@ const StockPortfolioTracker: React.FC = () => {
             setYearData(pastedData);
             setYears(Object.keys(pastedData));
             setSelectedYear(Object.keys(pastedData)[Object.keys(pastedData).length - 1]);
-            setAlertInfo({
-                isOpen: true,
-                title: '粘贴成功',
-                description: '数据已成功粘贴并更新',
-                onCancel: () => setAlertInfo(null),
-            });
+            setAlertInfo({ isOpen: true, title: '粘贴成功', description: '数据已成功粘贴并更新', onCancel: () => setAlertInfo(null) });
             setIsPasteDialogOpen(false);
             setPasteData('');
         } catch (e) {
-            setAlertInfo({
-                isOpen: true,
-                title: '粘贴失败',
-                description: '粘贴的数据格式不正确',
-                onCancel: () => setAlertInfo(null),
-            });
+            setAlertInfo({ isOpen: true, title: '粘贴失败', description: '粘贴的数据格式不正确', onCancel: () => setAlertInfo(null) });
         }
     };
 
@@ -933,27 +730,15 @@ const StockPortfolioTracker: React.FC = () => {
                     <div>
                         <h2 className="text-lg font-semibold mb-2">添加新年份</h2>
                         <div className="flex gap-2">
-                            <Input
-                                type="text"
-                                placeholder="例如: 2025"
-                                value={newYear}
-                                onChange={(e) => setNewYear(e.target.value)}
-                                className="flex-grow"
-                            />
+                            <Input type="text" placeholder="例如: 2025" value={newYear} onChange={(e) => setNewYear(e.target.value)} className="flex-grow" />
                             <Button onClick={addNewYear}>添加年份</Button>
                         </div>
                     </div>
                     <div>
                         <h2 className="text-lg font-semibold mb-2">选择年份</h2>
                         <Select onValueChange={setSelectedYear} value={selectedYear}>
-                            <SelectTrigger className="w-full">
-                                <SelectValue placeholder="选择年份" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {years.map((year) => (
-                                    <SelectItem key={year} value={year}>{year}</SelectItem>
-                                ))}
-                            </SelectContent>
+                            <SelectTrigger className="w-full"><SelectValue placeholder="选择年份" /></SelectTrigger>
+                            <SelectContent>{years.map((year) => <SelectItem key={year} value={year}>{year}</SelectItem>)}</SelectContent>
                         </Select>
                     </div>
                 </div>
@@ -961,93 +746,32 @@ const StockPortfolioTracker: React.FC = () => {
                 <div>
                     <h2 className="text-lg font-semibold mb-2">添加/更新现金数量 ({selectedYear}年)</h2>
                     <div className="flex gap-2">
-                        <Select
-                            onValueChange={(value) => setCashTransactionType(value as 'deposit' | 'withdraw')}
-                            value={cashTransactionType}
-                        >
-                            <SelectTrigger className="w-32">
-                                <SelectValue placeholder="类型" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="deposit">存入</SelectItem>
-                                <SelectItem value="withdraw">取出</SelectItem>
-                            </SelectContent>
+                        <Select onValueChange={(value) => setCashTransactionType(value as 'deposit' | 'withdraw')} value={cashTransactionType}>
+                            <SelectTrigger className="w-32"><SelectValue placeholder="类型" /></SelectTrigger>
+                            <SelectContent><SelectItem value="deposit">存入</SelectItem><SelectItem value="withdraw">取出</SelectItem></SelectContent>
                         </Select>
-                        <Input
-                            type="number"
-                            placeholder="金额"
-                            value={cashTransactionAmount}
-                            onChange={(e) => setCashTransactionAmount(e.target.value)}
-                            className="w-32"
-                        />
+                        <Input type="number" placeholder="金额" value={cashTransactionAmount} onChange={(e) => setCashTransactionAmount(e.target.value)} className="w-32" />
                         <Button onClick={addCashTransaction}>添加现金操作</Button>
                     </div>
-                    <p
-                        className={cn(
-                            'text-sm mt-2',
-                            yearData[selectedYear].cashBalance < 0 ? 'text-red-500' : 'text-green-500'
-                        )}
-                    >
-                        现金余额: ¥{formatLargeNumber(yearData[selectedYear].cashBalance)}
+                    <p className={cn('text-sm mt-2', yearData[selectedYear].cashBalance < 0 ? 'text-red-500' : 'text-green-500')}>
+                        现金余额: {formatLargeNumber(yearData[selectedYear].cashBalance, currency)}
                     </p>
                 </div>
 
                 <div>
                     <h2 className="text-lg font-semibold mb-2">添加/更新股票 ({selectedYear}年)</h2>
                     <div className="grid grid-cols-1 md:grid-cols-6 gap-2">
-                        <Input
-                            type="text"
-                            placeholder="股票名称"
-                            value={newStockName}
-                            onChange={(e) => setNewStockName(e.target.value)}
-                            list="stockNameList"
-                        />
-                        <datalist id="stockNameList">
-                            {stockSymbols.map((item) => (
-                                <option key={item.symbol} value={item.name} />
-                            ))}
-                        </datalist>
-                        <Input
-                            type="text"
-                            placeholder="股票代码 (如 BABA)"
-                            value={newStockSymbol}
-                            onChange={(e) => setNewStockSymbol(e.target.value)}
-                            list="stockSymbolList"
-                        />
-                        <datalist id="stockSymbolList">
-                            {stockSymbols.map((item) => (
-                                <option key={item.symbol} value={item.symbol} />
-                            ))}
-                        </datalist>
+                        <Input type="text" placeholder="股票名称" value={newStockName} onChange={(e) => setNewStockName(e.target.value)} list="stockNameList" />
+                        <datalist id="stockNameList">{stockSymbols.map((item) => <option key={item.symbol} value={item.name} />)}</datalist>
+                        <Input type="text" placeholder="股票代码 (如 BABA)" value={newStockSymbol} onChange={(e) => setNewStockSymbol(e.target.value)} list="stockSymbolList" />
+                        <datalist id="stockSymbolList">{stockSymbols.map((item) => <option key={item.symbol} value={item.symbol} />)}</datalist>
                         <Select onValueChange={(value) => setTransactionType(value as 'buy' | 'sell')} value={transactionType}>
-                            <SelectTrigger>
-                                <SelectValue placeholder="交易类型" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="buy">买入</SelectItem>
-                                <SelectItem value="sell">卖出</SelectItem>
-                            </SelectContent>
+                            <SelectTrigger><SelectValue placeholder="交易类型" /></SelectTrigger>
+                            <SelectContent><SelectItem value="buy">买入</SelectItem><SelectItem value="sell">卖出</SelectItem></SelectContent>
                         </Select>
-                        <Input
-                            type="number"
-                            placeholder="交易股数"
-                            value={newShares}
-                            onChange={(e) => setNewShares(e.target.value)}
-                        />
-                        <Input
-                            type="number"
-                            placeholder="交易价格"
-                            value={newPrice}
-                            onChange={(e) => setNewPrice(e.target.value)}
-                            step="0.01"
-                        />
-                        <Input
-                            type="number"
-                            placeholder="当前价格（可选）"
-                            value={newYearEndPrice}
-                            onChange={(e) => setNewYearEndPrice(e.target.value)}
-                            step="0.01"
-                        />
+                        <Input type="number" placeholder="交易股数" value={newShares} onChange={(e) => setNewShares(e.target.value)} />
+                        <Input type="number" placeholder="交易价格" value={newPrice} onChange={(e) => setNewPrice(e.target.value)} step="0.01" />
+                        <Input type="number" placeholder="当前价格（可选）" value={newYearEndPrice} onChange={(e) => setNewYearEndPrice(e.target.value)} step="0.01" />
                     </div>
                     <Button onClick={confirmAddNewStock} className="mt-2">添加股票</Button>
                 </div>
@@ -1058,36 +782,33 @@ const StockPortfolioTracker: React.FC = () => {
                         <Button onClick={handleCopyData}>复制数据</Button>
                         <Button onClick={handlePasteData}>粘贴数据</Button>
                         <Button onClick={refreshPrices} disabled={isLoading} className="flex items-center gap-2">
-                            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-                            刷新价格(静态)
+                            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} /> 刷新价格(静态)
                         </Button>
                     </div>
                     {priceData && Object.keys(priceData).length > 0 && (
-                        <p className="text-xs mt-2 text-gray-500">
-                            最后更新时间: {Object.values(priceData)[0]?.lastUpdated || '未知'}
-                        </p>
+                        <p className="text-xs mt-2 text-gray-500">最后更新时间: {Object.values(priceData)[0]?.lastUpdated || '未知'}</p>
                     )}
+                </div>
+
+                <div>
+                    <h2 className="text-lg font-semibold mb-2">选择货币</h2>
+                    <Select onValueChange={setCurrency} value={currency}>
+                        <SelectTrigger className="w-32"><SelectValue placeholder="选择货币" /></SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="USD">USD</SelectItem>
+                            <SelectItem value="HKD">HKD</SelectItem>
+                            {exchangeRates['CNY'] && <SelectItem value="CNY">CNY</SelectItem>}
+                        </SelectContent>
+                    </Select>
                 </div>
 
                 <div>
                     <h2 className="text-lg font-semibold mb-2">图表类型</h2>
                     <div className="flex gap-4">
-                        <Button
-                            onClick={() => setShowPositionChart(true)}
-                            className={cn(
-                                'px-4 py-2 rounded',
-                                showPositionChart ? 'bg-blue-500 text-white' : 'bg-gray-200'
-                            )}
-                        >
+                        <Button onClick={() => setShowPositionChart(true)} className={cn('px-4 py-2 rounded', showPositionChart ? 'bg-blue-500 text-white' : 'bg-gray-200')}>
                             仓位变化图（折线图）
                         </Button>
-                        <Button
-                            onClick={() => setShowPositionChart(false)}
-                            className={cn(
-                                'px-4 py-2 rounded',
-                                !showPositionChart ? 'bg-blue-500 text-white' : 'bg-gray-200'
-                            )}
-                        >
+                        <Button onClick={() => setShowPositionChart(false)} className={cn('px-4 py-2 rounded', !showPositionChart ? 'bg-blue-500 text-white' : 'bg-gray-200')}>
                             股价变化图（柱状图）
                         </Button>
                     </div>
@@ -1098,23 +819,13 @@ const StockPortfolioTracker: React.FC = () => {
                 <h2 className="text-xl font-semibold mb-4">总持仓概览</h2>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     {Object.keys(totalValues).map((year) => (
-                        <div
-                            key={year}
-                            className="p-4 border rounded-lg shadow bg-white cursor-pointer"
-                            onClick={() => handleReportClick(year)}
-                        >
+                        <div key={year} className="p-4 border rounded-lg shadow bg-white cursor-pointer" onClick={() => handleReportClick(year)}>
                             <h3 className="text-lg font-medium">{year}年总持仓</h3>
-                            <p className="text-2xl font-bold text-blue-600">¥{formatLargeNumber(totalValues[year])}</p>
+                            <p className="text-2xl font-bold text-blue-600">{formatLargeNumber(totalValues[year], currency)}</p>
                             {years.indexOf(year) > 0 && (
-                                <p
-                                    className={cn(
-                                        'text-sm',
-                                        totalValues[year] > totalValues[years[years.indexOf(year) - 1]] ? 'text-green-500' : 'text-red-500'
-                                    )}
-                                >
-                                    较上年
-                                    {totalValues[year] > totalValues[years[years.indexOf(year) - 1]] ? '增长' : '减少'}
-                                    {formatLargeNumber(Math.abs(totalValues[year] - totalValues[years[years.indexOf(year) - 1]]))}
+                                <p className={cn('text-sm', totalValues[year] > totalValues[years[years.indexOf(year) - 1]] ? 'text-green-500' : 'text-red-500')}>
+                                    较上年{totalValues[year] > totalValues[years[years.indexOf(year) - 1]] ? '增长' : '减少'}
+                                    {formatLargeNumber(Math.abs(totalValues[year] - totalValues[years[years.indexOf(year) - 1]]), currency)}
                                     ({((totalValues[year] / totalValues[years[years.indexOf(year) - 1]] - 1) * 100).toFixed(2)}%)
                                 </p>
                             )}
@@ -1124,38 +835,34 @@ const StockPortfolioTracker: React.FC = () => {
             </div>
 
             <div>
-                <h2 className="text-xl font-semibold mb-4">
-                    {showPositionChart ? '各股票仓位变化（按年）' : '各股票价格变化（按年）'}
-                </h2>
+                <h2 className="text-xl font-semibold mb-4">{showPositionChart ? '各股票仓位变化（按年）' : '各股票价格变化（按年）'}</h2>
                 <div className="h-96 w-full">
                     <ResponsiveContainer width="100%" height="100%">
                         {showPositionChart ? (
                             <LineChart data={lineChartData}>
                                 <CartesianGrid strokeDasharray="3 3" />
                                 <XAxis dataKey="year" />
-                                <YAxis tickFormatter={formatLargeNumber} />
-                                <Tooltip formatter={(value: number) => [`¥${formatLargeNumber(value)}`, '']} />
+                                <YAxis tickFormatter={(value) => formatLargeNumber(value, currency)} />
+                                <Tooltip formatter={(value: number) => [formatLargeNumber(value, currency), '']} />
                                 <Legend onClick={handleLegendClick} />
-                                {Object.keys(lineChartData[0] || {})
-                                    .filter((key) => key !== 'year')
-                                    .map((stock, index) => (
-                                        <Line
-                                            key={stock}
-                                            type="monotone"
-                                            dataKey={stock}
-                                            name={stock}
-                                            hide={!!hiddenSeries[stock]}
-                                            stroke={['#8884d8', '#82ca9d', '#ffc658', '#ff7300', '#0088fe'][index % 5]}
-                                            strokeWidth={stock === '总计' ? 3 : 1.5}
-                                        />
-                                    ))}
+                                {Object.keys(lineChartData[0] || {}).filter((key) => key !== 'year').map((stock, index) => (
+                                    <Line
+                                        key={stock}
+                                        type="monotone"
+                                        dataKey={stock}
+                                        name={stock}
+                                        hide={!!hiddenSeries[stock]}
+                                        stroke={['#8884d8', '#82ca9d', '#ffc658', '#ff7300', '#0088fe'][index % 5]}
+                                        strokeWidth={stock === '总计' ? 3 : 1.5}
+                                    />
+                                ))}
                             </LineChart>
                         ) : (
                             <BarChart data={barChartData}>
                                 <CartesianGrid strokeDasharray="3 3" />
                                 <XAxis dataKey="name" />
-                                <YAxis tickFormatter={(value: number) => `¥${formatLargeNumber(value)}`} />
-                                <Tooltip formatter={(value: number) => [`¥${formatLargeNumber(value)}`, '']} />
+                                <YAxis tickFormatter={(value: number) => formatLargeNumber(value, currency)} />
+                                <Tooltip formatter={(value: number) => [formatLargeNumber(value, currency), '']} />
                                 <Legend onClick={handleLegendClick} />
                                 {years.map((year, index) => (
                                     <Bar
@@ -1179,13 +886,7 @@ const StockPortfolioTracker: React.FC = () => {
                         <thead>
                             <tr>
                                 {table.headers.map((header, index) => (
-                                    <th
-                                        key={index}
-                                        className={cn(
-                                            'px-6 py-3 text-left text-xs font-medium uppercase tracking-wider',
-                                            index === 0 ? 'bg-gray-100' : 'bg-gray-50'
-                                        )}
-                                    >
+                                    <th key={index} className={cn('px-6 py-3 text-left text-xs font-medium uppercase tracking-wider', index === 0 ? 'bg-gray-100' : 'bg-gray-50')}>
                                         {header}
                                     </th>
                                 ))}
@@ -1202,33 +903,15 @@ const StockPortfolioTracker: React.FC = () => {
                                             if (isEditing) {
                                                 return (
                                                     <td key={cellIndex} className="px-6 py-4 whitespace-nowrap space-y-2">
-                                                        <div>
-                                                            <label className="text-sm">股票名称</label>
-                                                            <Input
-                                                                type="text"
-                                                                value={editedRowData?.[selectedYear]?.name || stockName}
-                                                                onChange={(e) => handleInputChange(selectedYear, 'name', e.target.value)}
-                                                                className="w-32"
-                                                            />
-                                                        </div>
-                                                        <div>
-                                                            <label className="text-sm">股票代码</label>
-                                                            <Input
-                                                                type="text"
-                                                                value={editedRowData?.[selectedYear]?.symbol || stockInfo.symbol || ''}
-                                                                onChange={(e) => handleInputChange(selectedYear, 'symbol', e.target.value)}
-                                                                className="w-32"
-                                                            />
-                                                        </div>
+                                                        <div><label className="text-sm">股票名称</label><Input type="text" value={stockName} disabled className="w-32" /></div>
+                                                        <div><label className="text-sm">股票代码</label><Input type="text" value={editedRowData?.[selectedYear]?.symbol || stockInfo.symbol || ''} onChange={(e) => handleInputChange(selectedYear, 'symbol', e.target.value)} className="w-32" /></div>
                                                     </td>
                                                 );
                                             } else {
                                                 return (
                                                     <td key={cellIndex} className="px-6 py-4 whitespace-nowrap">
                                                         <div className="font-medium">{stockInfo.name}</div>
-                                                        {stockInfo.symbol && (
-                                                            <div className="text-sm text-gray-500">{stockInfo.symbol}</div>
-                                                        )}
+                                                        {stockInfo.symbol && <div className="text-sm text-gray-500">{stockInfo.symbol}</div>}
                                                     </td>
                                                 );
                                             }
@@ -1237,29 +920,11 @@ const StockPortfolioTracker: React.FC = () => {
                                             return (
                                                 <td key={cellIndex} className="px-6 py-4 whitespace-nowrap space-x-2">
                                                     {editingStockName === stockName ? (
-                                                        <Button
-                                                            size="icon"
-                                                            onClick={() => handleSaveRow(stockName)}
-                                                            className="text-green-500 hover:text-green-700"
-                                                        >
-                                                            <Save className="h-4 w-4" />
-                                                        </Button>
+                                                        <Button size="icon" onClick={() => handleSaveRow(stockName)} className="text-green-500 hover:text-green-700"><Save className="h-4 w-4" /></Button>
                                                     ) : (
-                                                        <Button
-                                                            size="icon"
-                                                            onClick={() => handleEditRow(stockName)}
-                                                            className="text-blue-500 hover:text-blue-700"
-                                                        >
-                                                            <Edit className="h-4 w-4" />
-                                                        </Button>
+                                                        <Button size="icon" onClick={() => handleEditRow(stockName)} className="text-blue-500 hover:text-blue-700"><Edit className="h-4 w-4" /></Button>
                                                     )}
-                                                    <Button
-                                                        size="icon"
-                                                        onClick={() => handleDeleteStock(stockName)}
-                                                        className="text-red-500 hover:text-red-700"
-                                                    >
-                                                        <Trash2 className="h-4 w-4" />
-                                                    </Button>
+                                                    <Button size="icon" onClick={() => handleDeleteStock(stockName)} className="text-red-500 hover:text-red-700"><Trash2 className="h-4 w-4" /></Button>
                                                 </td>
                                             );
                                         } else {
@@ -1268,47 +933,23 @@ const StockPortfolioTracker: React.FC = () => {
                                             if (isEditing) {
                                                 return (
                                                     <td key={cellIndex} className="px-6 py-4 whitespace-nowrap space-y-1">
-                                                        <div>
-                                                            <label className="text-sm">数量</label>
-                                                            <Input
-                                                                type="number"
-                                                                value={editedRowData?.[year]?.quantity || ''}
-                                                                onChange={(e) => handleInputChange(year, 'quantity', e.target.value)}
-                                                                className="w-24"
-                                                            />
-                                                        </div>
-                                                        <div>
-                                                            <label className="text-sm">价格</label>
-                                                            <Input
-                                                                type="number"
-                                                                value={editedRowData?.[year]?.unitPrice || ''}
-                                                                onChange={(e) => handleInputChange(year, 'unitPrice', e.target.value)}
-                                                                className="w-24"
-                                                            />
-                                                        </div>
-                                                        <div>
-                                                            <label className="text-sm">成本</label>
-                                                            <Input
-                                                                type="number"
-                                                                value={editedRowData?.[year]?.costPrice || ''}
-                                                                onChange={(e) => handleInputChange(year, 'costPrice', e.target.value)}
-                                                                className="w-24"
-                                                            />
-                                                        </div>
+                                                        <div><label className="text-sm">数量</label><Input type="number" value={editedRowData?.[year]?.quantity || ''} onChange={(e) => handleInputChange(year, 'quantity', e.target.value)} className="w-24" /></div>
+                                                        <div><label className="text-sm">价格</label><Input type="number" value={editedRowData?.[year]?.unitPrice || ''} onChange={(e) => handleInputChange(year, 'unitPrice', e.target.value)} className="w-24" /></div>
+                                                        <div><label className="text-sm">成本</label><Input type="number" value={editedRowData?.[year]?.costPrice || ''} onChange={(e) => handleInputChange(year, 'costPrice', e.target.value)} className="w-24" /></div>
                                                     </td>
                                                 );
                                             } else if (cell) {
                                                 const stockData = cell as { shares: number; price: number; costPrice: number; symbol?: string };
                                                 const { shares, price, costPrice, symbol } = stockData;
-                                                const isLatestPrice = symbol && priceData[symbol] && priceData[symbol].price === price;
+                                                const isLatestPrice = symbol && priceData[symbol] && (symbol.endsWith('.HK') ? priceData[symbol].hkdPrice * exchangeRates['HKD'] === price : priceData[symbol].price === price);
                                                 return (
                                                     <td key={cellIndex} className="px-6 py-4 whitespace-nowrap space-y-1">
                                                         <div className="font-medium">
-                                                            当前价值: {formatLargeNumber(shares * price)} ({shares} * {price.toFixed(2)})
+                                                            当前价值: {formatLargeNumber(shares * price, currency)} ({shares} * {formatLargeNumber(price, currency)})
                                                             {isLatestPrice && <span className="ml-2 text-xs text-green-500">实时</span>}
                                                         </div>
                                                         <div className="text-sm text-gray-500">
-                                                            成本: {formatLargeNumber(shares * costPrice)} ({shares} * {costPrice.toFixed(2)})
+                                                            成本: {formatLargeNumber(shares * costPrice, currency)} ({shares} * {formatLargeNumber(costPrice, currency)})
                                                         </div>
                                                     </td>
                                                 );
@@ -1324,36 +965,13 @@ const StockPortfolioTracker: React.FC = () => {
                             <tr>
                                 {table.totalRow.map((cell, index) => {
                                     if (index === 0) {
-                                        return (
-                                            <td
-                                                key={index}
-                                                className="px-6 py-3 text-left text-sm font-semibold uppercase tracking-wider bg-gray-100"
-                                            >
-                                                {cell}
-                                            </td>
-                                        );
+                                        return <td key={index} className="px-6 py-3 text-left text-sm font-semibold uppercase tracking-wider bg-gray-100">{cell}</td>;
                                     } else if (index === table.totalRow.length - 1) {
-                                        return (
-                                            <td
-                                                key={index}
-                                                className="px-6 py-3 text-left text-sm font-semibold uppercase tracking-wider bg-gray-100"
-                                            >
-                                                {cell}
-                                            </td>
-                                        );
+                                        return <td key={index} className="px-6 py-3 text-left text-sm font-semibold uppercase tracking-wider bg-gray-100">{cell}</td>;
                                     }
                                     const year = years[index - 1];
-                                    const total =
-                                        yearData[year].stocks.reduce((acc, stock) => acc + stock.shares * stock.price, 0) +
-                                        yearData[year].cashBalance;
-                                    return (
-                                        <td
-                                            key={index}
-                                            className="px-6 py-3 text-center text-sm font-semibold uppercase tracking-wider bg-gray-100"
-                                        >
-                                            ¥{formatLargeNumber(total)}
-                                        </td>
-                                    );
+                                    const total = yearData[year].stocks.reduce((acc, stock) => acc + stock.shares * stock.price, 0) + yearData[year].cashBalance;
+                                    return <td key={index} className="px-6 py-3 text-center text-sm font-semibold uppercase tracking-wider bg-gray-100">{formatLargeNumber(total, currency)}</td>;
                                 })}
                             </tr>
                         </tfoot>
@@ -1363,18 +981,11 @@ const StockPortfolioTracker: React.FC = () => {
 
             {renderReportDialog()}
 
-            <Dialog
-                open={alertInfo?.isOpen}
-                onOpenChange={(open) => {
-                    if (!open) setAlertInfo(null);
-                }}
-            >
+            <Dialog open={alertInfo?.isOpen} onOpenChange={(open) => { if (!open) setAlertInfo(null); }}>
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>{alertInfo?.title}</DialogTitle>
-                        <DialogDescription>
-                            <pre className="whitespace-pre-wrap">{alertInfo?.description}</pre>
-                        </DialogDescription>
+                        <DialogDescription><pre className="whitespace-pre-wrap">{alertInfo?.description}</pre></DialogDescription>
                     </DialogHeader>
                     <div className="flex justify-end space-x-2">
                         {alertInfo?.onConfirm && <Button onClick={alertInfo.onConfirm}>确定</Button>}
@@ -1389,17 +1000,11 @@ const StockPortfolioTracker: React.FC = () => {
                         <DialogTitle>复制数据</DialogTitle>
                         <DialogDescription>
                             <p>请点击下方文本框，使用 Command + A 全选内容，或直接点击"复制到剪贴板"按钮。</p>
-                            <textarea
-                                className="w-full h-64 p-2 mt-2 border rounded resize-none"
-                                value={JSON.stringify(yearData, null, 2)}
-                                readOnly
-                            />
+                            <textarea className="w-full h-64 p-2 mt-2 border rounded resize-none" value={JSON.stringify(yearData, null, 2)} readOnly />
                         </DialogDescription>
                     </DialogHeader>
                     <div className="flex justify-end space-x-2">
-                        <Button onClick={() => navigator.clipboard.writeText(JSON.stringify(yearData, null, 2))}>
-                            复制到剪贴板
-                        </Button>
+                        <Button onClick={() => navigator.clipboard.writeText(JSON.stringify(yearData, null, 2))}>复制到剪贴板</Button>
                         <Button onClick={() => setIsCopyDialogOpen(false)}>关闭</Button>
                     </div>
                 </DialogContent>
@@ -1410,12 +1015,7 @@ const StockPortfolioTracker: React.FC = () => {
                     <DialogHeader>
                         <DialogTitle>粘贴数据</DialogTitle>
                         <DialogDescription>
-                            <textarea
-                                className="w-full h-32 p-2 border rounded"
-                                value={pasteData}
-                                onChange={(e) => setPasteData(e.target.value)}
-                                placeholder="请将数据粘贴到此处..."
-                            />
+                            <textarea className="w-full h-32 p-2 border rounded" value={pasteData} onChange={(e) => setPasteData(e.target.value)} placeholder="请将数据粘贴到此处..." />
                         </DialogDescription>
                     </DialogHeader>
                     <div className="flex justify-end space-x-2">

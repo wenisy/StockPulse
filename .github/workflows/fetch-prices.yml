@@ -4,6 +4,8 @@ on:
   schedule:
     - cron: "10 21 * * *"  # 每天北京时间 5:10 AM 运行
   workflow_dispatch:     # 允许手动触发
+permissions:
+    contents: write      # 给予写入内容的权限
 
 jobs:
   fetch-prices:

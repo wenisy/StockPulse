@@ -147,12 +147,12 @@ const StockPortfolioTracker: React.FC = () => {
 
     // 获取基础路径
     const getBasePath = () => {
-        // 检查当前URL来确定是在GitHub Pages上还是本地开发环境
-        if (window?.location.hostname.includes('github.io')) {
-            // 在GitHub Pages上，需要加上仓库名
-            return '/StockPulse';
+        if (typeof window !== 'undefined') {
+            // Now it's safe to use window
+            if (window.location.hostname.includes('github.io')) {
+                return '/StockPulse';
+            }
         }
-        // 本地开发环境
         return '';
     };
 

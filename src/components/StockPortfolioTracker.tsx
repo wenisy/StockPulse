@@ -80,24 +80,6 @@ interface PriceData {
 
 const StockPortfolioTracker: React.FC = () => {
     const initialData: { [year: string]: YearData } = {
-        '2022': {
-            stocks: [
-                { name: '阿里巴巴', shares: 100, price: 85.5, costPrice: 80.0, id: '1', totalCost: 8000, symbol: 'BABA' },
-                { name: '腾讯', shares: 50, price: 320.8, costPrice: 300.0, id: '2', totalCost: 15000, symbol: '0700.HK' },
-            ],
-            cashTransactions: [{ amount: 100000, type: 'deposit', date: '2022-01-01' }],
-            stockTransactions: [],
-            cashBalance: 100000,
-        },
-        '2023': {
-            stocks: [
-                { name: '阿里巴巴', shares: 150, price: 92.3, costPrice: 85.0, id: '4', totalCost: 12750, symbol: 'BABA' },
-                { name: '腾讯', shares: 60, price: 310.5, costPrice: 305.0, id: '5', totalCost: 18300, symbol: '0700.HK' },
-            ],
-            cashTransactions: [{ amount: 50000, type: 'deposit', date: '2023-01-01' }],
-            stockTransactions: [],
-            cashBalance: 150000,
-        },
         '2024': {
             stocks: [
                 { name: '阿里巴巴', shares: 180, price: 105.2, costPrice: 90.0, id: '8', totalCost: 16200, symbol: 'BABA' },

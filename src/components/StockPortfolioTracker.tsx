@@ -120,7 +120,7 @@ const StockPortfolioTracker: React.FC = () => {
     const [showPositionChart, setShowPositionChart] = useState(true);
     const [editingStockName, setEditingStockName] = useState<string | null>(null);
     const [editedRowData, setEditedRowData] = useState<{
-        [year: string]: { name: string; symbol: string; quantity: string; unitPrice: string; costPrice: string };
+        [year: string]: { quantity: string; unitPrice: string; costPrice: string; symbol?: string };
     } | null>(null);
     const [hiddenSeries, setHiddenSeries] = useState<{ [dataKey: string]: boolean }>({});
     const [alertInfo, setAlertInfo] = useState<{
@@ -148,6 +148,7 @@ const StockPortfolioTracker: React.FC = () => {
     // 获取基础路径
     const getBasePath = () => {
         if (typeof window !== 'undefined') {
+            // Now it's safe to use window
             if (window.location.hostname.includes('github.io')) {
                 return '/StockPulse';
             }
@@ -160,15 +161,22 @@ const StockPortfolioTracker: React.FC = () => {
         const fetchSymbols = async () => {
             try {
                 const url = `${getBasePath()}/data/symbols.json`;
+                setDebugInfo(prev => prev + `\n尝试获取股票符号数据：${url}`);
+
                 const response = await fetch(url);
+                setDebugInfo(prev => prev + `\n股票符号响应状态：${response.status}`);
+
                 if (response.ok) {
                     const data = await response.json();
                     setStockSymbols(data.stocks || []);
+                    setDebugInfo(prev => prev + `\n成功获取${data.stocks?.length || 0}个股票符号`);
                 }
             } catch (error) {
                 console.error('获取股票符号失败:', error);
+                setDebugInfo(prev => prev + `\n获取股票符号失败: ${error}`);
             }
         };
+
         fetchSymbols();
     }, []);
 
@@ -177,51 +185,81 @@ const StockPortfolioTracker: React.FC = () => {
         const fetchLatestPrices = async () => {
             try {
                 const url = `${getBasePath()}/data/prices.json`;
+                setDebugInfo(prev => prev + `\n尝试获取价格数据：${url}`);
+
+                // 添加时间戳防止缓存
                 const timestamp = new Date().getTime();
                 const response = await fetch(`${url}?t=${timestamp}`);
+                setDebugInfo(prev => prev + `\n价格数据响应状态：${response.status}`);
+
                 if (response.ok) {
                     const data = await response.json();
+                    setDebugInfo(prev => prev + `\n成功获取价格数据，包含${Object.keys(data).length}个股票`);
                     setPriceData(data);
+
+                    // 自动更新最新年份的股票价格
                     updateLatestPrices(data);
+                } else {
+                    setDebugInfo(prev => prev + `\n获取价格数据失败: ${response.status}`);
                 }
             } catch (error) {
                 console.error('获取最新价格时出错:', error);
+                setDebugInfo(prev => prev + `\n获取最新价格时出错: ${error}`);
             }
         };
+
         fetchLatestPrices();
     }, []);
 
     const updateLatestPrices = (prices: PriceData) => {
         setYearData((prevYearData) => {
             const updatedYearData = { ...prevYearData };
+
+            // 只更新最新年份的价格
             updatedYearData[latestYear].stocks.forEach(stock => {
                 if (stock.symbol && prices[stock.symbol]) {
                     stock.price = prices[stock.symbol].price;
                 }
             });
+
             return updatedYearData;
         });
     };
 
     const refreshPrices = async () => {
         setIsLoading(true);
+        setDebugInfo('开始刷新价格...');
         try {
             const url = `${getBasePath()}/data/prices.json`;
+            setDebugInfo(prev => prev + `\n尝试获取价格数据：${url}`);
+
+            // 添加时间戳防止缓存
             const timestamp = new Date().getTime();
             const response = await fetch(`${url}?t=${timestamp}`);
+            setDebugInfo(prev => prev + `\n价格数据响应状态：${response.status}`);
+
             if (response.ok) {
                 const data = await response.json();
+                setDebugInfo(prev => prev + `\n成功获取价格数据，包含${Object.keys(data).length}个股票`);
                 setPriceData(data);
+
                 setYearData((prevYearData) => {
                     const updatedYearData = { ...prevYearData };
+
+                    // 更新当前选中年份的股票价格
                     updatedYearData[selectedYear].stocks.forEach(stock => {
                         if (stock.symbol && data[stock.symbol]) {
                             stock.price = data[stock.symbol].price;
+                            setDebugInfo(prev => prev + `\n更新 ${stock.name} (${stock.symbol}) 价格为 ${data[stock.symbol].price}`);
                         }
                     });
+
                     return updatedYearData;
                 });
+
+                // 获取当前时间作为更新时间
                 const updateTime = new Date().toLocaleString();
+
                 setAlertInfo({
                     isOpen: true,
                     title: '价格已更新',
@@ -233,10 +271,84 @@ const StockPortfolioTracker: React.FC = () => {
             }
         } catch (error) {
             console.error('刷新价格时出错:', error);
+            setDebugInfo(prev => prev + `\n刷新价格时出错: ${error}`);
             setAlertInfo({
                 isOpen: true,
                 title: '更新失败',
                 description: '获取最新价格时发生错误，请稍后再试',
+                onCancel: () => setAlertInfo(null),
+            });
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    // 直接从API获取股票价格（备用方案）
+    const fetchStockPrice = async (symbol) => {
+        try {
+            setDebugInfo(prev => prev + `\n尝试直接从Yahoo Finance API获取 ${symbol} 价格`);
+            const response = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d`);
+
+            if (response.ok) {
+                const data = await response.json();
+                if (data.chart && data.chart.result && data.chart.result[0] && data.chart.result[0].meta) {
+                    const price = data.chart.result[0].meta.regularMarketPrice;
+                    setDebugInfo(prev => prev + `\n成功获取 ${symbol} 价格：${price}`);
+                    return price;
+                }
+            }
+            setDebugInfo(prev => prev + `\nAPI请求失败: ${response.status}`);
+            return null;
+        } catch (error) {
+            console.error(`获取 ${symbol} 价格出错:`, error);
+            setDebugInfo(prev => prev + `\n获取 ${symbol} 价格出错: ${error}`);
+            return null;
+        }
+    };
+
+    // 直接从API更新价格（备用方案）
+    const refreshPricesFromAPI = async () => {
+        setIsLoading(true);
+        setDebugInfo('开始从API刷新价格...');
+        try {
+            // 更新当前选中年份的股票价格
+            const updatedYearData = { ...yearData };
+            const stocksToUpdate = updatedYearData[selectedYear].stocks;
+
+            for (const stock of stocksToUpdate) {
+                if (stock.symbol) {
+                    const price = await fetchStockPrice(stock.symbol);
+                    if (price !== null) {
+                        stock.price = price;
+
+                        // 同时更新priceData
+                        setPriceData(prev => ({
+                            ...prev,
+                            [stock.symbol]: {
+                                price,
+                                name: stock.name,
+                                lastUpdated: new Date().toISOString().split('T')[0]
+                            }
+                        }));
+                    }
+                }
+            }
+
+            setYearData(updatedYearData);
+
+            setAlertInfo({
+                isOpen: true,
+                title: '价格已更新',
+                description: `股票价格已从API直接更新（${new Date().toLocaleString()}）`,
+                onCancel: () => setAlertInfo(null),
+            });
+        } catch (error) {
+            console.error('从API刷新价格时出错:', error);
+            setDebugInfo(prev => prev + `\n从API刷新价格时出错: ${error}`);
+            setAlertInfo({
+                isOpen: true,
+                title: '更新失败',
+                description: '从API获取最新价格时发生错误，请稍后再试',
                 onCancel: () => setAlertInfo(null),
             });
         } finally {
@@ -293,9 +405,9 @@ const StockPortfolioTracker: React.FC = () => {
 
     const prepareBarChartData = useCallback(() => {
         const latestStocks = new Set(yearData[latestYear].stocks.map((stock) => stock.name));
-        const result: { name: string; [year: string]: number }[] = [];
+        const result: { name: string;[year: string]: number }[] = [];
         latestStocks.forEach((stockName) => {
-            const stockData: { name: string; [year: string]: number } = { name: stockName };
+            const stockData: { name: string;[year: string]: number } = { name: stockName };
             Object.keys(yearData).forEach((year) => {
                 const stockInYear = yearData[year].stocks.find((s) => s.name === stockName);
                 stockData[year] = stockInYear ? stockInYear.price : 0;
@@ -390,6 +502,8 @@ const StockPortfolioTracker: React.FC = () => {
                     onCancel: () => setAlertInfo(null),
                 });
                 return;
+            } else {
+                // 不直接更新现金余额，等待确认
             }
         } else if (transactionType === 'sell') {
             if (transactionShares > oldShares) {
@@ -405,6 +519,7 @@ const StockPortfolioTracker: React.FC = () => {
             transactionCost = transactionShares * transactionPrice;
             newTotalCost = oldTotalCost - transactionCost;
             newCostPrice = newSharesValue > 0 ? newTotalCost / newSharesValue : 0;
+            // 不直接更新现金余额，等待确认
         }
 
         const displayYearEndPrice = yearEndPrice !== null
@@ -432,6 +547,7 @@ const StockPortfolioTracker: React.FC = () => {
             title: '确认交易',
             description,
             onConfirm: () => {
+                // 在确认时更新现金余额
                 if (transactionType === 'buy') {
                     updatedYearData[selectedYear].cashBalance -= transactionCost;
                 } else if (transactionType === 'sell') {
@@ -454,7 +570,9 @@ const StockPortfolioTracker: React.FC = () => {
                 resetForm();
                 setAlertInfo(null);
             },
-            onCancel: () => setAlertInfo(null),
+            onCancel: () => {
+                setAlertInfo(null);
+            },
         });
     };
 
@@ -493,6 +611,7 @@ const StockPortfolioTracker: React.FC = () => {
             });
         }
 
+        // 记录股票交易
         const stockTransaction: StockTransaction = {
             stockName,
             type: transactionType,
@@ -502,6 +621,7 @@ const StockPortfolioTracker: React.FC = () => {
         };
         updatedYearData[year].stockTransactions.push(stockTransaction);
 
+        // 记录现金变化
         const cashTransaction: CashTransaction = {
             amount: transactionType === 'buy' ? -transactionShares * transactionPrice : transactionShares * transactionPrice,
             type: transactionType,
@@ -523,22 +643,21 @@ const StockPortfolioTracker: React.FC = () => {
     const handleEditRow = (stockName: string) => {
         setEditingStockName(stockName);
         const initialEditedData: {
-            [year: string]: { name: string; symbol: string; quantity: string; unitPrice: string; costPrice: string };
+            [year: string]: { quantity: string; unitPrice: string; costPrice: string; symbol?: string };
         } = {};
         years.forEach((year) => {
             const stock = yearData[year]?.stocks.find((s) => s.name === stockName);
             initialEditedData[year] = {
-                name: stock?.name || stockName,
-                symbol: stock?.symbol || '',
                 quantity: stock?.shares?.toString() || '',
                 unitPrice: stock?.price?.toString() || '',
                 costPrice: stock?.costPrice?.toString() || '',
+                symbol: stock?.symbol || ''
             };
         });
         setEditedRowData(initialEditedData);
     };
 
-    const handleSaveRow = (oldStockName: string) => {
+    const handleSaveRow = (stockName: string) => {
         setYearData((prevYearData) => {
             const updatedYearData: { [year: string]: YearData } = { ...prevYearData };
             if (!editedRowData) return updatedYearData;
@@ -547,37 +666,35 @@ const StockPortfolioTracker: React.FC = () => {
                 const editedInfo = editedRowData[year];
                 if (!editedInfo) return;
 
-                const newName = editedInfo.name;
-                const newSymbol = editedInfo.symbol;
                 const shares = parseInt(editedInfo.quantity, 10);
                 const price = parseFloat(editedInfo.unitPrice);
                 const costPrice = parseFloat(editedInfo.costPrice);
+                const symbol = editedInfo.symbol;
 
                 if (!isNaN(shares) && !isNaN(price) && !isNaN(costPrice)) {
-                    const stockIndex = updatedYearData[year].stocks.findIndex((s) => s.name === oldStockName);
+                    const stockIndex = updatedYearData[year].stocks.findIndex((s) => s.name === stockName);
                     if (stockIndex !== -1) {
                         updatedYearData[year].stocks[stockIndex] = {
                             ...updatedYearData[year].stocks[stockIndex],
-                            name: newName,
-                            symbol: newSymbol,
                             shares,
                             price,
                             costPrice,
                             totalCost: shares * costPrice,
+                            symbol
                         };
                     } else {
                         updatedYearData[year].stocks.push({
-                            name: newName,
-                            symbol: newSymbol,
+                            name: stockName,
                             shares,
                             price,
                             costPrice,
                             id: uuidv4(),
                             totalCost: shares * costPrice,
+                            symbol
                         });
                     }
                 } else {
-                    updatedYearData[year].stocks = updatedYearData[year].stocks.filter((s) => s.name !== oldStockName);
+                    updatedYearData[year].stocks = updatedYearData[year].stocks.filter((s) => s.name !== stockName);
                 }
             });
             return updatedYearData;
@@ -588,7 +705,7 @@ const StockPortfolioTracker: React.FC = () => {
 
     const handleInputChange = (
         year: string,
-        field: 'name' | 'symbol' | 'quantity' | 'unitPrice' | 'costPrice',
+        field: 'quantity' | 'unitPrice' | 'costPrice' | 'symbol',
         value: string
     ) => {
         if (editingStockName && editedRowData) {
@@ -625,24 +742,25 @@ const StockPortfolioTracker: React.FC = () => {
             const valueB = stockB ? stockB.shares * stockB.price : 0;
             return valueB - valueA;
         });
-        const headers = ['股票名称 (代码)', ...years, '操作'];
+        const headers = ['股票名称', ...years, '操作'];
         const rows = stockNames.map((stockName) => {
-            const row: (string | { shares: number; price: number; costPrice: number; symbol?: string } | null)[] = [];
+            const row: ({ name: string; symbol?: string } | { shares: number; price: number; costPrice: number; symbol?: string } | null)[] = [];
             const stockInLatestYear = yearData[latestYear].stocks.find((s) => s.name === stockName);
-            const displayName = stockInLatestYear && stockInLatestYear.symbol
-                ? `${stockName} (${stockInLatestYear.symbol})`
-                : stockName;
-            row.push(displayName);
+            // 第一列包含 name 和 symbol
+            row.push({
+                name: stockName,
+                symbol: stockInLatestYear?.symbol
+            });
             years.forEach((year) => {
                 const stockInYear = yearData[year].stocks.find((s) => s.name === stockName);
                 row.push(
                     stockInYear
                         ? {
-                              shares: stockInYear.shares,
-                              price: stockInYear.price,
-                              costPrice: stockInYear.costPrice,
-                              symbol: stockInYear.symbol
-                          }
+                            shares: stockInYear.shares,
+                            price: stockInYear.price,
+                            costPrice: stockInYear.costPrice,
+                            symbol: stockInYear.symbol
+                        }
                         : null
                 );
             });
@@ -698,7 +816,7 @@ const StockPortfolioTracker: React.FC = () => {
                 (acc, tx) => acc + (tx.type === 'deposit' ? tx.amount : tx.type === 'withdraw' ? -tx.amount : 0),
                 0
             );
-        }
+        };
         return cumulativeInvested;
     };
 
@@ -1078,8 +1196,8 @@ const StockPortfolioTracker: React.FC = () => {
                                 <tr key={rowIndex} className={rowIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
                                     {row.map((cell, cellIndex) => {
                                         if (cellIndex === 0) {
-                                            const stockNameDisplay = row[0] as string;
-                                            const stockName = stockNameDisplay.split(' (')[0];
+                                            const stockInfo = cell as { name: string; symbol?: string };
+                                            const stockName = stockInfo.name;
                                             const isEditing = editingStockName === stockName;
                                             if (isEditing) {
                                                 return (
@@ -1097,7 +1215,7 @@ const StockPortfolioTracker: React.FC = () => {
                                                             <label className="text-sm">股票代码</label>
                                                             <Input
                                                                 type="text"
-                                                                value={editedRowData?.[selectedYear]?.symbol || ''}
+                                                                value={editedRowData?.[selectedYear]?.symbol || stockInfo.symbol || ''}
                                                                 onChange={(e) => handleInputChange(selectedYear, 'symbol', e.target.value)}
                                                                 className="w-32"
                                                             />
@@ -1106,13 +1224,16 @@ const StockPortfolioTracker: React.FC = () => {
                                                 );
                                             } else {
                                                 return (
-                                                    <td key={cellIndex} className="px-6 py-4 whitespace-nowrap font-medium">
-                                                        {stockNameDisplay}
+                                                    <td key={cellIndex} className="px-6 py-4 whitespace-nowrap">
+                                                        <div className="font-medium">{stockInfo.name}</div>
+                                                        {stockInfo.symbol && (
+                                                            <div className="text-sm text-gray-500">{stockInfo.symbol}</div>
+                                                        )}
                                                     </td>
                                                 );
                                             }
                                         } else if (cellIndex === row.length - 1) {
-                                            const stockName = (row[0] as string).split(' (')[0];
+                                            const stockName = (row[0] as { name: string }).name;
                                             return (
                                                 <td key={cellIndex} className="px-6 py-4 whitespace-nowrap space-x-2">
                                                     {editingStockName === stockName ? (
@@ -1143,7 +1264,7 @@ const StockPortfolioTracker: React.FC = () => {
                                             );
                                         } else {
                                             const year = years[cellIndex - 1];
-                                            const isEditing = editingStockName === (row[0] as string).split(' (')[0];
+                                            const isEditing = editingStockName === (row[0] as { name: string }).name;
                                             if (isEditing) {
                                                 return (
                                                     <td key={cellIndex} className="px-6 py-4 whitespace-nowrap space-y-1">

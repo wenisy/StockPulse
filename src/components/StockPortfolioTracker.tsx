@@ -22,7 +22,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
-import { Trash2, Edit, Save } from 'lucide-react';
+import { Trash2, Edit, Save, RefreshCw } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import {
     Dialog,
@@ -39,6 +39,7 @@ interface Stock {
     costPrice: number;
     id: string;
     totalCost: number; // 记录买入总金额
+    symbol?: string; // 股票代码
 }
 
 interface CashTransaction {
@@ -63,12 +64,25 @@ interface YearData {
     cashBalance: number;
 }
 
+interface StockSymbol {
+    symbol: string;
+    name: string;
+}
+
+interface PriceData {
+    [symbol: string]: {
+        price: number;
+        name: string;
+        lastUpdated: string;
+    };
+}
+
 const StockPortfolioTracker: React.FC = () => {
     const initialData: { [year: string]: YearData } = {
         '2022': {
             stocks: [
-                { name: '阿里巴巴', shares: 100, price: 85.5, costPrice: 80.0, id: '1', totalCost: 8000 },
-                { name: '腾讯', shares: 50, price: 320.8, costPrice: 300.0, id: '2', totalCost: 15000 },
+                { name: '阿里巴巴', shares: 100, price: 85.5, costPrice: 80.0, id: '1', totalCost: 8000, symbol: 'BABA' },
+                { name: '腾讯', shares: 50, price: 320.8, costPrice: 300.0, id: '2', totalCost: 15000, symbol: '0700.HK' },
             ],
             cashTransactions: [{ amount: 100000, type: 'deposit', date: '2022-01-01' }],
             stockTransactions: [],
@@ -76,8 +90,8 @@ const StockPortfolioTracker: React.FC = () => {
         },
         '2023': {
             stocks: [
-                { name: '阿里巴巴', shares: 150, price: 92.3, costPrice: 85.0, id: '4', totalCost: 12750 },
-                { name: '腾讯', shares: 60, price: 310.5, costPrice: 305.0, id: '5', totalCost: 18300 },
+                { name: '阿里巴巴', shares: 150, price: 92.3, costPrice: 85.0, id: '4', totalCost: 12750, symbol: 'BABA' },
+                { name: '腾讯', shares: 60, price: 310.5, costPrice: 305.0, id: '5', totalCost: 18300, symbol: '0700.HK' },
             ],
             cashTransactions: [{ amount: 50000, type: 'deposit', date: '2023-01-01' }],
             stockTransactions: [],
@@ -85,8 +99,8 @@ const StockPortfolioTracker: React.FC = () => {
         },
         '2024': {
             stocks: [
-                { name: '阿里巴巴', shares: 180, price: 105.2, costPrice: 90.0, id: '8', totalCost: 16200 },
-                { name: '腾讯', shares: 75, price: 350.4, costPrice: 310.0, id: '9', totalCost: 23250 },
+                { name: '阿里巴巴', shares: 180, price: 105.2, costPrice: 90.0, id: '8', totalCost: 16200, symbol: 'BABA' },
+                { name: '腾讯', shares: 75, price: 350.4, costPrice: 310.0, id: '9', totalCost: 23250, symbol: '0700.HK' },
             ],
             cashTransactions: [{ amount: 20000, type: 'deposit', date: '2024-01-01' }],
             stockTransactions: [],
@@ -101,11 +115,12 @@ const StockPortfolioTracker: React.FC = () => {
     const [newShares, setNewShares] = useState('');
     const [newPrice, setNewPrice] = useState('');
     const [newYearEndPrice, setNewYearEndPrice] = useState('');
+    const [newStockSymbol, setNewStockSymbol] = useState('');
     const [selectedYear, setSelectedYear] = useState(years[years.length - 1]);
     const [showPositionChart, setShowPositionChart] = useState(true);
     const [editingStockName, setEditingStockName] = useState<string | null>(null);
     const [editedRowData, setEditedRowData] = useState<{
-        [year: string]: { quantity: string; unitPrice: string; costPrice: string };
+        [year: string]: { quantity: string; unitPrice: string; costPrice: string; symbol?: string };
     } | null>(null);
     const [hiddenSeries, setHiddenSeries] = useState<{ [dataKey: string]: boolean }>({});
     const [alertInfo, setAlertInfo] = useState<{
@@ -123,8 +138,110 @@ const StockPortfolioTracker: React.FC = () => {
     const [isCopyDialogOpen, setIsCopyDialogOpen] = useState(false);
     const [isPasteDialogOpen, setIsPasteDialogOpen] = useState(false);
     const [pasteData, setPasteData] = useState('');
+    const [stockSymbols, setStockSymbols] = useState<StockSymbol[]>([]);
+    const [priceData, setPriceData] = useState<PriceData>({});
+    const [isLoading, setIsLoading] = useState(false);
 
     const latestYear = Math.max(...years.map(Number)).toString();
+
+    // 获取股票符号列表
+    useEffect(() => {
+        const fetchSymbols = async () => {
+            try {
+                // 根据你的仓库名调整路径
+                const response = await fetch('/StockPulse/data/symbols.json');
+                const data = await response.json();
+                setStockSymbols(data.stocks || []);
+            } catch (error) {
+                console.error('获取股票符号失败:', error);
+            }
+        };
+
+        fetchSymbols();
+    }, []);
+
+    // 获取最新价格
+    useEffect(() => {
+        const fetchLatestPrices = async () => {
+            try {
+                // 根据你的仓库名调整路径
+                const response = await fetch('/StockPulse/data/prices.json');
+                if (response.ok) {
+                    const data = await response.json();
+                    setPriceData(data);
+
+                    // 自动更新最新年份的股票价格
+                    updateLatestPrices(data);
+                }
+            } catch (error) {
+                console.error('获取最新价格时出错:', error);
+            }
+        };
+
+        fetchLatestPrices();
+    }, []);
+
+    const updateLatestPrices = (prices: PriceData) => {
+        setYearData((prevYearData) => {
+            const updatedYearData = { ...prevYearData };
+
+            // 只更新最新年份的价格
+            updatedYearData[latestYear].stocks.forEach(stock => {
+                if (stock.symbol && prices[stock.symbol]) {
+                    stock.price = prices[stock.symbol].price;
+                }
+            });
+
+            return updatedYearData;
+        });
+    };
+
+    const refreshPrices = async () => {
+        setIsLoading(true);
+        try {
+            // 根据你的仓库名调整路径
+            const response = await fetch('/StockPulse/data/prices.json');
+            if (response.ok) {
+                const data = await response.json();
+                setPriceData(data);
+
+                setYearData((prevYearData) => {
+                    const updatedYearData = { ...prevYearData };
+
+                    // 更新当前选中年份的股票价格
+                    updatedYearData[selectedYear].stocks.forEach(stock => {
+                        if (stock.symbol && data[stock.symbol]) {
+                            stock.price = data[stock.symbol].price;
+                        }
+                    });
+
+                    return updatedYearData;
+                });
+
+                // 获取当前时间作为更新时间
+                const updateTime = new Date().toLocaleString();
+
+                setAlertInfo({
+                    isOpen: true,
+                    title: '价格已更新',
+                    description: `股票价格已更新至最新数据（${updateTime}）`,
+                    onCancel: () => setAlertInfo(null),
+                });
+            } else {
+                throw new Error('获取价格数据失败');
+            }
+        } catch (error) {
+            console.error('刷新价格时出错:', error);
+            setAlertInfo({
+                isOpen: true,
+                title: '更新失败',
+                description: '获取最新价格时发生错误，请稍后再试',
+                onCancel: () => setAlertInfo(null),
+            });
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     const calculateYearlyValues = useCallback(() => {
         const yearlyValues: {
@@ -224,7 +341,8 @@ const StockPortfolioTracker: React.FC = () => {
         const stockName = newStockName.trim();
         const transactionShares = parseInt(newShares, 10);
         const transactionPrice = parseFloat(newPrice);
-        let yearEndPrice = newYearEndPrice ? parseFloat(newYearEndPrice) : null;
+        const yearEndPrice = newYearEndPrice ? parseFloat(newYearEndPrice) : null;
+        const stockSymbol = newStockSymbol.trim();
 
         if (isNaN(transactionShares) || isNaN(transactionPrice)) return;
 
@@ -233,9 +351,9 @@ const StockPortfolioTracker: React.FC = () => {
             updatedYearData[selectedYear] = { stocks: [], cashTransactions: [], stockTransactions: [], cashBalance: 0 };
         }
 
-        let currentStock = updatedYearData[selectedYear].stocks.find((s) => s.name === stockName);
-        let oldShares = currentStock ? currentStock.shares : 0;
-        let oldTotalCost = currentStock ? currentStock.totalCost : 0;
+        const currentStock = updatedYearData[selectedYear].stocks.find((s) => s.name === stockName);
+        const oldShares = currentStock ? currentStock.shares : 0;
+        const oldTotalCost = currentStock ? currentStock.totalCost : 0;
 
         let newSharesValue, newTotalCost, newCostPrice, transactionCost;
 
@@ -261,7 +379,8 @@ const StockPortfolioTracker: React.FC = () => {
                             newTotalCost,
                             transactionShares,
                             transactionPrice,
-                            transactionType
+                            transactionType,
+                            stockSymbol
                         );
                         setYearData(updatedYearData);
                         resetForm();
@@ -307,6 +426,7 @@ const StockPortfolioTracker: React.FC = () => {
       当前价格: ${displayYearEndPriceText}
       原成本价: ${oldCostPrice.toFixed(2)}
       新成本价: ${newCostPrice.toFixed(2)}
+      ${stockSymbol ? `股票代码: ${stockSymbol}` : ''}
     `;
 
         setAlertInfo({
@@ -330,7 +450,8 @@ const StockPortfolioTracker: React.FC = () => {
                     newTotalCost,
                     transactionShares,
                     transactionPrice,
-                    transactionType
+                    transactionType,
+                    stockSymbol
                 );
                 setYearData(updatedYearData);
                 resetForm();
@@ -352,7 +473,8 @@ const StockPortfolioTracker: React.FC = () => {
         totalCost: number,
         transactionShares: number,
         transactionPrice: number,
-        transactionType: 'buy' | 'sell'
+        transactionType: 'buy' | 'sell',
+        symbol?: string
     ) => {
         const stockIndex = updatedYearData[year].stocks.findIndex((s) => s.name === stockName);
         if (stockIndex !== -1) {
@@ -362,9 +484,18 @@ const StockPortfolioTracker: React.FC = () => {
                 price,
                 costPrice,
                 totalCost,
+                symbol: symbol || updatedYearData[year].stocks[stockIndex].symbol
             };
         } else {
-            updatedYearData[year].stocks.push({ name: stockName, shares, price, costPrice, id: uuidv4(), totalCost });
+            updatedYearData[year].stocks.push({
+                name: stockName,
+                shares,
+                price,
+                costPrice,
+                id: uuidv4(),
+                totalCost,
+                symbol
+            });
         }
 
         // 记录股票交易
@@ -392,13 +523,14 @@ const StockPortfolioTracker: React.FC = () => {
         setNewShares('');
         setNewPrice('');
         setNewYearEndPrice('');
+        setNewStockSymbol('');
         setTransactionType('buy');
     };
 
     const handleEditRow = (stockName: string) => {
         setEditingStockName(stockName);
         const initialEditedData: {
-            [year: string]: { quantity: string; unitPrice: string; costPrice: string };
+            [year: string]: { quantity: string; unitPrice: string; costPrice: string; symbol?: string };
         } = {};
         years.forEach((year) => {
             const stock = yearData[year]?.stocks.find((s) => s.name === stockName);
@@ -406,6 +538,7 @@ const StockPortfolioTracker: React.FC = () => {
                 quantity: stock?.shares?.toString() || '',
                 unitPrice: stock?.price?.toString() || '',
                 costPrice: stock?.costPrice?.toString() || '',
+                symbol: stock?.symbol || ''
             };
         });
         setEditedRowData(initialEditedData);
@@ -423,6 +556,7 @@ const StockPortfolioTracker: React.FC = () => {
                 const shares = parseInt(editedInfo.quantity, 10);
                 const price = parseFloat(editedInfo.unitPrice);
                 const costPrice = parseFloat(editedInfo.costPrice);
+                const symbol = editedInfo.symbol;
 
                 if (!isNaN(shares) && !isNaN(price) && !isNaN(costPrice)) {
                     const stockIndex = updatedYearData[year].stocks.findIndex((s) => s.name === stockName);
@@ -433,6 +567,7 @@ const StockPortfolioTracker: React.FC = () => {
                             price,
                             costPrice,
                             totalCost: shares * costPrice,
+                            symbol
                         };
                     } else {
                         updatedYearData[year].stocks.push({
@@ -442,6 +577,7 @@ const StockPortfolioTracker: React.FC = () => {
                             costPrice,
                             id: uuidv4(),
                             totalCost: shares * costPrice,
+                            symbol
                         });
                     }
                 } else {
@@ -456,7 +592,7 @@ const StockPortfolioTracker: React.FC = () => {
 
     const handleInputChange = (
         year: string,
-        field: 'quantity' | 'unitPrice' | 'costPrice',
+        field: 'quantity' | 'unitPrice' | 'costPrice' | 'symbol',
         value: string
     ) => {
         if (editingStockName && editedRowData) {
@@ -495,12 +631,17 @@ const StockPortfolioTracker: React.FC = () => {
         });
         const headers = ['股票名称', ...years, '操作'];
         const rows = stockNames.map((stockName) => {
-            const row: any[] = [stockName];
+            const row: (string | { shares: number; price: number; costPrice: number; symbol?: string } | null)[] = [stockName];
             years.forEach((year) => {
                 const stockInYear = yearData[year].stocks.find((s) => s.name === stockName);
                 row.push(
                     stockInYear
-                        ? { shares: stockInYear.shares, price: stockInYear.price, costPrice: stockInYear.costPrice }
+                        ? {
+                            shares: stockInYear.shares,
+                            price: stockInYear.price,
+                            costPrice: stockInYear.costPrice,
+                            symbol: stockInYear.symbol
+                        }
                         : null
                 );
             });
@@ -520,8 +661,8 @@ const StockPortfolioTracker: React.FC = () => {
     const totalValues = calculateTotalValues();
     const table = tableData();
 
-    const handleLegendClick = (data: any) => {
-        const key = data.dataKey as string;
+    const handleLegendClick = (data: { dataKey: string }) => {
+        const key = data.dataKey;
         setHiddenSeries((prev) => ({ ...prev, [key]: !prev[key] }));
     };
 
@@ -595,8 +736,7 @@ const StockPortfolioTracker: React.FC = () => {
                                             );
                                         })}
                                     </ul>
-                                </div>
-                                <div>
+                                </div><div>
                                     <h3 className="font-semibold">股票买卖历史</h3>
                                     <ul>
                                         {yearDataItem.stockTransactions.map((tx, index) => (
@@ -734,13 +874,31 @@ const StockPortfolioTracker: React.FC = () => {
 
                 <div>
                     <h2 className="text-lg font-semibold mb-2">添加/更新股票 ({selectedYear}年)</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-5 gap-2">
+                    <div className="grid grid-cols-1 md:grid-cols-6 gap-2">
                         <Input
                             type="text"
                             placeholder="股票名称"
                             value={newStockName}
                             onChange={(e) => setNewStockName(e.target.value)}
+                            list="stockNameList"
                         />
+                        <datalist id="stockNameList">
+                            {stockSymbols.map((item) => (
+                                <option key={item.symbol} value={item.name} />
+                            ))}
+                        </datalist>
+                        <Input
+                            type="text"
+                            placeholder="股票代码 (如 BABA)"
+                            value={newStockSymbol}
+                            onChange={(e) => setNewStockSymbol(e.target.value)}
+                            list="stockSymbolList"
+                        />
+                        <datalist id="stockSymbolList">
+                            {stockSymbols.map((item) => (
+                                <option key={item.symbol} value={item.symbol} />
+                            ))}
+                        </datalist>
                         <Select onValueChange={(value) => setTransactionType(value as 'buy' | 'sell')} value={transactionType}>
                             <SelectTrigger>
                                 <SelectValue placeholder="交易类型" />
@@ -779,7 +937,16 @@ const StockPortfolioTracker: React.FC = () => {
                     <div className="flex gap-4">
                         <Button onClick={handleCopyData}>复制数据</Button>
                         <Button onClick={handlePasteData}>粘贴数据</Button>
+                        <Button onClick={refreshPrices} disabled={isLoading} className="flex items-center gap-2">
+                            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                            刷新股票价格
+                        </Button>
                     </div>
+                    {priceData && Object.keys(priceData).length > 0 && (
+                        <p className="text-xs mt-2 text-gray-500">
+                            最后更新时间: {Object.values(priceData)[0]?.lastUpdated || '未知'}
+                        </p>
+                    )}
                 </div>
 
                 <div>
@@ -915,7 +1082,7 @@ const StockPortfolioTracker: React.FC = () => {
                                                 </td>
                                             );
                                         } else if (cellIndex === row.length - 1) {
-                                            const stockName = row[0];
+                                            const stockName = row[0] as string;
                                             return (
                                                 <td key={cellIndex} className="px-6 py-4 whitespace-nowrap space-x-2">
                                                     {editingStockName === stockName ? (
@@ -978,18 +1145,38 @@ const StockPortfolioTracker: React.FC = () => {
                                                                 className="w-24"
                                                             />
                                                         </div>
+                                                        <div>
+                                                            <label className="text-sm">代码</label>
+                                                            <Input
+                                                                type="text"
+                                                                value={editedRowData?.[year]?.symbol || ''}
+                                                                onChange={(e) => handleInputChange(year, 'symbol', e.target.value)}
+                                                                className="w-24"
+                                                            />
+                                                        </div>
                                                     </td>
                                                 );
                                             } else if (cell) {
-                                                const { shares, price, costPrice } = cell;
+                                                const stockData = cell as { shares: number; price: number; costPrice: number; symbol?: string };
+                                                const { shares, price, costPrice, symbol } = stockData;
+
+                                                // 检查价格是否来自最新数据
+                                                const isLatestPrice = symbol && priceData[symbol] && priceData[symbol].price === price;
+
                                                 return (
                                                     <td key={cellIndex} className="px-6 py-4 whitespace-nowrap space-y-1">
                                                         <div className="font-medium">
                                                             当前价值: {formatLargeNumber(shares * price)} ({shares} * {price.toFixed(2)})
+                                                            {isLatestPrice && <span className="ml-2 text-xs text-green-500">实时</span>}
                                                         </div>
                                                         <div className="text-sm text-gray-500">
                                                             成本: {formatLargeNumber(shares * costPrice)} ({shares} * {costPrice.toFixed(2)})
                                                         </div>
+                                                        {symbol && (
+                                                            <div className="text-xs text-gray-400">
+                                                                代码: {symbol}
+                                                            </div>
+                                                        )}
                                                     </td>
                                                 );
                                             } else {
@@ -1068,7 +1255,7 @@ const StockPortfolioTracker: React.FC = () => {
                     <DialogHeader>
                         <DialogTitle>复制数据</DialogTitle>
                         <DialogDescription>
-                            <p>请点击下方文本框，使用 Command + A 全选内容，或直接点击“复制到剪贴板”按钮。</p>
+                            <p>请点击下方文本框，使用 Command + A 全选内容，或直接点击"复制到剪贴板"按钮。</p>
                             <textarea
                                 className="w-full h-64 p-2 mt-2 border rounded resize-none"
                                 value={JSON.stringify(yearData, null, 2)}

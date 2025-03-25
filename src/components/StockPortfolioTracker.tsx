@@ -431,26 +431,27 @@ const StockPortfolioTracker: React.FC = () => {
 
     const confirmAddNewStock = () => {
         if (!newStockName || !newShares || !newPrice || !selectedYear) return;
-
+    
         const stockName = newStockName.trim();
         const transactionShares = parseInt(newShares, 10);
         const transactionPrice = parseFloat(newPrice);
         const yearEndPrice = newYearEndPrice ? parseFloat(newYearEndPrice) : null;
         const stockSymbol = newStockSymbol.trim();
-
+    
         if (isNaN(transactionShares) || isNaN(transactionPrice)) return;
-
+    
         const updatedYearData = { ...yearData };
         if (!updatedYearData[selectedYear]) {
             updatedYearData[selectedYear] = { stocks: [], cashTransactions: [], stockTransactions: [], cashBalance: 0 };
         }
-
+    
         const currentStock = updatedYearData[selectedYear].stocks?.find((s) => s.name === stockName);
         const oldShares = currentStock ? currentStock.shares : 0;
         const oldTotalCost = currentStock ? currentStock.shares * currentStock.costPrice : 0;
-
+        const oldCostPrice = currentStock ? currentStock.costPrice : 0;
+    
         let newSharesValue, newTotalCost, newCostPrice, transactionCost;
-
+    
         if (transactionType === 'buy') {
             newSharesValue = oldShares + transactionShares;
             transactionCost = transactionShares * transactionPrice;
@@ -482,16 +483,24 @@ const StockPortfolioTracker: React.FC = () => {
                 });
                 return;
             }
+            
+            // FIXED SELLING CALCULATION
             newSharesValue = oldShares - transactionShares;
             transactionCost = transactionShares * transactionPrice;
-            newTotalCost = oldTotalCost - (oldTotalCost * (transactionShares / oldShares));
+            
+            // Calculate the cost of shares being sold (at original cost basis)
+            const soldSharesCost = transactionShares * oldCostPrice;
+            
+            // Subtract the cost of sold shares from the total cost
+            newTotalCost = oldTotalCost - soldSharesCost;
+            
+            // Calculate new cost price based on remaining shares
             newCostPrice = newSharesValue > 0 ? newTotalCost / newSharesValue : 0;
         }
-
+    
         const displayYearEndPrice = yearEndPrice !== null ? yearEndPrice : (currentStock ? currentStock.price : transactionPrice);
         const displayYearEndPriceText = yearEndPrice !== null ? displayYearEndPrice.toFixed(2) : `${displayYearEndPrice.toFixed(2)}（未填入）`;
-        const oldCostPrice = currentStock ? currentStock.costPrice : 0;
-
+    
         const description = `
             股票: ${stockName}
             交易类型: ${transactionType === 'buy' ? '买入' : '卖出'}
@@ -502,7 +511,7 @@ const StockPortfolioTracker: React.FC = () => {
             新成本价: ${newCostPrice.toFixed(2)}
             ${stockSymbol ? `股票代码: ${stockSymbol}` : ''}
         `;
-
+    
         setAlertInfo({
             isOpen: true,
             title: '确认交易',
@@ -513,7 +522,7 @@ const StockPortfolioTracker: React.FC = () => {
                 } else {
                     updatedYearData[selectedYear].cashBalance = (updatedYearData[selectedYear].cashBalance || 0) + transactionCost;
                 }
-                updateStock(updatedYearData, selectedYear, stockName, newSharesValue, displayYearEndPrice, newCostPrice, newTotalCost, transactionShares, transactionPrice, transactionType, stockSymbol);
+                updateStock(updatedYearData, selectedYear, stockName, newSharesValue, displayYearEndPrice, newCostPrice, transactionShares, transactionPrice, transactionType, stockSymbol);
                 setYearData(updatedYearData);
                 resetForm();
                 setAlertInfo(null);

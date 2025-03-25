@@ -35,11 +35,10 @@ import {
 interface Stock {
     name: string;
     shares: number;
-    price: number; // 股票的原始价格（USD）
-    costPrice: number; // 成本价格（USD）
+    price: number;
+    costPrice: number;
     id: string;
-    totalCost: number; // 记录买入总金额（USD）
-    symbol?: string; // 股票代码
+    symbol?: string;
 }
 
 interface CashTransaction {
@@ -47,6 +46,7 @@ interface CashTransaction {
     type: 'deposit' | 'withdraw' | 'buy' | 'sell';
     date: string;
     stockName?: string; // 对于股票交易，记录股票名称
+    description?: string; // 交易描述
 }
 
 interface StockTransaction {
@@ -82,8 +82,8 @@ const StockPortfolioTracker: React.FC = () => {
     const initialData: { [year: string]: YearData } = {
         '2024': {
             stocks: [
-                { name: '阿里巴巴', shares: 180, price: 105.2, costPrice: 90.0, id: '8', totalCost: 16200, symbol: 'BABA' },
-                { name: '腾讯', shares: 75, price: 350.4, costPrice: 310.0, id: '9', totalCost: 23250, symbol: '0700.HK' },
+                { name: '阿里巴巴', shares: 180, price: 105.2, costPrice: 90.0, id: '8', symbol: 'BABA' },
+                { name: '腾讯', shares: 75, price: 350.4, costPrice: 310.0, id: '9', symbol: '0700.HK' },
             ],
             cashTransactions: [{ amount: 20000, type: 'deposit', date: '2024-01-01' }],
             stockTransactions: [],
@@ -475,7 +475,7 @@ const StockPortfolioTracker: React.FC = () => {
 
         const currentStock = updatedYearData[selectedYear].stocks?.find((s) => s.name === stockName);
         const oldShares = currentStock ? currentStock.shares : 0;
-        const oldTotalCost = currentStock ? currentStock.totalCost : 0;
+        const oldTotalCost = currentStock ? currentStock.shares * currentStock.costPrice : 0;
 
         let newSharesValue, newTotalCost, newCostPrice, transactionCost;
 
@@ -491,7 +491,7 @@ const StockPortfolioTracker: React.FC = () => {
                     description: '购买股票的现金不足，现金余额将变为负数',
                     onConfirm: () => {
                         updatedYearData[selectedYear].cashBalance = (updatedYearData[selectedYear].cashBalance || 0) - transactionCost;
-                        updateStock(updatedYearData, selectedYear, stockName, newSharesValue, yearEndPrice || transactionPrice, newCostPrice, newTotalCost, transactionShares, transactionPrice, transactionType, stockSymbol);
+                        updateStock(updatedYearData, selectedYear, stockName, newSharesValue, yearEndPrice || transactionPrice, newCostPrice, transactionShares, transactionPrice, transactionType, stockSymbol);
                         setYearData(updatedYearData);
                         resetForm();
                         setAlertInfo(null);
@@ -578,7 +578,6 @@ const StockPortfolioTracker: React.FC = () => {
                 shares,
                 price,
                 costPrice,
-                totalCost,
                 symbol: symbol || updatedYearData[year].stocks[stockIndex].symbol
             };
         } else {
@@ -588,7 +587,6 @@ const StockPortfolioTracker: React.FC = () => {
                 price,
                 costPrice,
                 id: uuidv4(),
-                totalCost,
                 symbol
             });
         }
@@ -682,7 +680,6 @@ const StockPortfolioTracker: React.FC = () => {
                             shares,
                             price,
                             costPrice,
-                            totalCost: shares * costPrice,
                             symbol
                         };
                     } else {
@@ -692,7 +689,6 @@ const StockPortfolioTracker: React.FC = () => {
                             price,
                             costPrice,
                             id: uuidv4(),
-                            totalCost: shares * costPrice,
                             symbol
                         });
                     }
@@ -973,6 +969,68 @@ const StockPortfolioTracker: React.FC = () => {
         return (Math.pow(goalAmount / currentAmount, 1 / years) - 1) * 100;
     };
 
+    const calculateYearGrowth = useCallback((currentYear: string) => {
+        const yearIndex = years.indexOf(currentYear);
+        if (yearIndex <= 0) return null;
+
+        const previousYear = years[yearIndex - 1];
+        const currentValue = totalValues[currentYear];
+        const previousValue = totalValues[previousYear];
+
+        // 计算当年的入金总额
+        const yearDeposits = yearData[currentYear]?.cashTransactions
+            .reduce((sum, tx) => sum + (tx.type === 'deposit' ? tx.amount : 0), 0) || 0;
+
+        // 计算实际增长（包含入金）
+        const actualGrowth = currentValue - previousValue;
+        const actualGrowthRate = ((currentValue / previousValue) - 1) * 100;
+
+        // 计算投资回报率（不含入金）
+        const investmentGrowth = actualGrowth - yearDeposits;
+        const investmentGrowthRate = ((currentValue - yearDeposits) / previousValue - 1) * 100;
+
+        return {
+            actualGrowth,
+            actualGrowthRate,
+            investmentGrowth,
+            investmentGrowthRate,
+            yearDeposits
+        };
+    }, [years, totalValues, yearData]);
+
+    // 在年份切换时处理现金结转
+    const handleYearChange = useCallback((newYear: string) => {
+        const currentYearIndex = years.indexOf(newYear);
+        if (currentYearIndex > 0) {
+            const previousYear = years[currentYearIndex - 1];
+            const previousYearCashBalance = yearData[previousYear]?.cashBalance || 0;
+
+            // 检查新年份是否已有上年结余记录
+            const hasCarryOverRecord = yearData[newYear]?.cashTransactions
+                ?.some(tx => tx.type === 'deposit' && tx.amount === previousYearCashBalance && tx.description === '上年结余');
+
+            if (previousYearCashBalance > 0 && !hasCarryOverRecord) {
+                setYearData(prev => ({
+                    ...prev,
+                    [newYear]: {
+                        ...prev[newYear],
+                        cashTransactions: [
+                            {
+                                amount: previousYearCashBalance,
+                                type: 'deposit',
+                                date: `${newYear}-01-01`,
+                                description: '上年结余'
+                            },
+                            ...(prev[newYear]?.cashTransactions || [])
+                        ],
+                        cashBalance: (prev[newYear]?.cashBalance || 0) + previousYearCashBalance
+                    }
+                }));
+            }
+        }
+        setSelectedYear(newYear);
+    }, [years, yearData]);
+
     return (
         <div className="p-4 max-w-6xl mx-auto space-y-8">
             <h1 className="text-2xl font-bold text-center">股票投资组合追踪工具</h1>
@@ -988,7 +1046,7 @@ const StockPortfolioTracker: React.FC = () => {
                     </div>
                     <div>
                         <h2 className="text-lg font-semibold mb-2">选择年份</h2>
-                        <Select onValueChange={setSelectedYear} value={selectedYear}>
+                        <Select onValueChange={handleYearChange} value={selectedYear}>
                             <SelectTrigger className="w-full"><SelectValue placeholder="选择年份" /></SelectTrigger>
                             <SelectContent>{years.map((year) => <SelectItem key={year} value={year}>{year}</SelectItem>)}</SelectContent>
                         </Select>
@@ -1074,13 +1132,28 @@ const StockPortfolioTracker: React.FC = () => {
                         <div key={year} className="p-4 border rounded-lg shadow bg-white cursor-pointer" onClick={() => handleReportClick(year)}>
                             <h3 className="text-lg font-medium">{year}年总持仓</h3>
                             <p className="text-2xl font-bold text-blue-600">{formatLargeNumber(totalValues[year], currency)}</p>
-                            {years.indexOf(year) > 0 && (
-                                <p className={cn('text-sm', totalValues[year] > totalValues[years[years.indexOf(year) - 1]] ? 'text-green-500' : 'text-red-500')}>
-                                    较上年{totalValues[year] > totalValues[years[years.indexOf(year) - 1]] ? '增长' : '减少'}
-                                    {formatLargeNumber(Math.abs(totalValues[year] - totalValues[years[years.indexOf(year) - 1]]), currency)}
-                                    ({((totalValues[year] / totalValues[years[years.indexOf(year) - 1]] - 1) * 100).toFixed(2)}%)
-                                </p>
-                            )}
+                            {years.indexOf(year) > 0 && (() => {
+                                const growth = calculateYearGrowth(year);
+                                if (!growth) return null;
+                                
+                                return (
+                                    <div className="space-y-1 text-sm">
+                                        <p className={cn(growth.actualGrowth >= 0 ? 'text-green-500' : 'text-red-500')}>
+                                            较上年总增长: {formatLargeNumber(growth.actualGrowth, currency)}
+                                            ({growth.actualGrowthRate.toFixed(2)}%)
+                                        </p>
+                                        <p className={cn(growth.investmentGrowth >= 0 ? 'text-green-500' : 'text-red-500')}>
+                                            投资回报: {formatLargeNumber(growth.investmentGrowth, currency)}
+                                            ({growth.investmentGrowthRate.toFixed(2)}%)
+                                        </p>
+                                        {growth.yearDeposits > 0 && (
+                                            <p className="text-blue-500">
+                                                当年入金: {formatLargeNumber(growth.yearDeposits, currency)}
+                                            </p>
+                                        )}
+                                    </div>
+                                );
+                            })()}
                         </div>
                     ))}
                 </div>

@@ -128,7 +128,7 @@ const StockPortfolioTracker: React.FC = () => {
     const [currency, setCurrency] = useState('USD'); // 默认货币为 USD
     const [exchangeRates, setExchangeRates] = useState<{ [key: string]: number }>({ USD: 1, HKD: 0.12864384, CNY: 0.14 }); // 汇率，USD 为基准
 
-    const latestYear = Math.max(...years.map(Number)).toString();
+    const latestYear = years.length > 0 ? Math.max(...years.map(Number)).toString() : '2024';
 
     // 获取基础路径
     const getBasePath = () => {
@@ -187,15 +187,17 @@ const StockPortfolioTracker: React.FC = () => {
     const updateLatestPrices = (prices: PriceData) => {
         setYearData((prevYearData) => {
             const updatedYearData = { ...prevYearData };
-            updatedYearData[latestYear].stocks.forEach(stock => {
-                if (stock.symbol && prices[stock.symbol]) {
-                    if (stock.symbol.endsWith('.HK') && prices[stock.symbol].hkdPrice) {
-                        stock.price = prices[stock.symbol].hkdPrice * exchangeRates['HKD'];
-                    } else {
-                        stock.price = prices[stock.symbol].price;
+            if (updatedYearData[latestYear] && updatedYearData[latestYear].stocks) {
+                updatedYearData[latestYear].stocks.forEach(stock => {
+                    if (stock.symbol && prices[stock.symbol]) {
+                        if (stock.symbol.endsWith('.HK') && prices[stock.symbol].hkdPrice) {
+                            stock.price = prices[stock.symbol].hkdPrice * exchangeRates['HKD'];
+                        } else {
+                            stock.price = prices[stock.symbol].price;
+                        }
                     }
-                }
-            });
+                });
+            }
             return updatedYearData;
         });
     };
@@ -218,15 +220,17 @@ const StockPortfolioTracker: React.FC = () => {
 
                 setYearData((prevYearData) => {
                     const updatedYearData = { ...prevYearData };
-                    updatedYearData[selectedYear].stocks.forEach(stock => {
-                        if (stock.symbol && data[stock.symbol]) {
-                            if (stock.symbol.endsWith('.HK') && data[stock.symbol].hkdPrice) {
-                                stock.price = data[stock.symbol].hkdPrice * rates['HKD'];
-                            } else {
-                                stock.price = data[stock.symbol].price;
+                    if (updatedYearData[selectedYear] && updatedYearData[selectedYear].stocks) {
+                        updatedYearData[selectedYear].stocks.forEach(stock => {
+                            if (stock.symbol && data[stock.symbol]) {
+                                if (stock.symbol.endsWith('.HK') && data[stock.symbol].hkdPrice) {
+                                    stock.price = data[stock.symbol].hkdPrice * rates['HKD'];
+                                } else {
+                                    stock.price = data[stock.symbol].price;
+                                }
                             }
-                        }
-                    });
+                        });
+                    }
                     return updatedYearData;
                 });
 
@@ -261,40 +265,68 @@ const StockPortfolioTracker: React.FC = () => {
         return new Intl.NumberFormat('zh-CN', { maximumFractionDigits: 2 }).format(convertedNum);
     };
 
-
     const calculateYearlyValues = useCallback(() => {
         const yearlyValues: { [year: string]: { [stockName: string]: number; 总计: number } } = {};
         Object.keys(yearData).forEach((year) => {
             yearlyValues[year] = {};
             let yearTotal = 0;
-            yearData[year].stocks.forEach((stock) => {
-                const value = stock.shares * stock.price;
-                yearlyValues[year][stock.name] = value;
-                yearTotal += value;
-            });
+
+            // 确保 yearData[year] 和 yearData[year].stocks 存在
+            if (yearData[year] && yearData[year].stocks) {
+                yearData[year].stocks.forEach((stock) => {
+                    // 只计算非隐藏股票
+                    if (!hiddenStocks[stock.name]) {
+                        const value = stock.shares * stock.price;
+                        yearlyValues[year][stock.name] = value;
+                        yearTotal += value;
+                    }
+                });
+            }
+
             yearlyValues[year]['总计'] = yearTotal;
         });
         return yearlyValues;
-    }, [yearData]);
+    }, [yearData, hiddenStocks]);
 
     const calculateTotalValues = useCallback(() => {
         const totalValues: { [year: string]: number } = {};
         Object.keys(yearData).forEach((year) => {
-            const stockValue = yearData[year].stocks.reduce((acc, stock) => acc + stock.shares * stock.price, 0);
-            totalValues[year] = stockValue + yearData[year].cashBalance;
+            // 确保 yearData[year] 和 yearData[year].stocks 存在
+            if (yearData[year] && yearData[year].stocks) {
+                const stockValue = yearData[year].stocks.reduce((acc, stock) =>
+                    hiddenStocks[stock.name] ? acc : acc + stock.shares * stock.price, 0);
+                totalValues[year] = stockValue + (yearData[year].cashBalance || 0);
+            } else {
+                totalValues[year] = 0;
+            }
         });
         return totalValues;
-    }, [yearData]);
+    }, [yearData, hiddenStocks]);
 
     const prepareLineChartData = useCallback(() => {
         const yearlyValues = calculateYearlyValues();
-        const latestStocks = new Set(yearData[latestYear].stocks.map((stock) => stock.name));
+        const latestStocks = new Set<string>();
+
+        // 确保 yearData[latestYear] 和 yearData[latestYear].stocks 存在
+        if (yearData[latestYear] && yearData[latestYear].stocks) {
+            yearData[latestYear].stocks.forEach(stock => {
+                if (!hiddenStocks[stock.name]) {
+                    latestStocks.add(stock.name);
+                }
+            });
+        }
+
         const allStocks = new Set<string>();
         Object.values(yearData).forEach((yearDataItem) => {
-            yearDataItem.stocks.forEach((stock) => {
-                if (latestStocks.has(stock.name)) allStocks.add(stock.name);
-            });
+            if (yearDataItem && yearDataItem.stocks) {
+                yearDataItem.stocks.forEach((stock) => {
+                    if (latestStocks.has(stock.name) && !hiddenStocks[stock.name]) {
+                        allStocks.add(stock.name);
+                    }
+                });
+            }
         });
+
         return Object.keys(yearData).map((year) => {
             const dataPoint: { [key: string]: string | number } = { year };
             allStocks.forEach((stockName) => {
@@ -303,53 +335,54 @@ const StockPortfolioTracker: React.FC = () => {
             dataPoint['总计'] = yearlyValues[year]['总计'];
             return dataPoint;
         });
-    }, [calculateYearlyValues, yearData, latestYear]);
-
-    const prepareBarChartData = useCallback(() => {
-        const latestStocks = new Set(yearData[latestYear].stocks.map((stock) => stock.name));
-        const result: { name: string;[year: string]: number }[] = [];
-        latestStocks.forEach((stockName) => {
-            const stockData: { name: string;[year: string]: number } = { name: stockName };
-            Object.keys(yearData).forEach((year) => {
-                const stockInYear = yearData[year].stocks.find((s) => s.name === stockName);
-                stockData[year] = stockInYear ? stockInYear.price : 0;
-            });
-            result.push(stockData);
-        });
-        return result;
-    }, [yearData, latestYear]);
+    }, [calculateYearlyValues, yearData, latestYear, hiddenStocks]);
 
     const preparePercentageBarChartData = useCallback(() => {
         const result: { name: string;[year: string]: number }[] = [];
         const yearTotals: { [year: string]: number } = {};
 
-        // Calculate total value for each year
+        // 计算每年总值（不包括隐藏的股票）
         Object.keys(yearData).forEach((year) => {
-            yearTotals[year] = yearData[year].stocks.reduce(
-                (total, stock) => total + stock.shares * stock.price,
-                0
-            );
+            if (yearData[year] && yearData[year].stocks) {
+                yearTotals[year] = yearData[year].stocks.reduce(
+                    (total, stock) => hiddenStocks[stock.name] ? total : total + stock.shares * stock.price,
+                    0
+                );
+            } else {
+                yearTotals[year] = 0;
+            }
         });
 
-        // Get all stock names from latest year
-        const latestStocks = new Set(yearData[latestYear].stocks.map((stock) => stock.name));
+        // 获取最新年份所有非隐藏股票
+        const latestStocks = new Set<string>();
+        if (yearData[latestYear] && yearData[latestYear].stocks) {
+            yearData[latestYear].stocks.forEach(stock => {
+                if (!hiddenStocks[stock.name]) {
+                    latestStocks.add(stock.name);
+                }
+            });
+        }
 
-        // Create percentage data for each stock
+        // 为每只股票创建百分比数据
         latestStocks.forEach((stockName) => {
             const stockData: { name: string;[year: string]: number } = { name: stockName };
 
             Object.keys(yearData).forEach((year) => {
-                const stockInYear = yearData[year].stocks.find((s) => s.name === stockName);
-                const stockValue = stockInYear ? stockInYear.shares * stockInYear.price : 0;
-                const yearTotal = yearTotals[year] || 1; // Avoid division by zero
-                stockData[year] = (stockValue / yearTotal) * 100; // Calculate percentage
+                if (yearData[year] && yearData[year].stocks) {
+                    const stockInYear = yearData[year].stocks.find((s) => s.name === stockName);
+                    const stockValue = stockInYear ? stockInYear.shares * stockInYear.price : 0;
+                    const yearTotal = yearTotals[year] || 1; // 避免除以零
+                    stockData[year] = (stockValue / yearTotal) * 100; // 计算百分比
+                } else {
+                    stockData[year] = 0;
+                }
             });
 
             result.push(stockData);
         });
 
         return result;
-    }, [yearData, latestYear]);
+    }, [yearData, latestYear, hiddenStocks]);
 
     const addNewYear = () => {
         const trimmedYear = newYear.trim();
@@ -367,15 +400,24 @@ const StockPortfolioTracker: React.FC = () => {
         const amount = parseFloat(cashTransactionAmount);
         if (isNaN(amount)) return;
 
-        const updatedYearData = { ...yearData };
-        const cashTransaction: CashTransaction = {
-            amount: cashTransactionType === 'deposit' ? amount : -amount,
-            type: cashTransactionType,
-            date: new Date().toISOString().split('T')[0],
-        };
-        updatedYearData[selectedYear].cashTransactions.push(cashTransaction);
-        updatedYearData[selectedYear].cashBalance += cashTransaction.amount;
-        setYearData(updatedYearData);
+        setYearData((prevYearData) => {
+            const updatedYearData = { ...prevYearData };
+            if (!updatedYearData[selectedYear]) {
+                updatedYearData[selectedYear] = { stocks: [], cashTransactions: [], stockTransactions: [], cashBalance: 0 };
+            }
+
+            const cashTransaction: CashTransaction = {
+                amount: cashTransactionType === 'deposit' ? amount : -amount,
+                type: cashTransactionType,
+                date: new Date().toISOString().split('T')[0],
+            };
+
+            updatedYearData[selectedYear].cashTransactions.push(cashTransaction);
+            updatedYearData[selectedYear].cashBalance = (updatedYearData[selectedYear].cashBalance || 0) + cashTransaction.amount;
+
+            return updatedYearData;
+        });
+
         setCashTransactionAmount('');
     };
 
@@ -395,7 +437,7 @@ const StockPortfolioTracker: React.FC = () => {
             updatedYearData[selectedYear] = { stocks: [], cashTransactions: [], stockTransactions: [], cashBalance: 0 };
         }
 
-        const currentStock = updatedYearData[selectedYear].stocks.find((s) => s.name === stockName);
+        const currentStock = updatedYearData[selectedYear].stocks?.find((s) => s.name === stockName);
         const oldShares = currentStock ? currentStock.shares : 0;
         const oldTotalCost = currentStock ? currentStock.totalCost : 0;
 
@@ -406,13 +448,13 @@ const StockPortfolioTracker: React.FC = () => {
             transactionCost = transactionShares * transactionPrice;
             newTotalCost = oldTotalCost + transactionCost;
             newCostPrice = newSharesValue > 0 ? newTotalCost / newSharesValue : 0;
-            if (updatedYearData[selectedYear].cashBalance < transactionCost) {
+            if ((updatedYearData[selectedYear].cashBalance || 0) < transactionCost) {
                 setAlertInfo({
                     isOpen: true,
                     title: '现金不足',
                     description: '购买股票的现金不足，现金余额将变为负数',
                     onConfirm: () => {
-                        updatedYearData[selectedYear].cashBalance -= transactionCost;
+                        updatedYearData[selectedYear].cashBalance = (updatedYearData[selectedYear].cashBalance || 0) - transactionCost;
                         updateStock(updatedYearData, selectedYear, stockName, newSharesValue, yearEndPrice || transactionPrice, newCostPrice, newTotalCost, transactionShares, transactionPrice, transactionType, stockSymbol);
                         setYearData(updatedYearData);
                         resetForm();
@@ -434,7 +476,7 @@ const StockPortfolioTracker: React.FC = () => {
             }
             newSharesValue = oldShares - transactionShares;
             transactionCost = transactionShares * transactionPrice;
-            newTotalCost = oldTotalCost - transactionCost;
+            newTotalCost = oldTotalCost - (oldTotalCost * (transactionShares / oldShares));
             newCostPrice = newSharesValue > 0 ? newTotalCost / newSharesValue : 0;
         }
 
@@ -459,9 +501,9 @@ const StockPortfolioTracker: React.FC = () => {
             description,
             onConfirm: () => {
                 if (transactionType === 'buy') {
-                    updatedYearData[selectedYear].cashBalance -= transactionCost;
+                    updatedYearData[selectedYear].cashBalance = (updatedYearData[selectedYear].cashBalance || 0) - transactionCost;
                 } else {
-                    updatedYearData[selectedYear].cashBalance += transactionCost;
+                    updatedYearData[selectedYear].cashBalance = (updatedYearData[selectedYear].cashBalance || 0) + transactionCost;
                 }
                 updateStock(updatedYearData, selectedYear, stockName, newSharesValue, displayYearEndPrice, newCostPrice, newTotalCost, transactionShares, transactionPrice, transactionType, stockSymbol);
                 setYearData(updatedYearData);
@@ -485,15 +527,52 @@ const StockPortfolioTracker: React.FC = () => {
         transactionType: 'buy' | 'sell',
         symbol?: string
     ) => {
-        const stockIndex = updatedYearData[year].stocks.findIndex((s) => s.name === stockName);
-        if (stockIndex !== -1) {
-            updatedYearData[year].stocks[stockIndex] = { ...updatedYearData[year].stocks[stockIndex], shares, price, costPrice, totalCost, symbol: symbol || updatedYearData[year].stocks[stockIndex].symbol };
-        } else {
-            updatedYearData[year].stocks.push({ name: stockName, shares, price, costPrice, id: uuidv4(), totalCost, symbol });
+        if (!updatedYearData[year]) {
+            updatedYearData[year] = { stocks: [], cashTransactions: [], stockTransactions: [], cashBalance: 0 };
         }
 
-        const stockTransaction: StockTransaction = { stockName, type: transactionType, shares: transactionShares, price: transactionPrice, date: new Date().toISOString().split('T')[0] };
+        if (!updatedYearData[year].stocks) {
+            updatedYearData[year].stocks = [];
+        }
+
+        const stockIndex = updatedYearData[year].stocks.findIndex((s) => s.name === stockName);
+        if (stockIndex !== -1) {
+            updatedYearData[year].stocks[stockIndex] = {
+                ...updatedYearData[year].stocks[stockIndex],
+                shares,
+                price,
+                costPrice,
+                totalCost,
+                symbol: symbol || updatedYearData[year].stocks[stockIndex].symbol
+            };
+        } else {
+            updatedYearData[year].stocks.push({
+                name: stockName,
+                shares,
+                price,
+                costPrice,
+                id: uuidv4(),
+                totalCost,
+                symbol
+            });
+        }
+
+        if (!updatedYearData[year].stockTransactions) {
+            updatedYearData[year].stockTransactions = [];
+        }
+
+        const stockTransaction: StockTransaction = {
+            stockName,
+            type: transactionType,
+            shares: transactionShares,
+            price: transactionPrice,
+            date: new Date().toISOString().split('T')[0]
+        };
         updatedYearData[year].stockTransactions.push(stockTransaction);
+
+        if (!updatedYearData[year].cashTransactions) {
+            updatedYearData[year].cashTransactions = [];
+        }
 
         const cashTransaction: CashTransaction = {
             amount: transactionType === 'buy' ? -transactionShares * transactionPrice : transactionShares * transactionPrice,
@@ -517,13 +596,22 @@ const StockPortfolioTracker: React.FC = () => {
         setEditingStockName(stockName);
         const initialEditedData: { [year: string]: { quantity: string; unitPrice: string; costPrice: string; symbol?: string } } = {};
         years.forEach((year) => {
-            const stock = yearData[year]?.stocks.find((s) => s.name === stockName);
-            initialEditedData[year] = {
-                quantity: stock?.shares?.toString() || '',
-                unitPrice: stock?.price?.toString() || '',
-                costPrice: stock?.costPrice?.toString() || '',
-                symbol: stock?.symbol || ''
-            };
+            if (yearData[year] && yearData[year].stocks) {
+                const stock = yearData[year].stocks.find((s) => s.name === stockName);
+                initialEditedData[year] = {
+                    quantity: stock?.shares?.toString() || '',
+                    unitPrice: stock?.price?.toString() || '',
+                    costPrice: stock?.costPrice?.toString() || '',
+                    symbol: stock?.symbol || ''
+                };
+            } else {
+                initialEditedData[year] = {
+                    quantity: '',
+                    unitPrice: '',
+                    costPrice: '',
+                    symbol: ''
+                };
+            }
         });
         setEditedRowData(initialEditedData);
     };
@@ -534,6 +622,14 @@ const StockPortfolioTracker: React.FC = () => {
             if (!editedRowData) return updatedYearData;
 
             years.forEach((year) => {
+                if (!updatedYearData[year]) {
+                    updatedYearData[year] = { stocks: [], cashTransactions: [], stockTransactions: [], cashBalance: 0 };
+                }
+
+                if (!updatedYearData[year].stocks) {
+                    updatedYearData[year].stocks = [];
+                }
+
                 const editedInfo = editedRowData[year];
                 if (!editedInfo) return;
 
@@ -545,11 +641,26 @@ const StockPortfolioTracker: React.FC = () => {
                 if (!isNaN(shares) && !isNaN(price) && !isNaN(costPrice)) {
                     const stockIndex = updatedYearData[year].stocks.findIndex((s) => s.name === stockName);
                     if (stockIndex !== -1) {
-                        updatedYearData[year].stocks[stockIndex] = { ...updatedYearData[year].stocks[stockIndex], shares, price, costPrice, totalCost: shares * costPrice, symbol };
+                        updatedYearData[year].stocks[stockIndex] = {
+                            ...updatedYearData[year].stocks[stockIndex],
+                            shares,
+                            price,
+                            costPrice,
+                            totalCost: shares * costPrice,
+                            symbol
+                        };
                     } else {
-                        updatedYearData[year].stocks.push({ name: stockName, shares, price, costPrice, id: uuidv4(), totalCost: shares * costPrice, symbol });
+                        updatedYearData[year].stocks.push({
+                            name: stockName,
+                            shares,
+                            price,
+                            costPrice,
+                            id: uuidv4(),
+                            totalCost: shares * costPrice,
+                            symbol
+                        });
                     }
-                } else {
+                } else if (updatedYearData[year].stocks) {
                     updatedYearData[year].stocks = updatedYearData[year].stocks.filter((s) => s.name !== stockName);
                 }
             });
@@ -561,7 +672,16 @@ const StockPortfolioTracker: React.FC = () => {
 
     const handleInputChange = (year: string, field: 'quantity' | 'unitPrice' | 'costPrice' | 'symbol', value: string) => {
         if (editingStockName && editedRowData) {
-            setEditedRowData((prev) => ({ ...prev!, [year]: { ...prev![year], [field]: value } }));
+            setEditedRowData((prev) => {
+                if (!prev) return null;
+                return {
+                    ...prev,
+                    [year]: {
+                        ...prev[year],
+                        [field]: value
+                    }
+                };
+            });
         }
     };
 
@@ -569,7 +689,14 @@ const StockPortfolioTracker: React.FC = () => {
         setYearData((prevYearData) => {
             const updatedYearData: { [year: string]: YearData } = {};
             Object.keys(prevYearData).forEach((year) => {
-                updatedYearData[year] = { ...prevYearData[year], stocks: prevYearData[year].stocks.filter((stock) => stock.name !== stockName) };
+                if (prevYearData[year] && prevYearData[year].stocks) {
+                    updatedYearData[year] = {
+                        ...prevYearData[year],
+                        stocks: prevYearData[year].stocks.filter((stock) => stock.name !== stockName)
+                    };
+                } else {
+                    updatedYearData[year] = prevYearData[year];
+                }
             });
             return updatedYearData;
         });
@@ -584,12 +711,19 @@ const StockPortfolioTracker: React.FC = () => {
 
     const tableData = useCallback(() => {
         const stockSet = new Set<string>();
+        // 收集所有股票名称
         Object.values(yearData).forEach((yearDataItem) => {
-            yearDataItem.stocks.forEach((stock) => stockSet.add(stock.name));
+            if (yearDataItem && yearDataItem.stocks) {
+                yearDataItem.stocks.forEach((stock) => stockSet.add(stock.name));
+            }
         });
 
         const stockNames = Array.from(stockSet);
+
+        // 按最新年份中的股票价值排序
         stockNames.sort((a, b) => {
+            if (!yearData[latestYear] || !yearData[latestYear].stocks) return 0;
+
             const stockA = yearData[latestYear].stocks.find((s) => s.name === a);
             const stockB = yearData[latestYear].stocks.find((s) => s.name === b);
             const valueA = stockA ? stockA.shares * stockA.price : 0;
@@ -600,19 +734,28 @@ const StockPortfolioTracker: React.FC = () => {
         const headers = ['可见性', '股票名称', ...years, '操作'];
 
         const rows = stockNames.map((stockName) => {
-            const row: (any)[] = []; // 使用 any 简化类型，实际使用中应该定义更具体的类型
+            const row: (any)[] = [];
 
             // 添加可见性列
             row.push({ visibility: !hiddenStocks[stockName] });
 
             // 添加股票名称列
-            const stockInLatestYear = yearData[latestYear].stocks.find((s) => s.name === stockName);
+            const stockInLatestYear = yearData[latestYear]?.stocks?.find((s) => s.name === stockName);
             row.push({ name: stockName, symbol: stockInLatestYear?.symbol });
 
             // 添加年份数据列
             years.forEach((year) => {
-                const stockInYear = yearData[year].stocks.find((s) => s.name === stockName);
-                row.push(stockInYear ? { shares: stockInYear.shares, price: stockInYear.price, costPrice: stockInYear.costPrice, symbol: stockInYear.symbol } : null);
+                if (yearData[year] && yearData[year].stocks) {
+                    const stockInYear = yearData[year].stocks.find((s) => s.name === stockName);
+                    row.push(stockInYear ? {
+                        shares: stockInYear.shares,
+                        price: stockInYear.price,
+                        costPrice: stockInYear.costPrice,
+                        symbol: stockInYear.symbol
+                    } : null);
+                } else {
+                    row.push(null);
+                }
             });
 
             // 添加操作列
@@ -638,18 +781,22 @@ const StockPortfolioTracker: React.FC = () => {
     };
 
     useEffect(() => {
-        localStorage.setItem('stockPortfolioData', JSON.stringify(yearData));
-        localStorage.setItem('stockPortfolioYears', JSON.stringify(years));
-        localStorage.setItem('stockPortfolioSelectedYear', selectedYear);
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('stockPortfolioData', JSON.stringify(yearData));
+            localStorage.setItem('stockPortfolioYears', JSON.stringify(years));
+            localStorage.setItem('stockPortfolioSelectedYear', selectedYear);
+        }
     }, [yearData, years, selectedYear]);
 
     useEffect(() => {
-        const savedData = localStorage.getItem('stockPortfolioData');
-        const savedYears = localStorage.getItem('stockPortfolioYears');
-        const savedSelectedYear = localStorage.getItem('stockPortfolioSelectedYear');
-        if (savedData) setYearData(JSON.parse(savedData));
-        if (savedYears) setYears(JSON.parse(savedYears));
-        if (savedSelectedYear) setSelectedYear(savedSelectedYear);
+        if (typeof window !== 'undefined') {
+            const savedData = localStorage.getItem('stockPortfolioData');
+            const savedYears = localStorage.getItem('stockPortfolioYears');
+            const savedSelectedYear = localStorage.getItem('stockPortfolioSelectedYear');
+            if (savedData) setYearData(JSON.parse(savedData));
+            if (savedYears) setYears(JSON.parse(savedYears));
+            if (savedSelectedYear) setSelectedYear(savedSelectedYear);
+        }
     }, []);
 
     const handleReportClick = (year: string) => {
@@ -662,25 +809,34 @@ const StockPortfolioTracker: React.FC = () => {
         const sortedYears = [...years].sort();
         for (const y of sortedYears) {
             if (y > year) break;
-            const yearDataItem = yearData[y];
-            cumulativeInvested += yearDataItem.cashTransactions.reduce(
-                (acc, tx) => acc + (tx.type === 'deposit' ? tx.amount : tx.type === 'withdraw' ? -tx.amount : 0),
-                0
-            );
+
+            if (yearData[y] && yearData[y].cashTransactions) {
+                cumulativeInvested += yearData[y].cashTransactions.reduce(
+                    (acc, tx) => acc + (tx.type === 'deposit' ? tx.amount : tx.type === 'withdraw' ? -tx.amount : 0),
+                    0
+                );
+            }
         }
         return cumulativeInvested;
     };
 
     const renderReportDialog = () => {
-        if (!selectedReportYear) return null;
+        if (!selectedReportYear || !yearData[selectedReportYear]) return null;
 
         const yearDataItem = yearData[selectedReportYear];
-        const stockValue = yearDataItem.stocks.reduce((acc, stock) => acc + stock.shares * stock.price, 0);
-        const totalPortfolioValue = stockValue + yearDataItem.cashBalance;
-        const yearlyInvested = yearDataItem.cashTransactions.reduce(
+
+        // 只计算非隐藏股票的价值
+        const stockValue = yearDataItem.stocks ? yearDataItem.stocks.reduce(
+            (acc, stock) => hiddenStocks[stock.name] ? acc : acc + stock.shares * stock.price, 0
+        ) : 0;
+
+        const totalPortfolioValue = stockValue + (yearDataItem.cashBalance || 0);
+
+        const yearlyInvested = yearDataItem.cashTransactions ? yearDataItem.cashTransactions.reduce(
             (acc, tx) => acc + (tx.type === 'deposit' ? tx.amount : tx.type === 'withdraw' ? -tx.amount : 0),
             0
-        );
+        ) : 0;
+
         const cumulativeInvested = calculateCumulativeInvested(selectedReportYear);
         const growth = totalPortfolioValue - cumulativeInvested;
         const growthRate = cumulativeInvested > 0 ? (growth / cumulativeInvested) * 100 : 0;
@@ -695,10 +851,14 @@ const StockPortfolioTracker: React.FC = () => {
                                 <div>
                                     <h3 className="font-semibold">现金变化历史</h3>
                                     <ul>
-                                        {yearDataItem.cashTransactions.map((tx, index) => {
+                                        {yearDataItem.cashTransactions && yearDataItem.cashTransactions.map((tx, index) => {
                                             const isIncrease = tx.type === 'deposit' || tx.type === 'sell';
                                             const colorClass = isIncrease ? 'text-green-500' : 'text-red-500';
                                             const description = tx.type === 'deposit' ? '存入' : tx.type === 'withdraw' ? '取出' : tx.type === 'buy' ? `买入${tx.stockName}` : `卖出${tx.stockName}`;
+                                            // 如果交易关联的股票被隐藏，则跳过
+                                            if (tx.stockName && hiddenStocks[tx.stockName]) {
+                                                return null;
+                                            }
                                             return (
                                                 <li key={index} className={colorClass}>
                                                     {tx.date}: {description} {formatLargeNumber(Math.abs(tx.amount), currency)}
@@ -710,16 +870,22 @@ const StockPortfolioTracker: React.FC = () => {
                                 <div>
                                     <h3 className="font-semibold">股票买卖历史</h3>
                                     <ul>
-                                        {yearDataItem.stockTransactions.map((tx, index) => (
-                                            <li key={index}>
-                                                {tx.date}: {tx.type === 'buy' ? '买入' : '卖出'} {tx.stockName} {tx.shares}股，价格 {formatLargeNumber(tx.price, currency)}
-                                            </li>
-                                        ))}
+                                        {yearDataItem.stockTransactions && yearDataItem.stockTransactions.map((tx, index) => {
+                                            // 如果股票被隐藏，则跳过
+                                            if (hiddenStocks[tx.stockName]) {
+                                                return null;
+                                            }
+                                            return (
+                                                <li key={index}>
+                                                    {tx.date}: {tx.type === 'buy' ? '买入' : '卖出'} {tx.stockName} {tx.shares}股，价格 {formatLargeNumber(tx.price, currency)}
+                                                </li>
+                                            );
+                                        })}
                                     </ul>
                                 </div>
                                 <div>
                                     <h3 className="font-semibold">当年总持仓</h3>
-                                    <p>{formatLargeNumber(totalPortfolioValue, currency)} (股票: {formatLargeNumber(stockValue, currency)}, 现金: {formatLargeNumber(yearDataItem.cashBalance, currency)})</p>
+                                    <p>{formatLargeNumber(totalPortfolioValue, currency)} (股票: {formatLargeNumber(stockValue, currency)}, 现金: {formatLargeNumber(yearDataItem.cashBalance || 0, currency)})</p>
                                 </div>
                                 <div>
                                     <h3 className="font-semibold">累计投入现金</h3>
@@ -792,8 +958,8 @@ const StockPortfolioTracker: React.FC = () => {
                         <Input type="number" placeholder="金额" value={cashTransactionAmount} onChange={(e) => setCashTransactionAmount(e.target.value)} className="w-32" />
                         <Button onClick={addCashTransaction}>添加现金操作</Button>
                     </div>
-                    <p className={cn('text-sm mt-2', yearData[selectedYear].cashBalance < 0 ? 'text-red-500' : 'text-green-500')}>
-                        现金余额: {formatLargeNumber(yearData[selectedYear].cashBalance, currency)}
+                    <p className={cn('text-sm mt-2', (yearData[selectedYear]?.cashBalance || 0) < 0 ? 'text-red-500' : 'text-green-500')}>
+                        现金余额: {formatLargeNumber(yearData[selectedYear]?.cashBalance || 0, currency)}
                     </p>
                 </div>
 
@@ -1062,12 +1228,30 @@ const StockPortfolioTracker: React.FC = () => {
                                 {table.totalRow.map((cell, index) => {
                                     if (index === 0) {
                                         return <td key={index} className="px-6 py-3 text-left text-sm font-semibold uppercase tracking-wider bg-gray-100">{cell}</td>;
+                                    } else if (index === 1) {
+                                        return <td key={index} className="px-6 py-3 text-left text-sm font-semibold uppercase tracking-wider bg-gray-100">{cell}</td>;
                                     } else if (index === table.totalRow.length - 1) {
                                         return <td key={index} className="px-6 py-3 text-left text-sm font-semibold uppercase tracking-wider bg-gray-100">{cell}</td>;
                                     }
-                                    const year = years[index - 1];
-                                    const total = yearData[year].stocks.reduce((acc, stock) => acc + stock.shares * stock.price, 0) + yearData[year].cashBalance;
-                                    return <td key={index} className="px-6 py-3 text-center text-sm font-semibold uppercase tracking-wider bg-gray-100">{formatLargeNumber(total, currency)}</td>;
+
+                                    const yearIndex = index - 2; // 调整索引，因为有可见性列和股票名称列
+                                    if (yearIndex >= 0 && yearIndex < years.length) {
+                                        const year = years[yearIndex];
+                                        // 确保 yearData[year] 和 yearData[year].stocks 存在
+                                        if (yearData[year] && yearData[year].stocks) {
+                                            // 只计算非隐藏股票的总价值
+                                            const stockValue = yearData[year].stocks.reduce(
+                                                (acc, stock) => hiddenStocks[stock.name] ? acc : acc + stock.shares * stock.price,
+                                                0
+                                            );
+                                            const total = stockValue + (yearData[year].cashBalance || 0);
+                                            return <td key={index} className="px-6 py-3 text-center text-sm font-semibold uppercase tracking-wider bg-gray-100">
+                                                {formatLargeNumber(total, currency)}
+                                            </td>;
+                                        }
+                                    }
+
+                                    return <td key={index} className="px-6 py-3 text-center text-sm font-semibold uppercase tracking-wider bg-gray-100">-</td>;
                                 })}
                             </tr>
                         </tfoot>

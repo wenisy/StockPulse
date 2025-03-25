@@ -1227,18 +1227,6 @@ const StockPortfolioTracker: React.FC = () => {
                         </SelectContent>
                     </Select>
                 </div>
-
-                <div>
-                    <h2 className="text-lg font-semibold mb-2">图表类型</h2>
-                    <div className="flex gap-4">
-                        <Button onClick={() => setShowPositionChart(true)} className={cn('px-4 py-2 rounded', showPositionChart ? 'bg-blue-500 text-white' : 'bg-gray-200')}>
-                            仓位变化图（折线图）
-                        </Button>
-                        <Button onClick={() => setShowPositionChart(false)} className={cn('px-4 py-2 rounded', !showPositionChart ? 'bg-blue-500 text-white' : 'bg-gray-200')}>
-                            股票占比图（柱状图）
-                        </Button>
-                    </div>
-                </div>
             </div>
 
             <div>
@@ -1439,6 +1427,17 @@ const StockPortfolioTracker: React.FC = () => {
             </div>
 
             <div>
+            <div>
+                    <h2 className="text-lg font-semibold mb-2">图表类型</h2>
+                    <div className="flex gap-4">
+                        <Button onClick={() => setShowPositionChart(true)} className={cn('px-4 py-2 rounded', showPositionChart ? 'bg-blue-500 text-white' : 'bg-gray-200')}>
+                            仓位变化图（折线图）
+                        </Button>
+                        <Button onClick={() => setShowPositionChart(false)} className={cn('px-4 py-2 rounded', !showPositionChart ? 'bg-blue-500 text-white' : 'bg-gray-200')}>
+                            股票占比图（柱状图）
+                        </Button>
+                    </div>
+                </div>
                 <h2 className="text-xl font-semibold mb-4">{showPositionChart ? '各股票仓位变化（按年）' : '各股票仓位占比（按年）'}</h2>
                 <div className="h-96 w-full">
                     <ResponsiveContainer width="100%" height="100%">

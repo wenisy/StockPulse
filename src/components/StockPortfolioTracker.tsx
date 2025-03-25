@@ -939,7 +939,6 @@ const StockPortfolioTracker: React.FC = () => {
             <div>
                 <h2 className="text-xl font-semibold mb-4">持仓明细表</h2>
                 <div className="overflow-x-auto">
-                // 在表格渲染部分修改
                     <table className="min-w-full border-collapse border border-gray-300">
                         <thead>
                             <tr>
@@ -1029,12 +1028,26 @@ const StockPortfolioTracker: React.FC = () => {
                                                 if (isEditing) {
                                                     return (
                                                         <td key={cellIndex} className="px-6 py-4 whitespace-nowrap space-y-1">
-                                                            {/* 编辑状态保持不变 */}
+                                                            <div><label className="text-sm">数量</label><Input type="number" value={editedRowData?.[year]?.quantity || ''} onChange={(e) => handleInputChange(year, 'quantity', e.target.value)} className="w-24" /></div>
+                                                            <div><label className="text-sm">价格</label><Input type="number" value={editedRowData?.[year]?.unitPrice || ''} onChange={(e) => handleInputChange(year, 'unitPrice', e.target.value)} className="w-24" /></div>
+                                                            <div><label className="text-sm">成本</label><Input type="number" value={editedRowData?.[year]?.costPrice || ''} onChange={(e) => handleInputChange(year, 'costPrice', e.target.value)} className="w-24" /></div>
                                                         </td>
                                                     );
                                                 } else if (cell) {
                                                     const stockData = cell as { shares: number; price: number; costPrice: number; symbol?: string };
-                                                    {/* 单元格内容渲染保持不变 */ }
+                                                    const { shares, price, costPrice, symbol } = stockData;
+                                                    const isLatestPrice = symbol && priceData[symbol] && (symbol.endsWith('.HK') ? priceData[symbol].hkdPrice * exchangeRates['HKD'] === price : priceData[symbol].price === price);
+                                                    return (
+                                                        <td key={cellIndex} className="px-6 py-4 whitespace-nowrap space-y-1">
+                                                            <div className="font-medium">
+                                                                当前价值: {formatLargeNumber(shares * price, currency)} ({shares} * {formatLargeNumber(price, currency)})
+                                                                {isLatestPrice && <span className="ml-2 text-xs text-green-500">实时</span>}
+                                                            </div>
+                                                            <div className="text-sm text-gray-500">
+                                                                成本: {formatLargeNumber(shares * costPrice, currency)} ({shares} * {formatLargeNumber(costPrice, currency)})
+                                                            </div>
+                                                        </td>
+                                                    );
                                                 } else {
                                                     return <td key={cellIndex} className="px-6 py-4 whitespace-nowrap"> - </td>;
                                                 }
@@ -1045,7 +1058,18 @@ const StockPortfolioTracker: React.FC = () => {
                             })}
                         </tbody>
                         <tfoot>
-                            {/* 表尾总计行保持不变 */}
+                            <tr>
+                                {table.totalRow.map((cell, index) => {
+                                    if (index === 0) {
+                                        return <td key={index} className="px-6 py-3 text-left text-sm font-semibold uppercase tracking-wider bg-gray-100">{cell}</td>;
+                                    } else if (index === table.totalRow.length - 1) {
+                                        return <td key={index} className="px-6 py-3 text-left text-sm font-semibold uppercase tracking-wider bg-gray-100">{cell}</td>;
+                                    }
+                                    const year = years[index - 1];
+                                    const total = yearData[year].stocks.reduce((acc, stock) => acc + stock.shares * stock.price, 0) + yearData[year].cashBalance;
+                                    return <td key={index} className="px-6 py-3 text-center text-sm font-semibold uppercase tracking-wider bg-gray-100">{formatLargeNumber(total, currency)}</td>;
+                                })}
+                            </tr>
                         </tfoot>
                     </table>
                 </div>

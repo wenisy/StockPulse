@@ -81,6 +81,7 @@ interface PriceData {
         price: number; // USD 价格
         hkdPrice?: number; // 港股的 HKD 价格
         name: string;
+        currency?: string; // 添加货币类型字段
         lastUpdated: string;
     };
 }
@@ -188,12 +189,13 @@ const StockPortfolioTracker: React.FC = () => {
 
     const updateLatestPrices = (prices: PriceData) => {
         setYearData((prevYearData) => {
-            const updatedYearData = { ...prevYearData };
+            const updatedYearData = {...prevYearData};
             if (updatedYearData[latestYear] && updatedYearData[latestYear].stocks) {
                 updatedYearData[latestYear].stocks.forEach(stock => {
                     if (stock.symbol && prices[stock.symbol]) {
-                        if (stock.symbol.endsWith('.HK') && prices[stock.symbol].hkdPrice) {
-                            stock.price = prices[stock.symbol].hkdPrice * exchangeRates['HKD'];
+                        // 使用currency字段来判断货币类型
+                        if (prices[stock.symbol].currency === 'HKD') {
+                            stock.price = prices[stock.symbol].price * exchangeRates['HKD'];
                         } else {
                             stock.price = prices[stock.symbol].price;
                         }
@@ -268,11 +270,11 @@ const StockPortfolioTracker: React.FC = () => {
     };
 
     const calculateYearlyValues = useCallback(() => {
-        const yearlyValues: { [year: string]: { [stockName: string]: number; 总计: number } } = {};
+        const yearlyValues: { [year: string]: { [stockName: string]: number; total: number } } = {};
         Object.keys(yearData).forEach((year) => {
             yearlyValues[year] = {};
             let yearTotal = 0;
-
+    
             // 确保 yearData[year] 和 yearData[year].stocks 存在
             if (yearData[year] && yearData[year].stocks) {
                 yearData[year].stocks.forEach((stock) => {
@@ -283,9 +285,8 @@ const StockPortfolioTracker: React.FC = () => {
                         yearTotal += value;
                     }
                 });
-            }
-
-            yearlyValues[year]['总计'] = yearTotal;
+            }    
+            yearlyValues[year]['total'] = yearTotal;
         });
         return yearlyValues;
     }, [yearData, hiddenStocks]);
@@ -334,7 +335,7 @@ const StockPortfolioTracker: React.FC = () => {
             allStocks.forEach((stockName) => {
                 dataPoint[stockName] = yearlyValues[year][stockName] || 0;
             });
-            dataPoint['总计'] = yearlyValues[year]['总计'];
+            dataPoint['total'] = yearlyValues[year]['total'];
             return dataPoint;
         });
     }, [calculateYearlyValues, yearData, latestYear, hiddenStocks]);
@@ -802,7 +803,7 @@ const StockPortfolioTracker: React.FC = () => {
         });
 
         // 总计行也需要调整列数
-        const totalRow = ['', '总计', ...years.map(() => null), null];
+        const totalRow = ['', 'total', ...years.map(() => null), null];
 
         return { headers, rows, totalRow };
     }, [yearData, years, latestYear, hiddenStocks]);
@@ -1523,7 +1524,7 @@ const StockPortfolioTracker: React.FC = () => {
                                             name={stock}
                                             hide={!!hiddenSeries[stock]}
                                             stroke={['#8884d8', '#82ca9d', '#ffc658', '#ff7300', '#0088fe'][index % 5]}
-                                            strokeWidth={stock === '总计' ? 3 : 1.5}
+                                            strokeWidth={stock === 'total' ? 3 : 1.5}
                                         />
                                     ))}
                             </LineChart>
@@ -1539,7 +1540,7 @@ const StockPortfolioTracker: React.FC = () => {
                                     formatter={(value: number) => [`${value.toFixed(2)}%`, '占比']}
                                     labelFormatter={(label) => `${label}`}
                                 />
-                                <Legend onClick={handleLegendClick} />
+                                <Legend onClick={handleLegendClick}     formatter={(value) => value === 'total' ? '总计' : value} />
                                 {years
                                     .map((year, index) => (
                                         <Bar

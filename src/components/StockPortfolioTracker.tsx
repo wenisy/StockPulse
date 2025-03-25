@@ -22,7 +22,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
-import { Trash2, Edit, Save, RefreshCw } from 'lucide-react';
+import { Trash2, Edit, Save, RefreshCw, Eye, EyeOff } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import {
     Dialog,
@@ -106,6 +106,7 @@ const StockPortfolioTracker: React.FC = () => {
         [year: string]: { quantity: string; unitPrice: string; costPrice: string; symbol?: string };
     } | null>(null);
     const [hiddenSeries, setHiddenSeries] = useState<{ [dataKey: string]: boolean }>({});
+    const [hiddenStocks, setHiddenStocks] = useState<{ [stockName: string]: boolean }>({});
     const [alertInfo, setAlertInfo] = useState<{
         isOpen: boolean;
         title: string;
@@ -260,6 +261,7 @@ const StockPortfolioTracker: React.FC = () => {
         return new Intl.NumberFormat('zh-CN', { maximumFractionDigits: 2 }).format(convertedNum);
     };
 
+
     const calculateYearlyValues = useCallback(() => {
         const yearlyValues: { [year: string]: { [stockName: string]: number; 总计: number } } = {};
         Object.keys(yearData).forEach((year) => {
@@ -314,6 +316,38 @@ const StockPortfolioTracker: React.FC = () => {
             });
             result.push(stockData);
         });
+        return result;
+    }, [yearData, latestYear]);
+
+    const preparePercentageBarChartData = useCallback(() => {
+        const result: { name: string; [year: string]: number }[] = [];
+        const yearTotals: { [year: string]: number } = {};
+        
+        // Calculate total value for each year
+        Object.keys(yearData).forEach((year) => {
+            yearTotals[year] = yearData[year].stocks.reduce(
+                (total, stock) => total + stock.shares * stock.price, 
+                0
+            );
+        });
+        
+        // Get all stock names from latest year
+        const latestStocks = new Set(yearData[latestYear].stocks.map((stock) => stock.name));
+        
+        // Create percentage data for each stock
+        latestStocks.forEach((stockName) => {
+            const stockData: { name: string; [year: string]: number } = { name: stockName };
+            
+            Object.keys(yearData).forEach((year) => {
+                const stockInYear = yearData[year].stocks.find((s) => s.name === stockName);
+                const stockValue = stockInYear ? stockInYear.shares * stockInYear.price : 0;
+                const yearTotal = yearTotals[year] || 1; // Avoid division by zero
+                stockData[year] = (stockValue / yearTotal) * 100; // Calculate percentage
+            });
+            
+            result.push(stockData);
+        });
+        
         return result;
     }, [yearData, latestYear]);
 
@@ -541,6 +575,13 @@ const StockPortfolioTracker: React.FC = () => {
         });
     };
 
+    const toggleStockVisibility = (stockName: string) => {
+        setHiddenStocks(prev => ({
+            ...prev,
+            [stockName]: !prev[stockName]
+        }));
+    };
+
     const tableData = useCallback(() => {
         const stockSet = new Set<string>();
         Object.values(yearData).forEach((yearDataItem) => {
@@ -614,7 +655,7 @@ const StockPortfolioTracker: React.FC = () => {
         return cumulativeInvested;
     };
 
-    const renderReportDialog = () => {
+const renderReportDialog = () => {
         if (!selectedReportYear) return null;
 
         const yearDataItem = yearData[selectedReportYear];
@@ -748,7 +789,7 @@ const StockPortfolioTracker: React.FC = () => {
                         <Input type="text" placeholder="股票代码 (如 BABA)" value={newStockSymbol} onChange={(e) => setNewStockSymbol(e.target.value)} list="stockSymbolList" />
                         <datalist id="stockSymbolList">{stockSymbols.map((item) => <option key={item.symbol} value={item.symbol} />)}</datalist>
                         <Select onValueChange={(value) => setTransactionType(value as 'buy' | 'sell')} value={transactionType}>
-                            <SelectTrigger><SelectValue placeholder="交易类型" /></SelectTrigger>
+                            <SelectTrigger className="w-full"><SelectValue placeholder="交易类型" /></SelectTrigger>
                             <SelectContent><SelectItem value="buy">买入</SelectItem><SelectItem value="sell">卖出</SelectItem></SelectContent>
                         </Select>
                         <Input type="number" placeholder="交易股数" value={newShares} onChange={(e) => setNewShares(e.target.value)} />
@@ -791,7 +832,7 @@ const StockPortfolioTracker: React.FC = () => {
                             仓位变化图（折线图）
                         </Button>
                         <Button onClick={() => setShowPositionChart(false)} className={cn('px-4 py-2 rounded', !showPositionChart ? 'bg-blue-500 text-white' : 'bg-gray-200')}>
-                            股价变化图（柱状图）
+                            股票占比图（柱状图）
                         </Button>
                     </div>
                 </div>
@@ -817,7 +858,7 @@ const StockPortfolioTracker: React.FC = () => {
             </div>
 
             <div>
-                <h2 className="text-xl font-semibold mb-4">{showPositionChart ? '各股票仓位变化（按年）' : '各股票价格变化（按年）'}</h2>
+                <h2 className="text-xl font-semibold mb-4">{showPositionChart ? '各股票仓位变化（按年）' : '各股票仓位占比（按年）'}</h2>
                 <div className="h-96 w-full">
                     <ResponsiveContainer width="100%" height="100%">
                         {showPositionChart ? (
@@ -830,36 +871,49 @@ const StockPortfolioTracker: React.FC = () => {
                                         if (value >= 1000) return `${(value / 1000).toFixed(1)}K`;
                                         return value.toFixed(0);
                                     }} />
-                                <Tooltip formatter={(value: number) => [formatLargeNumber(value, currency), '']} />
+                                <Tooltip 
+                                    formatter={(value: number, name: string) => [formatLargeNumber(value, currency), name]} 
+                                    labelFormatter={(label) => `${label}年`}
+                                />
                                 <Legend onClick={handleLegendClick} />
-                                {Object.keys(lineChartData[0] || {}).filter((key) => key !== 'year').map((stock, index) => (
-                                    <Line
-                                        key={stock}
-                                        type="monotone"
-                                        dataKey={stock}
-                                        name={stock}
-                                        hide={!!hiddenSeries[stock]}
-                                        stroke={['#8884d8', '#82ca9d', '#ffc658', '#ff7300', '#0088fe'][index % 5]}
-                                        strokeWidth={stock === '总计' ? 3 : 1.5}
-                                    />
-                                ))}
+                                {Object.keys(lineChartData[0] || {})
+                                    .filter((key) => key !== 'year')
+                                    .filter((stockName) => !hiddenStocks[stockName]) // Filter out hidden stocks
+                                    .map((stock, index) => (
+                                        <Line
+                                            key={stock}
+                                            type="monotone"
+                                            dataKey={stock}
+                                            name={stock}
+                                            hide={!!hiddenSeries[stock]}
+                                            stroke={['#8884d8', '#82ca9d', '#ffc658', '#ff7300', '#0088fe'][index % 5]}
+                                            strokeWidth={stock === '总计' ? 3 : 1.5}
+                                        />
+                                    ))}
                             </LineChart>
                         ) : (
-                            <BarChart data={barChartData}>
+                            <BarChart data={preparePercentageBarChartData()}>
                                 <CartesianGrid strokeDasharray="3 3" />
                                 <XAxis dataKey="name" />
-                                <YAxis tickFormatter={(value: number) => formatLargeNumber(value, currency)} />
-                                <Tooltip formatter={(value: number) => [formatLargeNumber(value, currency), '']} />
+                                <YAxis 
+                                    tickFormatter={(value: number) => `${value.toFixed(0)}%`}
+                                    domain={[0, 100]}
+                                />
+                                <Tooltip 
+                                    formatter={(value: number) => [`${value.toFixed(2)}%`, '占比']} 
+                                    labelFormatter={(label) => `${label}`}
+                                />
                                 <Legend onClick={handleLegendClick} />
-                                {years.map((year, index) => (
-                                    <Bar
-                                        key={year}
-                                        dataKey={year}
-                                        name={`${year}年价格`}
-                                        hide={!!hiddenSeries[year]}
-                                        fill={['#8884d8', '#82ca9d', '#ffc658', '#ff7300', '#0088fe'][index % 5]}
-                                    />
-                                ))}
+                                {years
+                                    .map((year, index) => (
+                                        <Bar
+                                            key={year}
+                                            dataKey={year}
+                                            name={`${year}年占比`}
+                                            hide={!!hiddenSeries[year]}
+                                            fill={['#8884d8', '#82ca9d', '#ffc658', '#ff7300', '#0088fe'][index % 5]}
+                                        />
+                                    ))}
                             </BarChart>
                         )}
                     </ResponsiveContainer>
@@ -909,7 +963,12 @@ const StockPortfolioTracker: React.FC = () => {
                                                     {editingStockName === stockName ? (
                                                         <Button size="icon" onClick={() => handleSaveRow(stockName)} className="text-green-500 hover:text-green-700"><Save className="h-4 w-4" /></Button>
                                                     ) : (
-                                                        <Button size="icon" onClick={() => handleEditRow(stockName)} className="text-blue-500 hover:text-blue-700"><Edit className="h-4 w-4" /></Button>
+                                                        <>
+                                                            <Button size="icon" onClick={() => toggleStockVisibility(stockName)} className="text-gray-500 hover:text-gray-700">
+                                                                {hiddenStocks[stockName] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                                            </Button>
+                                                            <Button size="icon" onClick={() => handleEditRow(stockName)} className="text-blue-500 hover:text-blue-700"><Edit className="h-4 w-4" /></Button>
+                                                        </>
                                                     )}
                                                     <Button size="icon" onClick={() => handleDeleteStock(stockName)} className="text-red-500 hover:text-red-700"><Trash2 className="h-4 w-4" /></Button>
                                                 </td>

@@ -22,7 +22,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
-import { Trash2, Edit, Save, RefreshCw, Eye, EyeOff } from 'lucide-react';
+import { Trash2, Edit, Save, RefreshCw, Eye, EyeOff, HelpCircle } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import {
     Dialog,
@@ -31,6 +31,12 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import {
+    Tooltip as UITooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface Stock {
     name: string;
@@ -1064,6 +1070,83 @@ const StockPortfolioTracker: React.FC = () => {
         };
     }, [calculateTotalInvestment, totalValues]);
 
+    const renderGrowthInfo = (year: string) => {
+        const growth = calculateYearGrowth(year);
+        const yearIndex = years.indexOf(year);
+        
+        if (yearIndex === 0) {
+            // 首年，显示初始投入
+            const initialInvestment = yearData[year]?.cashTransactions
+                .reduce((sum, tx) => sum + (tx.type === 'deposit' ? tx.amount : tx.type === 'withdraw' ? -tx.amount : 0), 0) || 0;
+            
+            return (
+                <div className="space-y-1 text-sm">
+                    <p className="text-blue-500">
+                        初始投入: {formatLargeNumber(initialInvestment, currency)}
+                    </p>
+                </div>
+            );
+        }
+
+        if (!growth) return null;
+        
+        return (
+            <div className="space-y-1 text-sm">
+                <div className="flex items-center gap-1">
+                    <p className={cn(growth.actualGrowth >= 0 ? 'text-green-500' : 'text-red-500')}>
+                        较上年总增长: {formatLargeNumber(growth.actualGrowth, currency)}
+                        ({growth.actualGrowthRate.toFixed(2)}%)
+                    </p>
+                    <TooltipProvider>
+                        <UITooltip>
+                            <TooltipTrigger>
+                                <HelpCircle className="h-4 w-4 text-gray-400" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>包含入金在内的总体增长金额和比例，<br />计算公式：当年总资产 - 上年总资产</p>
+                            </TooltipContent>
+                        </UITooltip>
+                    </TooltipProvider>
+                </div>
+
+                <div className="flex items-center gap-1">
+                    <p className={cn(growth.investmentGrowth >= 0 ? 'text-green-500' : 'text-red-500')}>
+                        投资回报: {formatLargeNumber(growth.investmentGrowth, currency)}
+                        ({growth.investmentGrowthRate.toFixed(2)}%)
+                    </p>
+                    <TooltipProvider>
+                        <UITooltip>
+                            <TooltipTrigger>
+                                <HelpCircle className="h-4 w-4 text-gray-400" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>扣除当年入金后的实际投资回报，<br />计算公式：(当年总资产 - 当年入金) - 上年总资产</p>
+                            </TooltipContent>
+                        </UITooltip>
+                    </TooltipProvider>
+                </div>
+
+                {growth.yearDeposits > 0 && (
+                    <div className="flex items-center gap-1">
+                        <p className="text-blue-500">
+                            当年入金: {formatLargeNumber(growth.yearDeposits, currency)}
+                        </p>
+                        <TooltipProvider>
+                            <UITooltip>
+                                <TooltipTrigger>
+                                    <HelpCircle className="h-4 w-4 text-gray-400" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>当年新增投入的资金总额，<br />不包括股票交易产生的现金流动</p>
+                                </TooltipContent>
+                            </UITooltip>
+                        </TooltipProvider>
+                    </div>
+                )}
+            </div>
+        );
+    };
+
     return (
         <div className="p-4 max-w-6xl mx-auto space-y-8">
             <h1 className="text-2xl font-bold text-center">股票投资组合追踪工具</h1>
@@ -1229,28 +1312,7 @@ const StockPortfolioTracker: React.FC = () => {
                         <div key={year} className="p-4 border rounded-lg shadow bg-white cursor-pointer" onClick={() => handleReportClick(year)}>
                             <h3 className="text-lg font-medium">{year}年总持仓</h3>
                             <p className="text-2xl font-bold text-blue-600">{formatLargeNumber(totalValues[year], currency)}</p>
-                            {years.indexOf(year) > 0 && (() => {
-                                const growth = calculateYearGrowth(year);
-                                if (!growth) return null;
-                                
-                                return (
-                                    <div className="space-y-1 text-sm">
-                                        <p className={cn(growth.actualGrowth >= 0 ? 'text-green-500' : 'text-red-500')}>
-                                            较上年总增长: {formatLargeNumber(growth.actualGrowth, currency)}
-                                            ({growth.actualGrowthRate.toFixed(2)}%)
-                                        </p>
-                                        <p className={cn(growth.investmentGrowth >= 0 ? 'text-green-500' : 'text-red-500')}>
-                                            投资回报: {formatLargeNumber(growth.investmentGrowth, currency)}
-                                            ({growth.investmentGrowthRate.toFixed(2)}%)
-                                        </p>
-                                        {growth.yearDeposits > 0 && (
-                                            <p className="text-blue-500">
-                                                当年入金: {formatLargeNumber(growth.yearDeposits, currency)}
-                                            </p>
-                                        )}
-                                    </div>
-                                );
-                            })()}
+                            {renderGrowthInfo(year)}
                         </div>
                     ))}
                 </div>

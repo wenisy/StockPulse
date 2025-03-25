@@ -53,18 +53,18 @@ interface Stock {
 }
 
 interface CashTransaction {
-    amount: number; // 交易金额（USD）
+    amount: number;
     type: 'deposit' | 'withdraw' | 'buy' | 'sell';
     date: string;
-    stockName?: string; // 对于股票交易，记录股票名称
-    description?: string; // 交易描述
+    stockName?: string;
+    description?: string;
 }
 
 interface StockTransaction {
     stockName: string;
     type: 'buy' | 'sell';
     shares: number;
-    price: number; // 交易价格（USD）
+    price: number;
     date: string;
 }
 
@@ -72,7 +72,7 @@ interface YearData {
     stocks: Stock[];
     cashTransactions: CashTransaction[];
     stockTransactions: StockTransaction[];
-    cashBalance: number; // 现金余额（USD）
+    cashBalance: number;
 }
 
 interface StockSymbol {
@@ -82,16 +82,16 @@ interface StockSymbol {
 
 interface PriceData {
     [symbol: string]: {
-        price: number; // USD 价格
-        hkdPrice?: number; // 港股的 HKD 价格
+        price: number;
+        hkdPrice?: number;
         name: string;
-        currency?: string; // 添加货币类型字段
+        currency?: string;
         lastUpdated: string;
     };
 }
 
 const StockPortfolioTracker: React.FC = () => {
-    const initialData: { [year: string]: YearData } = stockInitialData
+    const initialData: { [year: string]: YearData } = stockInitialData;
 
     const [yearData, setYearData] = useState<{ [year: string]: YearData }>(initialData);
     const [years, setYears] = useState<string[]>(Object.keys(initialData));
@@ -129,8 +129,8 @@ const StockPortfolioTracker: React.FC = () => {
     const [stockSymbols, setStockSymbols] = useState<StockSymbol[]>([]);
     const [priceData, setPriceData] = useState<PriceData>({});
     const [isLoading, setIsLoading] = useState(false);
-    const [currency, setCurrency] = useState('USD'); // 默认货币为 USD
-    const [exchangeRates, setExchangeRates] = useState<{ [key: string]: number }>({ USD: 1, HKD: 0.12864384, CNY: 0.14 }); // 汇率，USD 为基准
+    const [currency, setCurrency] = useState('USD');
+    const [exchangeRates, setExchangeRates] = useState<{ [key: string]: number }>({ USD: 1, HKD: 0.12864384, CNY: 0.14 });
     const [retirementGoal, setRetirementGoal] = useState('');
     const [annualReturn, setAnnualReturn] = useState('');
     const [calculationMode, setCalculationMode] = useState<'rate' | 'years'>('rate');
@@ -139,7 +139,6 @@ const StockPortfolioTracker: React.FC = () => {
 
     const latestYear = years.length > 0 ? Math.max(...years.map(Number)).toString() : '2024';
 
-    // 获取基础路径
     const getBasePath = () => {
         if (typeof window !== 'undefined') {
             if (window.location.hostname.includes('github.io')) {
@@ -149,7 +148,6 @@ const StockPortfolioTracker: React.FC = () => {
         return '';
     };
 
-    // 获取股票符号列表
     useEffect(() => {
         const fetchSymbols = async () => {
             try {
@@ -166,7 +164,6 @@ const StockPortfolioTracker: React.FC = () => {
         fetchSymbols();
     }, []);
 
-    // 获取最新价格和汇率
     useEffect(() => {
         const fetchLatestPrices = async () => {
             try {
@@ -177,13 +174,11 @@ const StockPortfolioTracker: React.FC = () => {
                     const data = await response.json();
                     setPriceData(data);
 
-                    // 提取汇率
                     const rates: { [key: string]: number } = { USD: 1 };
-                    if (data['HKD']) rates['HKD'] = data['HKD'].price; // HKD to USD
-                    if (data['CNY']) rates['CNY'] = data['CNY'].price; // CNY to USD
+                    if (data['HKD']) rates['HKD'] = data['HKD'].price;
+                    if (data['CNY']) rates['CNY'] = data['CNY'].price;
                     setExchangeRates(rates);
 
-                    // 更新最新年份的股票价格
                     updateLatestPrices(data);
                 }
             } catch (error) {
@@ -199,7 +194,6 @@ const StockPortfolioTracker: React.FC = () => {
             if (updatedYearData[latestYear] && updatedYearData[latestYear].stocks) {
                 updatedYearData[latestYear].stocks.forEach(stock => {
                     if (stock.symbol && prices[stock.symbol]) {
-                        // 使用currency字段来判断货币类型
                         if (prices[stock.symbol].currency === 'HKD') {
                             stock.price = prices[stock.symbol].price * exchangeRates['HKD'];
                         } else {
@@ -222,7 +216,6 @@ const StockPortfolioTracker: React.FC = () => {
                 const data = await response.json();
                 setPriceData(data);
 
-                // 更新汇率
                 const rates: { [key: string]: number } = { USD: 1 };
                 if (data['HKD']) rates['HKD'] = data['HKD'].price;
                 if (data['CNY']) rates['CNY'] = data['CNY'].price;
@@ -264,10 +257,9 @@ const StockPortfolioTracker: React.FC = () => {
         }
     };
 
-    // 将金额转换为目标货币
     const convertToCurrency = (amount: number, targetCurrency: string): number => {
         const rate = exchangeRates[targetCurrency] || 1;
-        return amount / rate; // 假设数据以 USD 存储，转换为目标货币
+        return amount / rate;
     };
 
     const formatLargeNumber = (num: number, targetCurrency: string) => {
@@ -281,10 +273,8 @@ const StockPortfolioTracker: React.FC = () => {
             yearlyValues[year] = {};
             let yearTotal = 0;
 
-            // 确保 yearData[year] 和 yearData[year].stocks 存在
             if (yearData[year] && yearData[year].stocks) {
                 yearData[year].stocks.forEach((stock) => {
-                    // 只计算非隐藏股票
                     if (!hiddenStocks[stock.name]) {
                         const value = stock.shares * stock.price;
                         yearlyValues[year][stock.name] = value;
@@ -300,7 +290,6 @@ const StockPortfolioTracker: React.FC = () => {
     const calculateTotalValues = useCallback(() => {
         const totalValues: { [year: string]: number } = {};
         Object.keys(yearData).forEach((year) => {
-            // 确保 yearData[year] 和 yearData[year].stocks 存在
             if (yearData[year] && yearData[year].stocks) {
                 const stockValue = yearData[year].stocks.reduce((acc, stock) =>
                     hiddenStocks[stock.name] ? acc : acc + stock.shares * stock.price, 0);
@@ -316,7 +305,6 @@ const StockPortfolioTracker: React.FC = () => {
         const yearlyValues = calculateYearlyValues();
         const latestStocks = new Set<string>();
 
-        // 确保 yearData[latestYear] 和 yearData[latestYear].stocks 存在
         if (yearData[latestYear] && yearData[latestYear].stocks) {
             yearData[latestYear].stocks.forEach(stock => {
                 if (!hiddenStocks[stock.name]) {
@@ -350,7 +338,6 @@ const StockPortfolioTracker: React.FC = () => {
         const result: { name: string;[year: string]: number }[] = [];
         const yearTotals: { [year: string]: number } = {};
 
-        // 计算每年总值（不包括隐藏的股票）
         Object.keys(yearData).forEach((year) => {
             if (yearData[year] && yearData[year].stocks) {
                 yearTotals[year] = yearData[year].stocks.reduce(
@@ -362,7 +349,6 @@ const StockPortfolioTracker: React.FC = () => {
             }
         });
 
-        // 获取最新年份所有非隐藏股票
         const latestStocks = new Set<string>();
         if (yearData[latestYear] && yearData[latestYear].stocks) {
             yearData[latestYear].stocks.forEach(stock => {
@@ -372,7 +358,6 @@ const StockPortfolioTracker: React.FC = () => {
             });
         }
 
-        // 为每只股票创建百分比数据
         latestStocks.forEach((stockName) => {
             const stockData: { name: string;[year: string]: number } = { name: stockName };
 
@@ -380,8 +365,8 @@ const StockPortfolioTracker: React.FC = () => {
                 if (yearData[year] && yearData[year].stocks) {
                     const stockInYear = yearData[year].stocks.find((s) => s.name === stockName);
                     const stockValue = stockInYear ? stockInYear.shares * stockInYear.price : 0;
-                    const yearTotal = yearTotals[year] || 1; // 避免除以零
-                    stockData[year] = (stockValue / yearTotal) * 100; // 计算百分比
+                    const yearTotal = yearTotals[year] || 1;
+                    stockData[year] = (stockValue / yearTotal) * 100;
                 } else {
                     stockData[year] = 0;
                 }
@@ -396,11 +381,9 @@ const StockPortfolioTracker: React.FC = () => {
     const addNewYear = () => {
         const trimmedYear = newYear.trim();
         if (trimmedYear && !years.includes(trimmedYear)) {
-            // 找到年份列表中最接近但小于新年份的年份作为参考年
             const referenceYear = years.filter(y => y < trimmedYear)
                 .sort((a, b) => b.localeCompare(a))[0];
 
-            // 如果找到参考年且有现金余额，则进行结转
             const cashToCarryOver = referenceYear ?
                 (yearData[referenceYear]?.cashBalance || 0) : 0;
 
@@ -411,13 +394,12 @@ const StockPortfolioTracker: React.FC = () => {
                 cashBalance: 0
             };
 
-            // 只有在添加新年份且上一年有现金余额时才添加结转记录
             if (cashToCarryOver > 0) {
                 newYearDataItem.cashTransactions.push({
                     amount: cashToCarryOver,
                     type: 'deposit',
-                    date: new Date().toISOString().split('T')[0],  // 使用当前日期
-                    description: '上年结余'  // 确保有描述字段
+                    date: new Date().toISOString().split('T')[0],
+                    description: '上年结余'
                 });
                 newYearDataItem.cashBalance = cashToCarryOver;
             }
@@ -484,15 +466,12 @@ const StockPortfolioTracker: React.FC = () => {
         let newSharesValue, newTotalCost, newCostPrice, transactionCost;
 
         if (transactionType === 'buy') {
-            // 买入操作
             newSharesValue = oldShares + transactionShares;
             transactionCost = transactionShares * transactionPrice;
 
-            // 计算新的总成本和每股成本
             newTotalCost = oldTotalCost + transactionCost;
             newCostPrice = newSharesValue > 0 ? newTotalCost / newSharesValue : 0;
 
-            // 检查现金是否足够
             if ((updatedYearData[selectedYear].cashBalance || 0) < transactionCost) {
                 setAlertInfo({
                     isOpen: true,
@@ -521,7 +500,6 @@ const StockPortfolioTracker: React.FC = () => {
                 return;
             }
         } else {
-            // 卖出操作
             if (transactionShares > oldShares) {
                 setAlertInfo({
                     isOpen: true,
@@ -535,32 +513,22 @@ const StockPortfolioTracker: React.FC = () => {
             newSharesValue = oldShares - transactionShares;
             transactionCost = transactionShares * transactionPrice;
 
-            // 计算卖出的股票对应的原始成本
             const sellCost = oldCostPrice * transactionShares;
-
-            // 计算卖出收益
             const sellProceeds = transactionPrice * transactionShares;
-
-            // 计算卖出损益
             const profitLoss = sellProceeds - sellCost;
 
-            // 基本的新总成本（移除卖出部分的成本）
             newTotalCost = oldTotalCost - sellCost;
 
-            // 如果卖出价格高于成本价，调整剩余股票的成本
             if (transactionPrice > oldCostPrice && newSharesValue > 0) {
-                // 按比例分配利润来减少剩余股票的成本
                 newTotalCost = Math.max(0, newTotalCost - profitLoss);
             }
 
-            // 计算新的每股成本价
             newCostPrice = newSharesValue > 0 ? newTotalCost / newSharesValue : 0;
         }
 
         const displayYearEndPrice = yearEndPrice !== null ? yearEndPrice : (currentStock ? currentStock.price : transactionPrice);
         const displayYearEndPriceText = yearEndPrice !== null ? displayYearEndPrice.toFixed(2) : `${displayYearEndPrice.toFixed(2)}（未填入）`;
 
-        // 计算盈利信息（仅用于显示）
         let profitInfo = '';
         if (transactionType === 'sell' && oldCostPrice > 0) {
             const profit = (transactionPrice - oldCostPrice) * transactionShares;
@@ -632,7 +600,6 @@ const StockPortfolioTracker: React.FC = () => {
 
         const stockIndex = updatedYearData[year].stocks.findIndex((s) => s.name === stockName);
         if (stockIndex !== -1) {
-            // 更新现有股票
             updatedYearData[year].stocks[stockIndex] = {
                 ...updatedYearData[year].stocks[stockIndex],
                 shares,
@@ -641,12 +608,10 @@ const StockPortfolioTracker: React.FC = () => {
                 symbol: symbol || updatedYearData[year].stocks[stockIndex].symbol
             };
 
-            // 如果股数为0，可以选择从列表中移除
             if (shares <= 0) {
                 updatedYearData[year].stocks = updatedYearData[year].stocks.filter((_, i) => i !== stockIndex);
             }
         } else if (shares > 0) {
-            // 添加新股票
             updatedYearData[year].stocks.push({
                 name: stockName,
                 shares,
@@ -657,7 +622,6 @@ const StockPortfolioTracker: React.FC = () => {
             });
         }
 
-        // 记录股票交易
         if (!updatedYearData[year].stockTransactions) {
             updatedYearData[year].stockTransactions = [];
         }
@@ -671,7 +635,6 @@ const StockPortfolioTracker: React.FC = () => {
         };
         updatedYearData[year].stockTransactions.push(stockTransaction);
 
-        // 记录现金变化
         if (!updatedYearData[year].cashTransactions) {
             updatedYearData[year].cashTransactions = [];
         }
@@ -813,7 +776,6 @@ const StockPortfolioTracker: React.FC = () => {
 
     const tableData = useCallback(() => {
         const stockSet = new Set<string>();
-        // 收集所有股票名称
         Object.values(yearData).forEach((yearDataItem) => {
             if (yearDataItem && yearDataItem.stocks) {
                 yearDataItem.stocks.forEach((stock) => stockSet.add(stock.name));
@@ -822,7 +784,6 @@ const StockPortfolioTracker: React.FC = () => {
 
         const stockNames = Array.from(stockSet);
 
-        // 按最新年份中的股票价值排序
         stockNames.sort((a, b) => {
             if (!yearData[latestYear] || !yearData[latestYear].stocks) return 0;
 
@@ -838,14 +799,11 @@ const StockPortfolioTracker: React.FC = () => {
         const rows = stockNames.map((stockName) => {
             const row: (any)[] = [];
 
-            // 添加可见性列
             row.push({ visibility: !hiddenStocks[stockName] });
 
-            // 添加股票名称列
             const stockInLatestYear = yearData[latestYear]?.stocks?.find((s) => s.name === stockName);
             row.push({ name: stockName, symbol: stockInLatestYear?.symbol });
 
-            // 添加年份数据列
             years.forEach((year) => {
                 if (yearData[year] && yearData[year].stocks) {
                     const stockInYear = yearData[year].stocks.find((s) => s.name === stockName);
@@ -860,13 +818,11 @@ const StockPortfolioTracker: React.FC = () => {
                 }
             });
 
-            // 添加操作列
             row.push(null);
 
             return row;
         });
 
-        // 总计行也需要调整列数
         const totalRow = ['', 'total', ...years.map(() => null), null];
 
         return { headers, rows, totalRow };
@@ -927,7 +883,6 @@ const StockPortfolioTracker: React.FC = () => {
 
         const yearDataItem = yearData[selectedReportYear];
 
-        // 只计算非隐藏股票的价值
         const stockValue = yearDataItem.stocks ? yearDataItem.stocks.reduce(
             (acc, stock) => hiddenStocks[stock.name] ? acc : acc + stock.shares * stock.price, 0
         ) : 0;
@@ -1082,7 +1037,6 @@ const StockPortfolioTracker: React.FC = () => {
                                         const isIncrease = tx.type === 'deposit' || tx.type === 'sell';
                                         const colorClass = isIncrease ? 'text-green-500' : 'text-red-500';
                                         const description = tx.description || (tx.type === 'deposit' ? '存入' : tx.type === 'withdraw' ? '取出' : tx.type === 'buy' ? `买入${tx.stockName}` : `卖出${tx.stockName}`);
-                                        // 如果交易关联的股票被隐藏，则跳过
                                         if (tx.stockName && hiddenStocks[tx.stockName]) {
                                             return null;
                                         }
@@ -1100,13 +1054,24 @@ const StockPortfolioTracker: React.FC = () => {
                                 <h3 className="font-semibold">股票买卖历史</h3>
                                 <ul>
                                     {yearDataItem.stockTransactions && yearDataItem.stockTransactions.map((tx, index) => {
-                                        // 如果股票被隐藏，则跳过
                                         if (hiddenStocks[tx.stockName]) {
                                             return null;
                                         }
+                                        const stock = yearDataItem.stocks.find(s => s.name === tx.stockName);
+                                        const costPrice = stock?.costPrice || 0;
+                                        const currentPrice = stock?.price || 0;
+                                        const profit = tx.type === 'sell' ? (tx.price - costPrice) * tx.shares : 0;
+                                        const profitPercentage = costPrice > 0 ? (profit / (costPrice * tx.shares)) * 100 : 0;
+                                        const colorClass = tx.type === 'buy' ? 'text-blue-500' : profit >= 0 ? 'text-green-500' : 'text-red-500';
                                         return (
-                                            <li key={index}>
+                                            <li key={index} className={colorClass}>
                                                 {tx.date}: {tx.type === 'buy' ? '买入' : '卖出'} {tx.stockName} {tx.shares}股，价格 {formatLargeNumber(tx.price, currency)}
+                                                {tx.type === 'sell' && (
+                                                    <>
+                                                        ，当前价格 {formatLargeNumber(currentPrice, currency)}，
+                                                        盈利 {formatLargeNumber(profit, currency)} ({profitPercentage.toFixed(2)}%)
+                                                    </>
+                                                )}
                                             </li>
                                         );
                                     })}
@@ -1167,15 +1132,12 @@ const StockPortfolioTracker: React.FC = () => {
         const currentValue = totalValues[currentYear];
         const previousValue = totalValues[previousYear];
 
-        // 计算当年的入金总额
         const yearDeposits = yearData[currentYear]?.cashTransactions
             .reduce((sum, tx) => sum + (tx.type === 'deposit' ? tx.amount : 0), 0) || 0;
 
-        // 计算实际增长（包含入金）
         const actualGrowth = currentValue - previousValue;
         const actualGrowthRate = ((currentValue / previousValue) - 1) * 100;
 
-        // 计算投资回报率（不含入金）
         const investmentGrowth = actualGrowth - yearDeposits;
         const investmentGrowthRate = ((currentValue - yearDeposits) / previousValue - 1) * 100;
 
@@ -1188,17 +1150,14 @@ const StockPortfolioTracker: React.FC = () => {
         };
     }, [years, totalValues, yearData]);
 
-    // 在年份切换时处理现金结转
     const handleYearChange = useCallback((newYear: string) => {
-        // 只需切换年份，不执行任何数据修改
         setSelectedYear(newYear);
     }, []);
 
-    // 计算历史累计投入资金
     const calculateTotalInvestment = useCallback((upToYear: string) => {
         let total = 0;
         Object.keys(yearData)
-            .filter(year => year <= upToYear) // 只计算到指定年份
+            .filter(year => year <= upToYear)
             .forEach(year => {
                 if (yearData[year]?.cashTransactions) {
                     yearData[year].cashTransactions.forEach(tx => {
@@ -1213,7 +1172,6 @@ const StockPortfolioTracker: React.FC = () => {
         return total;
     }, [yearData]);
 
-    // 计算投资回报
     const calculateInvestmentReturn = useCallback((selectedYear: string) => {
         const totalInvestment = calculateTotalInvestment(selectedYear);
         const portfolioValue = totalValues[selectedYear] || 0;
@@ -1233,7 +1191,6 @@ const StockPortfolioTracker: React.FC = () => {
         const yearIndex = years.indexOf(year);
 
         if (yearIndex === 0) {
-            // 首年，显示初始投入
             const initialInvestment = yearData[year]?.cashTransactions
                 .reduce((sum, tx) => sum + (tx.type === 'deposit' ? tx.amount : tx.type === 'withdraw' ? -tx.amount : 0), 0) || 0;
 
@@ -1663,13 +1620,12 @@ const StockPortfolioTracker: React.FC = () => {
                                 <Legend onClick={handleLegendClick} formatter={(value) => value === 'total' ? '总计' : value} />
                                 {Object.keys(lineChartData[0] || {})
                                     .filter((key) => key !== 'year')
-                                    .filter((stockName) => !hiddenStocks[stockName]) // Filter out hidden stocks
+                                    .filter((stockName) => !hiddenStocks[stockName])
                                     .map((stock, index) => (
                                         <Line
                                             key={stock}
                                             type="monotone"
                                             dataKey={stock}
-                                            // 将'total'显示为'总计'
                                             name={stock === 'total' ? '总计' : stock}
                                             hide={!!hiddenSeries[stock]}
                                             stroke={['#8884d8', '#82ca9d', '#ffc658', '#ff7300', '#0088fe'][index % 5]}
@@ -1712,14 +1668,11 @@ const StockPortfolioTracker: React.FC = () => {
                     <table className="min-w-full border-collapse border border-gray-300">
                         <colgroup>
                             <col style={{ width: '50px' }} />
-                            {/* 可见性列 */}
                             <col style={{ width: '200px' }} />
-                            {/* 股票名称列 */}
                             {years.map((year) => (
                                 <col key={year} />
                             ))}
                             <col style={{ width: '100px' }} />
-                            {/* 操作列 */}
                         </colgroup>
                         <thead>
                             <tr>
@@ -1750,14 +1703,12 @@ const StockPortfolioTracker: React.FC = () => {
                                         rowIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50',
                                         isHidden && 'opacity-50'
                                     )}>
-                                        {/* 可见性列 - 固定在左侧 */}
                                         <td className="sticky left-0 z-10 px-6 py-4 whitespace-nowrap text-center bg-inherit">
                                             <Button size="icon" onClick={() => toggleStockVisibility(stockName)}
                                                 className="text-gray-500 hover:text-gray-700">
                                                 {isHidden ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                                             </Button>
                                         </td>
-                                        {/* 股票名称列 - 固定在左侧 */}
                                         <td className="sticky left-[50px] z-10 px-6 py-4 whitespace-nowrap bg-inherit">
                                             {editingStockName === stockName ? (
                                                 <div className="space-y-2">
@@ -1784,9 +1735,8 @@ const StockPortfolioTracker: React.FC = () => {
                                                 </>
                                             )}
                                         </td>
-                                        {/* 年份数据列 */}
                                         {row.slice(2, -1).map((cell, cellIndex) => {
-                                            const year = years[cellIndex]; // 调整索引，因为添加了可见性列
+                                            const year = years[cellIndex];
                                             const isEditing = editingStockName === stockName;
 
                                             if (isEditing) {
@@ -1819,7 +1769,6 @@ const StockPortfolioTracker: React.FC = () => {
                                                 return <td key={cellIndex} className="px-6 py-4 whitespace-nowrap bg-inherit"> - </td>;
                                             }
                                         })}
-                                        {/* 操作列 - 固定在右侧 */}
                                         <td className="sticky right-0 z-10 px-6 py-4 whitespace-nowrap space-x-2 bg-inherit">
                                             {editingStockName === stockName ? (
                                                 <Button size="icon" onClick={() => handleSaveRow(stockName)}
@@ -1849,11 +1798,9 @@ const StockPortfolioTracker: React.FC = () => {
                                 <td className="sticky left-[50px] z-10 px-6 py-3 text-left text-sm font-semibold uppercase tracking-wider bg-gray-100">
                                     {table.totalRow[1]}
                                 </td>
-                                {/* 年份总计数据 */}
                                 {years.map((year, index) => (
                                     <td key={year}
                                         className="px-6 py-3 text-center text-sm font-semibold uppercase tracking-wider bg-gray-100">
-                                        {/* 保持现有的总计逻辑不变 */}
                                         {yearData[year] && yearData[year].stocks
                                             ? formatLargeNumber(
                                                 yearData[year].stocks.reduce(

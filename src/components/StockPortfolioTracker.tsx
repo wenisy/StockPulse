@@ -127,6 +127,8 @@ const StockPortfolioTracker: React.FC = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [currency, setCurrency] = useState('USD'); // 默认货币为 USD
     const [exchangeRates, setExchangeRates] = useState<{ [key: string]: number }>({ USD: 1, HKD: 0.12864384, CNY: 0.14 }); // 汇率，USD 为基准
+    const [retirementGoal, setRetirementGoal] = useState('');
+    const [annualReturn, setAnnualReturn] = useState('');
 
     const latestYear = years.length > 0 ? Math.max(...years.map(Number)).toString() : '2024';
 
@@ -958,6 +960,12 @@ const StockPortfolioTracker: React.FC = () => {
         }
     };
 
+    const calculateYearsToGoal = (currentAmount: number, goalAmount: number, returnRate: number) => {
+        if (returnRate <= 0) return Infinity;
+        const years = Math.log(goalAmount / currentAmount) / Math.log(1 + returnRate / 100);
+        return Math.ceil(years);
+    };
+
     return (
         <div className="p-4 max-w-6xl mx-auto space-y-8">
             <h1 className="text-2xl font-bold text-center">股票投资组合追踪工具</h1>
@@ -1068,6 +1076,66 @@ const StockPortfolioTracker: React.FC = () => {
                             )}
                         </div>
                     ))}
+                </div>
+            </div>
+
+            <div className="mt-8 p-6 border rounded-lg shadow bg-white">
+                <h2 className="text-xl font-semibold mb-4">退休目标计算器</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                        <div>
+                            <label className="block text-sm font-medium mb-1">目标金额 ({currency})</label>
+                            <Input
+                                type="number"
+                                value={retirementGoal}
+                                onChange={(e) => setRetirementGoal(e.target.value)}
+                                placeholder="输入您的退休目标金额"
+                                className="w-full"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium mb-1">预期年回报率 (%)</label>
+                            <Input
+                                type="number"
+                                value={annualReturn}
+                                onChange={(e) => setAnnualReturn(e.target.value)}
+                                placeholder="输入预期年回报率"
+                                className="w-full"
+                                step="0.1"
+                            />
+                        </div>
+                    </div>
+                    
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                        <h3 className="text-lg font-medium mb-3">计算结果</h3>
+                        {(() => {
+                            const currentAmount = totalValues[latestYear] || 0;
+                            const goalAmount = parseFloat(retirementGoal);
+                            const returnRate = parseFloat(annualReturn);
+                            
+                            if (!goalAmount || isNaN(goalAmount)) {
+                                return <p className="text-gray-500">请输入目标金额</p>;
+                            }
+                            
+                            const yearsNeeded = calculateYearsToGoal(currentAmount, goalAmount, returnRate);
+                            
+                            return (
+                                <div className="space-y-2">
+                                    <p>当前总资产: <span className="font-semibold">{formatLargeNumber(currentAmount, currency)}</span></p>
+                                    <p>目标金额: <span className="font-semibold">{formatLargeNumber(goalAmount, currency)}</span></p>
+                                    <p>差距金额: <span className="font-semibold">{formatLargeNumber(goalAmount - currentAmount, currency)}</span></p>
+                                    <p>预期年回报率: <span className="font-semibold">{returnRate}%</span></p>
+                                    {yearsNeeded === Infinity ? (
+                                        <p className="text-red-500">无法达到目标（回报率过低）</p>
+                                    ) : yearsNeeded === 0 ? (
+                                        <p className="text-green-500">已达到目标！</p>
+                                    ) : (
+                                        <p>预计需要 <span className="font-semibold text-blue-600">{yearsNeeded}</span> 年可达到目标</p>
+                                    )}
+                                </div>
+                            );
+                        })()}
+                    </div>
                 </div>
             </div>
 

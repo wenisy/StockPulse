@@ -437,7 +437,12 @@ const StockPortfolioTracker: React.FC = () => {
         setYearData((prevYearData) => {
             const updatedYearData = { ...prevYearData };
             if (!updatedYearData[selectedYear]) {
-                updatedYearData[selectedYear] = { stocks: [], cashTransactions: [], stockTransactions: [], cashBalance: 0 };
+                updatedYearData[selectedYear] = {
+                    stocks: [],
+                    cashTransactions: [],
+                    stockTransactions: [],
+                    cashBalance: 0
+                };
             }
 
             const cashTransaction: CashTransaction = {
@@ -626,7 +631,9 @@ const StockPortfolioTracker: React.FC = () => {
 
     const handleEditRow = (stockName: string) => {
         setEditingStockName(stockName);
-        const initialEditedData: { [year: string]: { quantity: string; unitPrice: string; costPrice: string; symbol?: string } } = {};
+        const initialEditedData: {
+            [year: string]: { quantity: string; unitPrice: string; costPrice: string; symbol?: string }
+        } = {};
         years.forEach((year) => {
             if (yearData[year] && yearData[year].stocks) {
                 const stock = yearData[year].stocks.find((s) => s.name === stockName);
@@ -915,11 +922,13 @@ const StockPortfolioTracker: React.FC = () => {
                                 </div>
                                 <div>
                                     <h3 className="font-semibold">当年总持仓</h3>
-                                    <p>{formatLargeNumber(totalPortfolioValue, currency)} (股票: {formatLargeNumber(stockValue, currency)}, 现金: {formatLargeNumber(yearDataItem.cashBalance || 0, currency)})</p>
+                                    <p>{formatLargeNumber(totalPortfolioValue, currency)} (股票: {formatLargeNumber(stockValue, currency)},
+                                        现金: {formatLargeNumber(yearDataItem.cashBalance || 0, currency)})</p>
                                 </div>
                                 <div>
                                     <h3 className="font-semibold">累计投入现金</h3>
-                                    <p>当年: {formatLargeNumber(yearlyInvested, currency)}, 历史累计: {formatLargeNumber(cumulativeInvested, currency)}</p>
+                                    <p>当年: {formatLargeNumber(yearlyInvested, currency)},
+                                        历史累计: {formatLargeNumber(cumulativeInvested, currency)}</p>
                                 </div>
                                 <div>
                                     <h3 className="font-semibold">投资增长（有记录以来）</h3>
@@ -948,11 +957,21 @@ const StockPortfolioTracker: React.FC = () => {
             setYearData(pastedData);
             setYears(Object.keys(pastedData));
             setSelectedYear(Object.keys(pastedData)[Object.keys(pastedData).length - 1]);
-            setAlertInfo({ isOpen: true, title: '粘贴成功', description: '数据已成功粘贴并更新', onCancel: () => setAlertInfo(null) });
+            setAlertInfo({
+                isOpen: true,
+                title: '粘贴成功',
+                description: '数据已成功粘贴并更新',
+                onCancel: () => setAlertInfo(null)
+            });
             setIsPasteDialogOpen(false);
             setPasteData('');
         } catch (e) {
-            setAlertInfo({ isOpen: true, title: '粘贴失败', description: '粘贴的数据格式不正确', onCancel: () => setAlertInfo(null) });
+            setAlertInfo({
+                isOpen: true,
+                title: '粘贴失败',
+                description: '粘贴的数据格式不正确',
+                onCancel: () => setAlertInfo(null)
+            });
         }
     };
 
@@ -1066,12 +1085,12 @@ const StockPortfolioTracker: React.FC = () => {
     const renderGrowthInfo = (year: string) => {
         const growth = calculateYearGrowth(year);
         const yearIndex = years.indexOf(year);
-        
+
         if (yearIndex === 0) {
             // 首年，显示初始投入
             const initialInvestment = yearData[year]?.cashTransactions
                 .reduce((sum, tx) => sum + (tx.type === 'deposit' ? tx.amount : tx.type === 'withdraw' ? -tx.amount : 0), 0) || 0;
-            
+
             return (
                 <div className="space-y-1 text-sm">
                     <p className="text-blue-500">
@@ -1082,7 +1101,7 @@ const StockPortfolioTracker: React.FC = () => {
         }
 
         if (!growth) return null;
-        
+
         return (
             <div className="space-y-1 text-sm">
                 <div className="flex items-center gap-1">
@@ -1149,7 +1168,8 @@ const StockPortfolioTracker: React.FC = () => {
                     <div>
                         <h2 className="text-lg font-semibold mb-2">添加新年份</h2>
                         <div className="flex gap-2">
-                            <Input type="text" placeholder="例如: 2025" value={newYear} onChange={(e) => setNewYear(e.target.value)} className="flex-grow" />
+                            <Input type="text" placeholder="例如: 2025" value={newYear}
+                                onChange={(e) => setNewYear(e.target.value)} className="flex-grow" />
                             <Button onClick={addNewYear}>添加年份</Button>
                         </div>
                     </div>
@@ -1157,7 +1177,8 @@ const StockPortfolioTracker: React.FC = () => {
                         <h2 className="text-lg font-semibold mb-2">选择年份</h2>
                         <Select onValueChange={handleYearChange} value={selectedYear}>
                             <SelectTrigger className="w-full"><SelectValue placeholder="选择年份" /></SelectTrigger>
-                            <SelectContent>{years.map((year) => <SelectItem key={year} value={year}>{year}</SelectItem>)}</SelectContent>
+                            <SelectContent>{years.map((year) => <SelectItem key={year}
+                                value={year}>{year}</SelectItem>)}</SelectContent>
                         </Select>
                     </div>
                 </div>
@@ -1165,11 +1186,14 @@ const StockPortfolioTracker: React.FC = () => {
                 <div>
                     <h2 className="text-lg font-semibold mb-2">添加/更新现金数量 ({selectedYear}年)</h2>
                     <div className="flex gap-2">
-                        <Select onValueChange={(value) => setCashTransactionType(value as 'deposit' | 'withdraw')} value={cashTransactionType}>
+                        <Select onValueChange={(value) => setCashTransactionType(value as 'deposit' | 'withdraw')}
+                            value={cashTransactionType}>
                             <SelectTrigger className="w-32"><SelectValue placeholder="类型" /></SelectTrigger>
-                            <SelectContent><SelectItem value="deposit">存入</SelectItem><SelectItem value="withdraw">取出</SelectItem></SelectContent>
+                            <SelectContent><SelectItem value="deposit">存入</SelectItem><SelectItem
+                                value="withdraw">取出</SelectItem></SelectContent>
                         </Select>
-                        <Input type="number" placeholder="金额" value={cashTransactionAmount} onChange={(e) => setCashTransactionAmount(e.target.value)} className="w-32" />
+                        <Input type="number" placeholder="金额" value={cashTransactionAmount}
+                            onChange={(e) => setCashTransactionAmount(e.target.value)} className="w-32" />
                         <Button onClick={addCashTransaction}>添加现金操作</Button>
                     </div>
                     <p className={cn('text-sm mt-2', (yearData[selectedYear]?.cashBalance || 0) < 0 ? 'text-red-500' : 'text-green-500')}>
@@ -1180,17 +1204,26 @@ const StockPortfolioTracker: React.FC = () => {
                 <div>
                     <h2 className="text-lg font-semibold mb-2">添加/更新股票 ({selectedYear}年)</h2>
                     <div className="grid grid-cols-1 md:grid-cols-6 gap-2">
-                        <Input type="text" placeholder="股票名称" value={newStockName} onChange={(e) => setNewStockName(e.target.value)} list="stockNameList" />
-                        <datalist id="stockNameList">{stockSymbols.map((item) => <option key={item.symbol} value={item.name} />)}</datalist>
-                        <Input type="text" placeholder="股票代码 (如 BABA)" value={newStockSymbol} onChange={(e) => setNewStockSymbol(e.target.value)} list="stockSymbolList" />
-                        <datalist id="stockSymbolList">{stockSymbols.map((item) => <option key={item.symbol} value={item.symbol} />)}</datalist>
-                        <Select onValueChange={(value) => setTransactionType(value as 'buy' | 'sell')} value={transactionType}>
+                        <Input type="text" placeholder="股票名称" value={newStockName}
+                            onChange={(e) => setNewStockName(e.target.value)} list="stockNameList" />
+                        <datalist id="stockNameList">{stockSymbols.map((item) => <option key={item.symbol}
+                            value={item.name} />)}</datalist>
+                        <Input type="text" placeholder="股票代码 (如 BABA)" value={newStockSymbol}
+                            onChange={(e) => setNewStockSymbol(e.target.value)} list="stockSymbolList" />
+                        <datalist id="stockSymbolList">{stockSymbols.map((item) => <option key={item.symbol}
+                            value={item.symbol} />)}</datalist>
+                        <Select onValueChange={(value) => setTransactionType(value as 'buy' | 'sell')}
+                            value={transactionType}>
                             <SelectTrigger className="w-full"><SelectValue placeholder="交易类型" /></SelectTrigger>
-                            <SelectContent><SelectItem value="buy">买入</SelectItem><SelectItem value="sell">卖出</SelectItem></SelectContent>
+                            <SelectContent><SelectItem value="buy">买入</SelectItem><SelectItem
+                                value="sell">卖出</SelectItem></SelectContent>
                         </Select>
-                        <Input type="number" placeholder="交易股数" value={newShares} onChange={(e) => setNewShares(e.target.value)} />
-                        <Input type="number" placeholder="交易价格" value={newPrice} onChange={(e) => setNewPrice(e.target.value)} step="0.01" />
-                        <Input type="number" placeholder="当前价格（可选）" value={newYearEndPrice} onChange={(e) => setNewYearEndPrice(e.target.value)} step="0.01" />
+                        <Input type="number" placeholder="交易股数" value={newShares}
+                            onChange={(e) => setNewShares(e.target.value)} />
+                        <Input type="number" placeholder="交易价格" value={newPrice}
+                            onChange={(e) => setNewPrice(e.target.value)} step="0.01" />
+                        <Input type="number" placeholder="当前价格（可选）" value={newYearEndPrice}
+                            onChange={(e) => setNewYearEndPrice(e.target.value)} step="0.01" />
                     </div>
                     <Button onClick={confirmAddNewStock} className="mt-2">添加股票</Button>
                 </div>
@@ -1252,7 +1285,8 @@ const StockPortfolioTracker: React.FC = () => {
                                                     <HelpCircle className="h-4 w-4 text-gray-400" />
                                                 </TooltipTrigger>
                                                 <TooltipContent>
-                                                    <p>从最早记录年份至{comparisonYear}年的净投入金额<br />（所有存入金额减去取出金额）</p>
+                                                    <p>从最早记录年份至{comparisonYear}年的净投入金额<br />（所有存入金额减去取出金额）
+                                                    </p>
                                                 </TooltipContent>
                                             </UITooltip>
                                         </TooltipProvider>
@@ -1261,14 +1295,14 @@ const StockPortfolioTracker: React.FC = () => {
                                         {formatLargeNumber(result.totalInvestment, currency)}
                                     </div>
                                 </div>
-                                
+
                                 <div className="p-4 bg-gray-50 rounded-lg">
                                     <div className="text-sm text-gray-500">{comparisonYear}年总持仓</div>
                                     <div className="text-xl font-bold text-blue-600">
                                         {formatLargeNumber(result.portfolioValue, currency)}
                                     </div>
                                 </div>
-                                
+
                                 <div className="p-4 bg-gray-50 rounded-lg">
                                     <div className="text-sm text-gray-500">总收益金额</div>
                                     <div className={cn(
@@ -1278,7 +1312,7 @@ const StockPortfolioTracker: React.FC = () => {
                                         {formatLargeNumber(result.absoluteReturn, currency)}
                                     </div>
                                 </div>
-                                
+
                                 <div className="p-4 bg-gray-50 rounded-lg">
                                     <div className="text-sm text-gray-500">总收益率</div>
                                     <div className={cn(
@@ -1302,7 +1336,8 @@ const StockPortfolioTracker: React.FC = () => {
                 <h2 className="text-xl font-semibold mb-4">总持仓概览</h2>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     {Object.keys(totalValues).map((year) => (
-                        <div key={year} className="p-4 border rounded-lg shadow bg-white cursor-pointer" onClick={() => handleReportClick(year)}>
+                        <div key={year} className="p-4 border rounded-lg shadow bg-white cursor-pointer"
+                            onClick={() => handleReportClick(year)}>
                             <h3 className="text-lg font-medium">{year}年总持仓</h3>
                             <p className="text-2xl font-bold text-blue-600">{formatLargeNumber(totalValues[year], currency)}</p>
                             {renderGrowthInfo(year)}
@@ -1328,13 +1363,13 @@ const StockPortfolioTracker: React.FC = () => {
                         <div className="space-y-2">
                             <label className="block text-sm font-medium mb-1">计算模式</label>
                             <div className="flex gap-4">
-                                <Button 
+                                <Button
                                     onClick={() => setCalculationMode('rate')}
                                     className={cn(calculationMode === 'rate' ? 'bg-blue-500 text-white' : 'bg-gray-200')}
                                 >
                                     输入年回报率
                                 </Button>
-                                <Button 
+                                <Button
                                     onClick={() => setCalculationMode('years')}
                                     className={cn(calculationMode === 'years' ? 'bg-blue-500 text-white' : 'bg-gray-200')}
                                 >
@@ -1370,13 +1405,13 @@ const StockPortfolioTracker: React.FC = () => {
                             )}
                         </div>
                     </div>
-                    
+
                     <div className="bg-gray-50 p-4 rounded-lg">
                         <h3 className="text-lg font-medium mb-3">计算结果</h3>
                         {(() => {
                             const currentAmount = totalValues[latestYear] || 0;
                             const goalAmount = parseFloat(retirementGoal);
-                            
+
                             if (!goalAmount || isNaN(goalAmount)) {
                                 return <p className="text-gray-500">请输入目标金额</p>;
                             }
@@ -1387,19 +1422,27 @@ const StockPortfolioTracker: React.FC = () => {
                                     return <p className="text-gray-500">请输入预期年回报率</p>;
                                 }
                                 const yearsNeeded = calculateYearsToGoal(currentAmount, goalAmount, returnRate);
-                                
+
                                 return (
                                     <div className="space-y-2">
-                                        <p>当前总资产: <span className="font-semibold">{formatLargeNumber(currentAmount, currency)}</span></p>
-                                        <p>目标金额: <span className="font-semibold">{formatLargeNumber(goalAmount, currency)}</span></p>
-                                        <p>差距金额: <span className="font-semibold">{formatLargeNumber(goalAmount - currentAmount, currency)}</span></p>
+                                        <p>当前总资产: <span
+                                            className="font-semibold">{formatLargeNumber(currentAmount, currency)}</span>
+                                        </p>
+                                        <p>目标金额: <span
+                                            className="font-semibold">{formatLargeNumber(goalAmount, currency)}</span>
+                                        </p>
+                                        <p>差距金额: <span
+                                            className="font-semibold">{formatLargeNumber(goalAmount - currentAmount, currency)}</span>
+                                        </p>
                                         <p>预期年回报率: <span className="font-semibold">{returnRate}%</span></p>
                                         {yearsNeeded === Infinity ? (
                                             <p className="text-red-500">无法达到目标（回报率过低）</p>
                                         ) : yearsNeeded === 0 ? (
                                             <p className="text-green-500">已达到目标！</p>
                                         ) : (
-                                            <p>预计需要 <span className="font-semibold text-blue-600">{yearsNeeded.toFixed(1)}</span> 年可达到目标</p>
+                                            <p>预计需要 <span
+                                                className="font-semibold text-blue-600">{yearsNeeded.toFixed(1)}</span> 年可达到目标
+                                            </p>
                                         )}
                                     </div>
                                 );
@@ -1409,19 +1452,27 @@ const StockPortfolioTracker: React.FC = () => {
                                     return <p className="text-gray-500">请输入目标年限</p>;
                                 }
                                 const requiredRate = calculateRequiredReturnRate(currentAmount, goalAmount, years);
-                                
+
                                 return (
                                     <div className="space-y-2">
-                                        <p>当前总资产: <span className="font-semibold">{formatLargeNumber(currentAmount, currency)}</span></p>
-                                        <p>目标金额: <span className="font-semibold">{formatLargeNumber(goalAmount, currency)}</span></p>
-                                        <p>差距金额: <span className="font-semibold">{formatLargeNumber(goalAmount - currentAmount, currency)}</span></p>
+                                        <p>当前总资产: <span
+                                            className="font-semibold">{formatLargeNumber(currentAmount, currency)}</span>
+                                        </p>
+                                        <p>目标金额: <span
+                                            className="font-semibold">{formatLargeNumber(goalAmount, currency)}</span>
+                                        </p>
+                                        <p>差距金额: <span
+                                            className="font-semibold">{formatLargeNumber(goalAmount - currentAmount, currency)}</span>
+                                        </p>
                                         <p>目标年限: <span className="font-semibold">{years}</span> 年</p>
                                         {currentAmount >= goalAmount ? (
                                             <p className="text-green-500">已达到目标！</p>
                                         ) : requiredRate > 100 ? (
                                             <p className="text-red-500">年限过短，需要的回报率过高（超过100%）</p>
                                         ) : (
-                                            <p>需要年回报率: <span className="font-semibold text-blue-600">{requiredRate.toFixed(2)}%</span></p>
+                                            <p>需要年回报率: <span
+                                                className="font-semibold text-blue-600">{requiredRate.toFixed(2)}%</span>
+                                            </p>
                                         )}
                                     </div>
                                 );
@@ -1432,16 +1483,16 @@ const StockPortfolioTracker: React.FC = () => {
             </div>
 
             <div>
-            <div>
-                    <h2 className="text-xl font-semibold mb-4">图表类型</h2>
-                    <div className="flex gap-4 mb-4">
-                        <Button onClick={() => setShowPositionChart(true)} className={cn('px-4 py-2 rounded', showPositionChart ? 'bg-blue-500 text-white' : 'bg-gray-200')}>
-                            仓位变化图（折线图）
-                        </Button>
-                        <Button onClick={() => setShowPositionChart(false)} className={cn('px-4 py-2 rounded', !showPositionChart ? 'bg-blue-500 text-white' : 'bg-gray-200')}>
-                            股票占比图（柱状图）
-                        </Button>
-                    </div>
+                <h2 className="text-xl font-semibold mb-4">图表类型</h2>
+                <div className="flex gap-4 mb-4">
+                    <Button onClick={() => setShowPositionChart(true)}
+                        className={cn('px-4 py-2 rounded', showPositionChart ? 'bg-blue-500 text-white' : 'bg-gray-200')}>
+                        仓位变化图（折线图）
+                    </Button>
+                    <Button onClick={() => setShowPositionChart(false)}
+                        className={cn('px-4 py-2 rounded', !showPositionChart ? 'bg-blue-500 text-white' : 'bg-gray-200')}>
+                        股票占比图（柱状图）
+                    </Button>
                 </div>
                 <h2 className="text-xl font-semibold mb-4">{showPositionChart ? '各股票仓位变化（按年）' : '各股票仓位占比（按年）'}</h2>
                 <div className="h-96 w-full">
@@ -1510,12 +1561,15 @@ const StockPortfolioTracker: React.FC = () => {
                 <div className="overflow-x-auto relative">
                     <table className="min-w-full border-collapse border border-gray-300">
                         <colgroup>
-                            <col style={{ width: '50px' }} /> {/* 可见性列 */}
-                            <col style={{ width: '200px' }} /> {/* 股票名称列 */}
+                            <col style={{ width: '50px' }} />
+                            {/* 可见性列 */}
+                            <col style={{ width: '200px' }} />
+                            {/* 股票名称列 */}
                             {years.map((year) => (
                                 <col key={year} />
                             ))}
-                            <col style={{ width: '100px' }} /> {/* 操作列 */}
+                            <col style={{ width: '100px' }} />
+                            {/* 操作列 */}
                         </colgroup>
                         <thead>
                             <tr>
@@ -1526,7 +1580,8 @@ const StockPortfolioTracker: React.FC = () => {
                                     {table.headers[1]}
                                 </th>
                                 {table.headers.slice(2, -1).map((header, index) => (
-                                    <th key={index} className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider bg-gray-50">
+                                    <th key={index}
+                                        className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider bg-gray-50">
                                         {header}
                                     </th>
                                 ))}
@@ -1560,28 +1615,56 @@ const StockPortfolioTracker: React.FC = () => {
                                                         <Input type="text" value={stockName} disabled className="w-32" />
                                                     </div>
                                                     <div><label className="text-sm">股票代码</label>
-                                                        <Input type="text" value={editedRowData?.[selectedYear]?.symbol || (row[1] as { symbol?: string }).symbol || ''}
-                                                            onChange={(e) => handleInputChange(selectedYear, 'symbol', e.target.value)} className="w-32" />
+                                                        <Input type="text"
+                                                            value={editedRowData?.[selectedYear]?.symbol || (row[1] as {
+                                                                symbol?: string
+                                                            }).symbol || ''}
+                                                            onChange={(e) => handleInputChange(selectedYear, 'symbol', e.target.value)}
+                                                            className="w-32" />
                                                     </div>
                                                 </div>
                                             ) : (
                                                 <>
                                                     <div className="font-medium">{(row[1] as { name: string }).name}</div>
                                                     {(row[1] as { symbol?: string }).symbol && (
-                                                        <div className="text-sm text-gray-500">{(row[1] as { symbol?: string }).symbol}</div>
+                                                        <div className="text-sm text-gray-500">{(row[1] as {
+                                                            symbol?: string
+                                                        }).symbol}</div>
                                                     )}
                                                 </>
                                             )}
                                         </td>
                                         {/* 年份数据列 */}
                                         {row.slice(2, -1).map((cell, cellIndex) => {
-                                            // ... 年份数据列的现有渲染逻辑 ...
-                                            return (
-                                                <td key={cellIndex} className="px-6 py-4 whitespace-nowrap bg-inherit">
-                                                    {/* 保持现有的年份数据单元格内容渲染逻辑不变 */}
-                                                    {/* ... */}
-                                                </td>
-                                            );
+                                            const year = years[cellIndex]; // 调整索引，因为添加了可见性列
+                                            const isEditing = editingStockName === stockName;
+
+                                            if (isEditing) {
+                                                return (
+                                                    <td key={cellIndex} className="px-6 py-4 whitespace-nowrap space-y-1 bg-inherit">
+                                                        <div><label className="text-sm">数量</label><Input type="number" value={editedRowData?.[year]?.quantity || ''} onChange={(e) => handleInputChange(year, 'quantity', e.target.value)} className="w-24" /></div>
+                                                        <div><label className="text-sm">价格</label><Input type="number" value={editedRowData?.[year]?.unitPrice || ''} onChange={(e) => handleInputChange(year, 'unitPrice', e.target.value)} className="w-24" /></div>
+                                                        <div><label className="text-sm">成本</label><Input type="number" value={editedRowData?.[year]?.costPrice || ''} onChange={(e) => handleInputChange(year, 'costPrice', e.target.value)} className="w-24" /></div>
+                                                    </td>
+                                                );
+                                            } else if (cell) {
+                                                const stockData = cell as { shares: number; price: number; costPrice: number; symbol?: string };
+                                                const { shares, price, costPrice, symbol } = stockData;
+                                                const isLatestPrice = symbol && priceData[symbol] && (symbol.endsWith('.HK') ? priceData[symbol].hkdPrice * exchangeRates['HKD'] === price : priceData[symbol].price === price);
+                                                return (
+                                                    <td key={cellIndex} className="px-6 py-4 whitespace-nowrap space-y-1 bg-inherit">
+                                                        <div className="font-medium">
+                                                            当前价值: {formatLargeNumber(shares * price, currency)} ({shares} * {formatLargeNumber(price, currency)})
+                                                            {isLatestPrice && <span className="ml-2 text-xs text-green-500">实时</span>}
+                                                        </div>
+                                                        <div className="text-sm text-gray-500">
+                                                            成本: {formatLargeNumber(shares * costPrice, currency)} ({shares} * {formatLargeNumber(costPrice, currency)})
+                                                        </div>
+                                                    </td>
+                                                );
+                                            } else {
+                                                return <td key={cellIndex} className="px-6 py-4 whitespace-nowrap bg-inherit"> - </td>;
+                                            }
                                         })}
                                         {/* 操作列 - 固定在右侧 */}
                                         <td className="sticky right-0 z-10 px-6 py-4 whitespace-nowrap space-x-2 bg-inherit">
@@ -1615,7 +1698,8 @@ const StockPortfolioTracker: React.FC = () => {
                                 </td>
                                 {/* 年份总计数据 */}
                                 {years.map((year, index) => (
-                                    <td key={year} className="px-6 py-3 text-center text-sm font-semibold uppercase tracking-wider bg-gray-100">
+                                    <td key={year}
+                                        className="px-6 py-3 text-center text-sm font-semibold uppercase tracking-wider bg-gray-100">
                                         {/* 保持现有的总计逻辑不变 */}
                                         {yearData[year] && yearData[year].stocks
                                             ? formatLargeNumber(
@@ -1639,11 +1723,15 @@ const StockPortfolioTracker: React.FC = () => {
 
             {renderReportDialog()}
 
-            <Dialog open={alertInfo?.isOpen} onOpenChange={(open) => { if (!open) setAlertInfo(null); }}>
+            <Dialog open={alertInfo?.isOpen} onOpenChange={(open) => {
+                if (!open) setAlertInfo(null);
+            }}>
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>{alertInfo?.title}</DialogTitle>
-                        <DialogDescription><pre className="whitespace-pre-wrap">{alertInfo?.description}</pre></DialogDescription>
+                        <DialogDescription>
+                            <pre className="whitespace-pre-wrap">{alertInfo?.description}</pre>
+                        </DialogDescription>
                     </DialogHeader>
                     <div className="flex justify-end space-x-2">
                         {alertInfo?.onConfirm && <Button onClick={alertInfo.onConfirm}>确定</Button>}
@@ -1658,11 +1746,13 @@ const StockPortfolioTracker: React.FC = () => {
                         <DialogTitle>复制数据</DialogTitle>
                         <DialogDescription>
                             <p>请点击下方文本框，使用 Command + A 全选内容，或直接点击"复制到剪贴板"按钮。</p>
-                            <textarea className="w-full h-64 p-2 mt-2 border rounded resize-none" value={JSON.stringify(yearData, null, 2)} readOnly />
+                            <textarea className="w-full h-64 p-2 mt-2 border rounded resize-none"
+                                value={JSON.stringify(yearData, null, 2)} readOnly />
                         </DialogDescription>
                     </DialogHeader>
                     <div className="flex justify-end space-x-2">
-                        <Button onClick={() => navigator.clipboard.writeText(JSON.stringify(yearData, null, 2))}>复制到剪贴板</Button>
+                        <Button
+                            onClick={() => navigator.clipboard.writeText(JSON.stringify(yearData, null, 2))}>复制到剪贴板</Button>
                         <Button onClick={() => setIsCopyDialogOpen(false)}>关闭</Button>
                     </div>
                 </DialogContent>
@@ -1673,7 +1763,9 @@ const StockPortfolioTracker: React.FC = () => {
                     <DialogHeader>
                         <DialogTitle>粘贴数据</DialogTitle>
                         <DialogDescription>
-                            <textarea className="w-full h-32 p-2 border rounded" value={pasteData} onChange={(e) => setPasteData(e.target.value)} placeholder="请将数据粘贴到此处..." />
+                            <textarea className="w-full h-32 p-2 border rounded" value={pasteData}
+                                onChange={(e) => setPasteData(e.target.value)}
+                                placeholder="请将数据粘贴到此处..." />
                         </DialogDescription>
                     </DialogHeader>
                     <div className="flex justify-end space-x-2">

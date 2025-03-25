@@ -131,6 +131,7 @@ const StockPortfolioTracker: React.FC = () => {
     const [annualReturn, setAnnualReturn] = useState('');
     const [calculationMode, setCalculationMode] = useState<'rate' | 'years'>('rate');
     const [targetYears, setTargetYears] = useState('');
+    const [comparisonYear, setComparisonYear] = useState<string>(years[0]);
 
     const latestYear = years.length > 0 ? Math.max(...years.map(Number)).toString() : '2024';
 
@@ -1031,6 +1032,38 @@ const StockPortfolioTracker: React.FC = () => {
         setSelectedYear(newYear);
     }, [years, yearData]);
 
+    // 计算历史累计投入资金
+    const calculateTotalInvestment = useCallback(() => {
+        let total = 0;
+        Object.keys(yearData).forEach(year => {
+            if (yearData[year]?.cashTransactions) {
+                yearData[year].cashTransactions.forEach(tx => {
+                    if (tx.type === 'deposit') {
+                        total += tx.amount;
+                    } else if (tx.type === 'withdraw') {
+                        total -= tx.amount;
+                    }
+                });
+            }
+        });
+        return total;
+    }, [yearData]);
+
+    // 计算投资回报
+    const calculateInvestmentReturn = useCallback((selectedYear: string) => {
+        const totalInvestment = calculateTotalInvestment();
+        const portfolioValue = totalValues[selectedYear] || 0;
+        const absoluteReturn = portfolioValue - totalInvestment;
+        const percentageReturn = totalInvestment > 0 ? (absoluteReturn / totalInvestment) * 100 : 0;
+
+        return {
+            totalInvestment,
+            portfolioValue,
+            absoluteReturn,
+            percentageReturn
+        };
+    }, [calculateTotalInvestment, totalValues]);
+
     return (
         <div className="p-4 max-w-6xl mx-auto space-y-8">
             <h1 className="text-2xl font-bold text-center">股票投资组合追踪工具</h1>
@@ -1121,6 +1154,70 @@ const StockPortfolioTracker: React.FC = () => {
                         <Button onClick={() => setShowPositionChart(false)} className={cn('px-4 py-2 rounded', !showPositionChart ? 'bg-blue-500 text-white' : 'bg-gray-200')}>
                             股票占比图（柱状图）
                         </Button>
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <h2 className="text-xl font-semibold mb-4">投资总览</h2>
+                <div className="p-6 border rounded-lg bg-white shadow-sm space-y-4">
+                    <div className="flex items-center gap-4">
+                        <span className="text-gray-600">选择对比年份：</span>
+                        <Select onValueChange={setComparisonYear} value={comparisonYear}>
+                            <SelectTrigger className="w-32">
+                                <SelectValue placeholder="选择年份" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {years.map((year) => (
+                                    <SelectItem key={year} value={year}>{year}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    {(() => {
+                        const result = calculateInvestmentReturn(comparisonYear);
+                        return (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                <div className="p-4 bg-gray-50 rounded-lg">
+                                    <div className="text-sm text-gray-500">历史累计投入</div>
+                                    <div className="text-xl font-bold text-blue-600">
+                                        {formatLargeNumber(result.totalInvestment, currency)}
+                                    </div>
+                                </div>
+                                
+                                <div className="p-4 bg-gray-50 rounded-lg">
+                                    <div className="text-sm text-gray-500">{comparisonYear}年总持仓</div>
+                                    <div className="text-xl font-bold text-blue-600">
+                                        {formatLargeNumber(result.portfolioValue, currency)}
+                                    </div>
+                                </div>
+                                
+                                <div className="p-4 bg-gray-50 rounded-lg">
+                                    <div className="text-sm text-gray-500">总收益金额</div>
+                                    <div className={cn(
+                                        "text-xl font-bold",
+                                        result.absoluteReturn >= 0 ? "text-green-600" : "text-red-600"
+                                    )}>
+                                        {formatLargeNumber(result.absoluteReturn, currency)}
+                                    </div>
+                                </div>
+                                
+                                <div className="p-4 bg-gray-50 rounded-lg">
+                                    <div className="text-sm text-gray-500">总收益率</div>
+                                    <div className={cn(
+                                        "text-xl font-bold",
+                                        result.percentageReturn >= 0 ? "text-green-600" : "text-red-600"
+                                    )}>
+                                        {result.percentageReturn.toFixed(2)}%
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })()}
+
+                    <div className="text-sm text-gray-500 mt-2">
+                        * 总收益基于历史累计投入资金（存入减去取出）与选定年份的总持仓价值进行计算
                     </div>
                 </div>
             </div>

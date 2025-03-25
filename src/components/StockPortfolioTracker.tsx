@@ -111,6 +111,8 @@ const StockPortfolioTracker: React.FC = () => {
         description: string;
         onConfirm?: () => void;
         onCancel?: () => void;
+        confirmText?: string;
+        cancelText?: string;
     } | null>(null);
     const [transactionType, setTransactionType] = useState<'buy' | 'sell'>('buy');
     const [cashTransactionAmount, setCashTransactionAmount] = useState('');
@@ -1004,7 +1006,8 @@ const StockPortfolioTracker: React.FC = () => {
                 isOpen: true,
                 title: '粘贴失败',
                 description: '粘贴的数据格式不正确',
-                onConfirm: () => setAlertInfo(null)
+                onCancel: () => setAlertInfo(null),
+                cancelText: '关闭'
             });
         }
     };
@@ -1574,7 +1577,7 @@ const StockPortfolioTracker: React.FC = () => {
                                     domain={[0, 100]}
                                 />
                                 <Tooltip
-                                    formatter={(value: number) => [`${value.toFixed(2)}%`, '占比']}
+                                    formatter={(value: number, name: string) => [`${value.toFixed(2)}%`, `${name}年占比`]}
                                     labelFormatter={(label) => `${label}`}
                                 />
                                 <Legend onClick={handleLegendClick} formatter={(value) => value === 'total' ? '总计' : value} />
@@ -1775,8 +1778,16 @@ const StockPortfolioTracker: React.FC = () => {
                         </DialogDescription>
                     </DialogHeader>
                     <div className="flex justify-end space-x-2">
-                        {alertInfo?.onConfirm && <Button onClick={alertInfo.onConfirm}>确定</Button>}
-                        <Button onClick={alertInfo?.onCancel || (() => setAlertInfo(null))}>取消</Button>
+                        {alertInfo?.onConfirm && (
+                            <Button onClick={alertInfo.onConfirm}>
+                                {alertInfo.confirmText || '确定'}
+                            </Button>
+                        )}
+                        {alertInfo?.onCancel && (
+                            <Button onClick={alertInfo.onCancel}>
+                                {alertInfo.cancelText || '取消'}
+                            </Button>
+                        )}
                     </div>
                 </DialogContent>
             </Dialog>

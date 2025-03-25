@@ -337,6 +337,38 @@ const StockPortfolioTracker: React.FC = () => {
         });
     }, [calculateYearlyValues, yearData, latestYear, hiddenStocks]);
 
+    const prepareBarChartData = useCallback(() => {
+        const result: { name: string; [year: string]: number }[] = [];
+        const latestStocks = new Set<string>();
+        
+        // 确保 yearData[latestYear] 和 yearData[latestYear].stocks 存在
+        if (yearData[latestYear] && yearData[latestYear].stocks) {
+            yearData[latestYear].stocks.forEach(stock => {
+                if (!hiddenStocks[stock.name]) {
+                    latestStocks.add(stock.name);
+                }
+            });
+        }
+        
+        // 为每只非隐藏股票创建价格数据
+        latestStocks.forEach((stockName) => {
+            const stockData: { name: string; [year: string]: number } = { name: stockName };
+            
+            Object.keys(yearData).forEach((year) => {
+                if (yearData[year] && yearData[year].stocks) {
+                    const stockInYear = yearData[year].stocks.find((s) => s.name === stockName);
+                    stockData[year] = stockInYear ? stockInYear.price : 0;
+                } else {
+                    stockData[year] = 0;
+                }
+            });
+            
+            result.push(stockData);
+        });
+        
+        return result;
+    }, [yearData, latestYear, hiddenStocks]);
+
     const preparePercentageBarChartData = useCallback(() => {
         const result: { name: string;[year: string]: number }[] = [];
         const yearTotals: { [year: string]: number } = {};

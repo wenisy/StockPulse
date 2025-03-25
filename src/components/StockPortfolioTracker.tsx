@@ -11,6 +11,9 @@ import {
     Tooltip,
     Legend,
     ResponsiveContainer,
+    PieChart,
+    Pie,
+    Cell,
 } from 'recharts';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -37,6 +40,7 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { stockInitialData } from './data';
 
 interface Stock {
@@ -939,71 +943,178 @@ const StockPortfolioTracker: React.FC = () => {
         const growth = totalPortfolioValue - cumulativeInvested;
         const growthRate = cumulativeInvested > 0 ? (growth / cumulativeInvested) * 100 : 0;
 
+        const preparePieChartData = () => {
+            const stocks = yearDataItem.stocks || [];
+            const totalValue = stockValue + (yearDataItem.cashBalance || 0);
+            return stocks.map(stock => ({
+                name: stock.name,
+                value: (stock.shares * stock.price / totalValue) * 100,
+            }));
+        };
+
+        const prepareBarChartData = () => {
+            const stocks = yearDataItem.stocks || [];
+            return stocks
+                .map(stock => ({
+                    name: stock.name,
+                    profitLoss: stock.costPrice > 0 ? ((stock.price - stock.costPrice) / stock.costPrice) * 100 : 0,
+                }))
+                .sort((a, b) => b.profitLoss - a.profitLoss);
+        };
+
+        const prepareTopPerformersData = () => {
+            const stocks = yearDataItem.stocks || [];
+            return stocks
+                .map(stock => ({
+                    name: stock.name,
+                    symbol: stock.symbol || 'N/A',
+                    profitLoss: stock.costPrice > 0 ? ((stock.price - stock.costPrice) / stock.costPrice) * 100 : 0,
+                }))
+                .sort((a, b) => b.profitLoss - a.profitLoss)
+                .map((stock, index) => ({ rank: index + 1, ...stock }));
+        };
+
+        const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
+
         return (
             <Dialog open={isReportDialogOpen} onOpenChange={setIsReportDialogOpen}>
-                <DialogContent>
+                <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle>{selectedReportYear}年详细报表</DialogTitle>
-                        <DialogDescription>
-                            <div className="space-y-4">
-                                <div>
-                                    <h3 className="font-semibold">现金变化历史</h3>
-                                    <ul>
-                                        {yearDataItem.cashTransactions && yearDataItem.cashTransactions.map((tx, index) => {
-                                            const isIncrease = tx.type === 'deposit' || tx.type === 'sell';
-                                            const colorClass = isIncrease ? 'text-green-500' : 'text-red-500';
-                                            const description = tx.description || (tx.type === 'deposit' ? '存入' : tx.type === 'withdraw' ? '取出' : tx.type === 'buy' ? `买入${tx.stockName}` : `卖出${tx.stockName}`);
-                                            // 如果交易关联的股票被隐藏，则跳过
-                                            if (tx.stockName && hiddenStocks[tx.stockName]) {
-                                                return null;
-                                            }
-                                            return (
-                                                <li key={index} className={colorClass}>
-                                                    {tx.date}: {description} {formatLargeNumber(Math.abs(tx.amount), currency)}
-                                                </li>
-                                            );
-                                        })}
-                                    </ul>
-                                </div>
-                                <div>
-                                    <h3 className="font-semibold">股票买卖历史</h3>
-                                    <ul>
-                                        {yearDataItem.stockTransactions && yearDataItem.stockTransactions.map((tx, index) => {
-                                            // 如果股票被隐藏，则跳过
-                                            if (hiddenStocks[tx.stockName]) {
-                                                return null;
-                                            }
-                                            return (
-                                                <li key={index}>
-                                                    {tx.date}: {tx.type === 'buy' ? '买入' : '卖出'} {tx.stockName} {tx.shares}股，价格 {formatLargeNumber(tx.price, currency)}
-                                                </li>
-                                            );
-                                        })}
-                                    </ul>
-                                </div>
-                                <div>
+                    </DialogHeader>
+                    <Tabs defaultValue="summary" className="w-full">
+                        <TabsList>
+                            <TabsTrigger value="summary">概览</TabsTrigger>
+                            <TabsTrigger value="portfolio">投资组合分布</TabsTrigger>
+                            <TabsTrigger value="performance">盈亏表现</TabsTrigger>
+                            <TabsTrigger value="top">最佳排名</TabsTrigger>
+                            <TabsTrigger value="cash">现金历史</TabsTrigger>
+                            <TabsTrigger value="trades">买卖历史</TabsTrigger>
+                        </TabsList>
+                        <TabsContent value="summary">
+                            <div className="grid grid-cols-3 gap-4 mb-4">
+                                <div className="p-4 bg-gray-50 rounded-lg">
                                     <h3 className="font-semibold">当年总持仓</h3>
-                                    <p>{formatLargeNumber(totalPortfolioValue, currency)} (股票: {formatLargeNumber(stockValue, currency)},
-                                        现金: {formatLargeNumber(yearDataItem.cashBalance || 0, currency)})</p>
+                                    <p>{formatLargeNumber(totalPortfolioValue, currency)}</p>
                                 </div>
-                                <div>
+                                <div className="p-4 bg-gray-50 rounded-lg">
                                     <h3 className="font-semibold">累计投入现金</h3>
-                                    <p>当年: {formatLargeNumber(yearlyInvested, currency)},
-                                        历史累计: {formatLargeNumber(cumulativeInvested, currency)}</p>
+                                    <p>{formatLargeNumber(cumulativeInvested, currency)}</p>
                                 </div>
-                                <div>
-                                    <h3 className="font-semibold">投资增长（有记录以来）</h3>
-                                    <ul>
-                                        <li>总持仓金额: {formatLargeNumber(totalPortfolioValue, currency)}</li>
-                                        <li>历史累计投入: {formatLargeNumber(cumulativeInvested, currency)}</li>
-                                        <li>赚的金额: {formatLargeNumber(growth, currency)}</li>
-                                        <li>成长比例: {growthRate.toFixed(2)}%</li>
-                                    </ul>
+                                <div className="p-4 bg-gray-50 rounded-lg">
+                                    <h3 className="font-semibold">投资增长</h3>
+                                    <p className={growth >= 0 ? 'text-green-500' : 'text-red-500'}>
+                                        {formatLargeNumber(growth, currency)} ({growthRate.toFixed(2)}%)
+                                    </p>
                                 </div>
                             </div>
-                        </DialogDescription>
-                    </DialogHeader>
-                    <Button onClick={() => setIsReportDialogOpen(false)}>关闭</Button>
+                        </TabsContent>
+                        <TabsContent value="portfolio">
+                            <ResponsiveContainer width="100%" height={300}>
+                                <PieChart>
+                                    <Pie
+                                        data={preparePieChartData()}
+                                        dataKey="value"
+                                        nameKey="name"
+                                        cx="50%"
+                                        cy="50%"
+                                        outerRadius={100}
+                                        label={({ name, percent }) => `${name} (${(percent * 100).toFixed(2)}%)`}
+                                    >
+                                        {preparePieChartData().map((entry, index) => (
+                                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                        ))}
+                                    </Pie>
+                                    <Tooltip formatter={(value) => `${value.toFixed(2)}%`} />
+                                    <Legend />
+                                </PieChart>
+                            </ResponsiveContainer>
+                        </TabsContent>
+                        <TabsContent value="performance">
+                            <ResponsiveContainer width="100%" height={300}>
+                                <BarChart data={prepareBarChartData()} layout="vertical">
+                                    <CartesianGrid strokeDasharray="3 3" />
+                                    <XAxis type="number" domain={[-100, 100]} tickFormatter={(value) => `${value}%`} />
+                                    <YAxis type="category" dataKey="name" />
+                                    <Tooltip formatter={(value) => `${value.toFixed(2)}%`} />
+                                    <Bar dataKey="profitLoss" fill="#82ca9d">
+                                        {prepareBarChartData().map((entry, index) => (
+                                            <Cell key={`cell-${index}`} fill={entry.profitLoss >= 0 ? '#82ca9d' : '#ff7300'} />
+                                        ))}
+                                    </Bar>
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </TabsContent>
+                        <TabsContent value="top">
+                            <div>
+                                <h3 className="font-semibold">最佳表现排名</h3>
+                                <table className="w-full border-collapse border mt-2">
+                                    <thead>
+                                        <tr>
+                                            <th className="border p-2">排名</th>
+                                            <th className="border p-2">股票名称</th>
+                                            <th className="border p-2">股票代码</th>
+                                            <th className="border p-2">盈亏比例</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {prepareTopPerformersData().map(stock => (
+                                            <tr key={stock.rank}>
+                                                <td className="border p-2 text-center">{stock.rank}</td>
+                                                <td className="border p-2">{stock.name}</td>
+                                                <td className="border p-2">{stock.symbol}</td>
+                                                <td className="border p-2 text-right">
+                                                    <span className={stock.profitLoss >= 0 ? 'text-green-500' : 'text-red-500'}>
+                                                        {stock.profitLoss.toFixed(2)}%
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </TabsContent>
+                        <TabsContent value="cash">
+                            <div>
+                                <h3 className="font-semibold">现金变化历史</h3>
+                                <ul>
+                                    {yearDataItem.cashTransactions && yearDataItem.cashTransactions.map((tx, index) => {
+                                        const isIncrease = tx.type === 'deposit' || tx.type === 'sell';
+                                        const colorClass = isIncrease ? 'text-green-500' : 'text-red-500';
+                                        const description = tx.description || (tx.type === 'deposit' ? '存入' : tx.type === 'withdraw' ? '取出' : tx.type === 'buy' ? `买入${tx.stockName}` : `卖出${tx.stockName}`);
+                                        // 如果交易关联的股票被隐藏，则跳过
+                                        if (tx.stockName && hiddenStocks[tx.stockName]) {
+                                            return null;
+                                        }
+                                        return (
+                                            <li key={index} className={colorClass}>
+                                                {tx.date}: {description} {formatLargeNumber(Math.abs(tx.amount), currency)}
+                                            </li>
+                                        );
+                                    })}
+                                </ul>
+                            </div>
+                        </TabsContent>
+                        <TabsContent value="trades">
+                            <div>
+                                <h3 className="font-semibold">股票买卖历史</h3>
+                                <ul>
+                                    {yearDataItem.stockTransactions && yearDataItem.stockTransactions.map((tx, index) => {
+                                        // 如果股票被隐藏，则跳过
+                                        if (hiddenStocks[tx.stockName]) {
+                                            return null;
+                                        }
+                                        return (
+                                            <li key={index}>
+                                                {tx.date}: {tx.type === 'buy' ? '买入' : '卖出'} {tx.stockName} {tx.shares}股，价格 {formatLargeNumber(tx.price, currency)}
+                                            </li>
+                                        );
+                                    })}
+                                </ul>
+                            </div>
+                        </TabsContent>
+                    </Tabs>
+                    <Button onClick={() => setIsReportDialogOpen(false)} className="mt-4">关闭</Button>
                 </DialogContent>
             </Dialog>
         );

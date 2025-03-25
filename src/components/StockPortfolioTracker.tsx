@@ -392,7 +392,32 @@ const StockPortfolioTracker: React.FC = () => {
     const addNewYear = () => {
         const trimmedYear = newYear.trim();
         if (trimmedYear && !years.includes(trimmedYear)) {
-            const newYearDataItem: YearData = { stocks: [], cashTransactions: [], stockTransactions: [], cashBalance: 0 };
+            // 找到年份列表中最接近但小于新年份的年份作为参考年
+            const referenceYear = years.filter(y => y < trimmedYear)
+                .sort((a, b) => b.localeCompare(a))[0];
+                
+            // 如果找到参考年且有现金余额，则进行结转
+            const cashToCarryOver = referenceYear ? 
+                (yearData[referenceYear]?.cashBalance || 0) : 0;
+                
+            const newYearDataItem: YearData = { 
+                stocks: [], 
+                cashTransactions: [], 
+                stockTransactions: [], 
+                cashBalance: 0 
+            };
+            
+            // 只有在添加新年份且上一年有现金余额时才添加结转记录
+            if (cashToCarryOver > 0) {
+                newYearDataItem.cashTransactions.push({
+                    amount: cashToCarryOver,
+                    type: 'deposit',
+                    date: `${trimmedYear}-01-01`,
+                    description: '上年结余'
+                });
+                newYearDataItem.cashBalance = cashToCarryOver;
+            }
+            
             setYearData({ ...yearData, [trimmedYear]: newYearDataItem });
             setYears([...years, trimmedYear]);
             setNewYear('');
@@ -1054,36 +1079,9 @@ const StockPortfolioTracker: React.FC = () => {
 
     // 在年份切换时处理现金结转
     const handleYearChange = useCallback((newYear: string) => {
-        const currentYearIndex = years.indexOf(newYear);
-        if (currentYearIndex > 0) {
-            const previousYear = years[currentYearIndex - 1];
-            const previousYearCashBalance = yearData[previousYear]?.cashBalance || 0;
-
-            // 检查新年份是否已有上年结余记录
-            const hasCarryOverRecord = yearData[newYear]?.cashTransactions
-                ?.some(tx => tx.type === 'deposit' && tx.amount === previousYearCashBalance && tx.description === '上年结余');
-
-            if (previousYearCashBalance > 0 && !hasCarryOverRecord) {
-                setYearData(prev => ({
-                    ...prev,
-                    [newYear]: {
-                        ...prev[newYear],
-                        cashTransactions: [
-                            {
-                                amount: previousYearCashBalance,
-                                type: 'deposit',
-                                date: `${newYear}-01-01`,
-                                description: '上年结余'
-                            },
-                            ...(prev[newYear]?.cashTransactions || [])
-                        ],
-                        cashBalance: (prev[newYear]?.cashBalance || 0) + previousYearCashBalance
-                    }
-                }));
-            }
-        }
+        // 只需切换年份，不执行任何数据修改
         setSelectedYear(newYear);
-    }, [years, yearData]);
+    }, []);
 
     // 计算历史累计投入资金
     const calculateTotalInvestment = useCallback((upToYear: string) => {

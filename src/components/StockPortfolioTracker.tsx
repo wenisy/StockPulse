@@ -189,7 +189,7 @@ const StockPortfolioTracker: React.FC = () => {
 
     const updateLatestPrices = (prices: PriceData) => {
         setYearData((prevYearData) => {
-            const updatedYearData = {...prevYearData};
+            const updatedYearData = { ...prevYearData };
             if (updatedYearData[latestYear] && updatedYearData[latestYear].stocks) {
                 updatedYearData[latestYear].stocks.forEach(stock => {
                     if (stock.symbol && prices[stock.symbol]) {
@@ -274,7 +274,7 @@ const StockPortfolioTracker: React.FC = () => {
         Object.keys(yearData).forEach((year) => {
             yearlyValues[year] = {};
             let yearTotal = 0;
-    
+
             // 确保 yearData[year] 和 yearData[year].stocks 存在
             if (yearData[year] && yearData[year].stocks) {
                 yearData[year].stocks.forEach((stock) => {
@@ -285,7 +285,7 @@ const StockPortfolioTracker: React.FC = () => {
                         yearTotal += value;
                     }
                 });
-            }    
+            }
             yearlyValues[year]['total'] = yearTotal;
         });
         return yearlyValues;
@@ -339,38 +339,6 @@ const StockPortfolioTracker: React.FC = () => {
             return dataPoint;
         });
     }, [calculateYearlyValues, yearData, latestYear, hiddenStocks]);
-
-    const prepareBarChartData = useCallback(() => {
-        const result: { name: string;[year: string]: number }[] = [];
-        const latestStocks = new Set<string>();
-
-        // 确保 yearData[latestYear] 和 yearData[latestYear].stocks 存在
-        if (yearData[latestYear] && yearData[latestYear].stocks) {
-            yearData[latestYear].stocks.forEach(stock => {
-                if (!hiddenStocks[stock.name]) {
-                    latestStocks.add(stock.name);
-                }
-            });
-        }
-
-        // 为每只非隐藏股票创建价格数据
-        latestStocks.forEach((stockName) => {
-            const stockData: { name: string;[year: string]: number } = { name: stockName };
-
-            Object.keys(yearData).forEach((year) => {
-                if (yearData[year] && yearData[year].stocks) {
-                    const stockInYear = yearData[year].stocks.find((s) => s.name === stockName);
-                    stockData[year] = stockInYear ? stockInYear.price : 0;
-                } else {
-                    stockData[year] = 0;
-                }
-            });
-
-            result.push(stockData);
-        });
-
-        return result;
-    }, [yearData, latestYear, hiddenStocks]);
 
     const preparePercentageBarChartData = useCallback(() => {
         const result: { name: string;[year: string]: number }[] = [];
@@ -809,7 +777,7 @@ const StockPortfolioTracker: React.FC = () => {
     }, [yearData, years, latestYear, hiddenStocks]);
 
     const lineChartData = prepareLineChartData();
-    const barChartData = prepareBarChartData();
+    const barChartData = preparePercentageBarChartData();
     const totalValues = calculateTotalValues();
     const table = tableData();
 
@@ -1509,10 +1477,13 @@ const StockPortfolioTracker: React.FC = () => {
                                         return value.toFixed(0);
                                     }} />
                                 <Tooltip
-                                    formatter={(value: number, name: string) => [formatLargeNumber(value, currency), name]}
+                                    formatter={(value: number, name: string) => [
+                                        formatLargeNumber(value, currency),
+                                        name === 'total' ? '总计' : name
+                                    ]}
                                     labelFormatter={(label) => `${label}年`}
                                 />
-                                <Legend onClick={handleLegendClick} />
+                                <Legend onClick={handleLegendClick} formatter={(value) => value === 'total' ? '总计' : value} />
                                 {Object.keys(lineChartData[0] || {})
                                     .filter((key) => key !== 'year')
                                     .filter((stockName) => !hiddenStocks[stockName]) // Filter out hidden stocks
@@ -1521,7 +1492,8 @@ const StockPortfolioTracker: React.FC = () => {
                                             key={stock}
                                             type="monotone"
                                             dataKey={stock}
-                                            name={stock}
+                                            // 将'total'显示为'总计'
+                                            name={stock === 'total' ? '总计' : stock}
                                             hide={!!hiddenSeries[stock]}
                                             stroke={['#8884d8', '#82ca9d', '#ffc658', '#ff7300', '#0088fe'][index % 5]}
                                             strokeWidth={stock === 'total' ? 3 : 1.5}
@@ -1529,7 +1501,7 @@ const StockPortfolioTracker: React.FC = () => {
                                     ))}
                             </LineChart>
                         ) : (
-                            <BarChart data={preparePercentageBarChartData()}>
+                            <BarChart data={barChartData}>
                                 <CartesianGrid strokeDasharray="3 3" />
                                 <XAxis dataKey="name" />
                                 <YAxis
@@ -1540,7 +1512,7 @@ const StockPortfolioTracker: React.FC = () => {
                                     formatter={(value: number) => [`${value.toFixed(2)}%`, '占比']}
                                     labelFormatter={(label) => `${label}`}
                                 />
-                                <Legend onClick={handleLegendClick}     formatter={(value) => value === 'total' ? '总计' : value} />
+                                <Legend onClick={handleLegendClick} formatter={(value) => value === 'total' ? '总计' : value} />
                                 {years
                                     .map((year, index) => (
                                         <Bar
@@ -1651,8 +1623,11 @@ const StockPortfolioTracker: React.FC = () => {
                                             } else if (cell) {
                                                 const stockData = cell as { shares: number; price: number; costPrice: number; symbol?: string };
                                                 const { shares, price, costPrice, symbol } = stockData;
-                                                const isLatestPrice = symbol && priceData[symbol] && (symbol.endsWith('.HK') ? priceData[symbol].hkdPrice * exchangeRates['HKD'] === price : priceData[symbol].price === price);
-                                                return (
+                                                const isLatestPrice = symbol && priceData[symbol] && (
+                                                    symbol.endsWith('.HK') ?
+                                                        Math.abs((priceData[symbol].hkdPrice * exchangeRates['HKD']) - price) < 0.0001 :
+                                                        Math.abs(priceData[symbol].price - price) < 0.0001
+                                                ); return (
                                                     <td key={cellIndex} className="px-6 py-4 whitespace-nowrap space-y-1 bg-inherit">
                                                         <div className="font-medium">
                                                             当前价值: {formatLargeNumber(shares * price, currency)} ({shares} * {formatLargeNumber(price, currency)})

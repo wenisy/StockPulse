@@ -431,163 +431,228 @@ const StockPortfolioTracker: React.FC = () => {
 
     const confirmAddNewStock = () => {
         if (!newStockName || !newShares || !newPrice || !selectedYear) return;
-
+      
         const stockName = newStockName.trim();
         const transactionShares = parseInt(newShares, 10);
         const transactionPrice = parseFloat(newPrice);
         const yearEndPrice = newYearEndPrice ? parseFloat(newYearEndPrice) : null;
         const stockSymbol = newStockSymbol.trim();
-
+      
         if (isNaN(transactionShares) || isNaN(transactionPrice)) return;
-
+      
         const updatedYearData = { ...yearData };
         if (!updatedYearData[selectedYear]) {
-            updatedYearData[selectedYear] = { stocks: [], cashTransactions: [], stockTransactions: [], cashBalance: 0 };
+          updatedYearData[selectedYear] = { stocks: [], cashTransactions: [], stockTransactions: [], cashBalance: 0 };
         }
-
+      
         const currentStock = updatedYearData[selectedYear].stocks?.find((s) => s.name === stockName);
         const oldShares = currentStock ? currentStock.shares : 0;
-        const oldTotalCost = currentStock ? currentStock.shares * currentStock.costPrice : 0;
-
-        let newSharesValue, newTotalCost, newCostPrice, transactionCost;
-
-        if (transactionType === 'buy') {
-            newSharesValue = oldShares + transactionShares;
-            transactionCost = transactionShares * transactionPrice;
-            newTotalCost = oldTotalCost + transactionCost;
-            newCostPrice = newSharesValue > 0 ? newTotalCost / newSharesValue : 0;
-            if ((updatedYearData[selectedYear].cashBalance || 0) < transactionCost) {
-                setAlertInfo({
-                    isOpen: true,
-                    title: '现金不足',
-                    description: '购买股票的现金不足，现金余额将变为负数',
-                    onConfirm: () => {
-                        updatedYearData[selectedYear].cashBalance = (updatedYearData[selectedYear].cashBalance || 0) - transactionCost;
-                        updateStock(updatedYearData, selectedYear, stockName, newSharesValue, yearEndPrice || transactionPrice, newCostPrice, transactionShares, transactionPrice, transactionType, stockSymbol);
-                        setYearData(updatedYearData);
-                        resetForm();
-                        setAlertInfo(null);
-                    },
-                    onCancel: () => setAlertInfo(null),
-                });
-                return;
-            }
-        } else {
-            if (transactionShares > oldShares) {
-                setAlertInfo({
-                    isOpen: true,
-                    title: '卖出失败',
-                    description: '卖出股数超过持有股数',
-                    onCancel: () => setAlertInfo(null),
-                });
-                return;
-            }
-            newSharesValue = oldShares - transactionShares;
-            transactionCost = transactionShares * transactionPrice;
-            newTotalCost = oldTotalCost - (oldTotalCost * (transactionShares / oldShares));
-            newCostPrice = newSharesValue > 0 ? newTotalCost / newSharesValue : 0;
-        }
-
-        const displayYearEndPrice = yearEndPrice !== null ? yearEndPrice : (currentStock ? currentStock.price : transactionPrice);
-        const displayYearEndPriceText = yearEndPrice !== null ? displayYearEndPrice.toFixed(2) : `${displayYearEndPrice.toFixed(2)}（未填入）`;
         const oldCostPrice = currentStock ? currentStock.costPrice : 0;
-
-        const description = `
-            股票: ${stockName}
-            交易类型: ${transactionType === 'buy' ? '买入' : '卖出'}
-            股数: ${transactionShares}
-            交易价格: ${transactionPrice.toFixed(2)}
-            当前价格: ${displayYearEndPriceText}
-            原成本价: ${oldCostPrice.toFixed(2)}
-            新成本价: ${newCostPrice.toFixed(2)}
-            ${stockSymbol ? `股票代码: ${stockSymbol}` : ''}
-        `;
-
-        setAlertInfo({
-            isOpen: true,
-            title: '确认交易',
-            description,
-            onConfirm: () => {
-                if (transactionType === 'buy') {
-                    updatedYearData[selectedYear].cashBalance = (updatedYearData[selectedYear].cashBalance || 0) - transactionCost;
-                } else {
-                    updatedYearData[selectedYear].cashBalance = (updatedYearData[selectedYear].cashBalance || 0) + transactionCost;
-                }
-                updateStock(updatedYearData, selectedYear, stockName, newSharesValue, displayYearEndPrice, newCostPrice, newTotalCost, transactionShares, transactionPrice, transactionType, stockSymbol);
+        const oldTotalCost = oldShares * oldCostPrice;
+      
+        let newSharesValue, newTotalCost, newCostPrice, transactionCost;
+      
+        if (transactionType === 'buy') {
+          // 买入操作
+          newSharesValue = oldShares + transactionShares;
+          transactionCost = transactionShares * transactionPrice;
+          
+          // 计算新的总成本和每股成本
+          newTotalCost = oldTotalCost + transactionCost;
+          newCostPrice = newSharesValue > 0 ? newTotalCost / newSharesValue : 0;
+          
+          // 检查现金是否足够
+          if ((updatedYearData[selectedYear].cashBalance || 0) < transactionCost) {
+            setAlertInfo({
+              isOpen: true,
+              title: '现金不足',
+              description: '购买股票的现金不足，现金余额将变为负数',
+              onConfirm: () => {
+                updatedYearData[selectedYear].cashBalance = (updatedYearData[selectedYear].cashBalance || 0) - transactionCost;
+                updateStock(
+                  updatedYearData,
+                  selectedYear, 
+                  stockName, 
+                  newSharesValue, 
+                  yearEndPrice || transactionPrice, 
+                  newCostPrice, 
+                  transactionShares, 
+                  transactionPrice, 
+                  transactionType, 
+                  stockSymbol
+                );
                 setYearData(updatedYearData);
                 resetForm();
                 setAlertInfo(null);
-            },
-            onCancel: () => setAlertInfo(null),
+              },
+              onCancel: () => setAlertInfo(null),
+            });
+            return;
+          }
+        } else {
+          // 卖出操作
+          if (transactionShares > oldShares) {
+            setAlertInfo({
+              isOpen: true,
+              title: '卖出失败',
+              description: '卖出股数超过持有股数',
+              onCancel: () => setAlertInfo(null),
+            });
+            return;
+          }
+          
+          newSharesValue = oldShares - transactionShares;
+          transactionCost = transactionShares * transactionPrice;
+          
+          // 计算卖出的股票对应的原始成本
+          const sellCost = oldCostPrice * transactionShares;
+          
+          // 计算卖出收益
+          const sellProceeds = transactionPrice * transactionShares;
+          
+          // 计算卖出损益
+          const profitLoss = sellProceeds - sellCost;
+          
+          // 基本的新总成本（移除卖出部分的成本）
+          newTotalCost = oldTotalCost - sellCost;
+          
+          // 如果卖出价格高于成本价，调整剩余股票的成本
+          if (transactionPrice > oldCostPrice && newSharesValue > 0) {
+            // 按比例分配利润来减少剩余股票的成本
+            newTotalCost = Math.max(0, newTotalCost - profitLoss);
+          }
+          
+          // 计算新的每股成本价
+          newCostPrice = newSharesValue > 0 ? newTotalCost / newSharesValue : 0;
+        }
+      
+        const displayYearEndPrice = yearEndPrice !== null ? yearEndPrice : (currentStock ? currentStock.price : transactionPrice);
+        const displayYearEndPriceText = yearEndPrice !== null ? displayYearEndPrice.toFixed(2) : `${displayYearEndPrice.toFixed(2)}（未填入）`;
+      
+        // 计算盈利信息（仅用于显示）
+        let profitInfo = '';
+        if (transactionType === 'sell' && oldCostPrice > 0) {
+          const profit = (transactionPrice - oldCostPrice) * transactionShares;
+          const profitPercentage = ((transactionPrice / oldCostPrice) - 1) * 100;
+          profitInfo = `
+          预计盈利: ${profit.toFixed(2)} (${profitPercentage.toFixed(2)}%)`;
+        }
+      
+        const description = `
+          股票: ${stockName}
+          交易类型: ${transactionType === 'buy' ? '买入' : '卖出'}
+          股数: ${transactionShares}
+          交易价格: ${transactionPrice.toFixed(2)}
+          当前价格: ${displayYearEndPriceText}
+          原成本价: ${oldCostPrice.toFixed(2)}
+          新成本价: ${newCostPrice.toFixed(2)}${profitInfo}
+          ${stockSymbol ? `股票代码: ${stockSymbol}` : ''}
+        `;
+      
+        setAlertInfo({
+          isOpen: true,
+          title: '确认交易',
+          description,
+          onConfirm: () => {
+            if (transactionType === 'buy') {
+              updatedYearData[selectedYear].cashBalance = (updatedYearData[selectedYear].cashBalance || 0) - transactionCost;
+            } else {
+              updatedYearData[selectedYear].cashBalance = (updatedYearData[selectedYear].cashBalance || 0) + transactionCost;
+            }
+            updateStock(
+              updatedYearData,
+              selectedYear, 
+              stockName, 
+              newSharesValue, 
+              displayYearEndPrice, 
+              newCostPrice, 
+              transactionShares, 
+              transactionPrice, 
+              transactionType, 
+              stockSymbol
+            );
+            setYearData(updatedYearData);
+            resetForm();
+            setAlertInfo(null);
+          },
+          onCancel: () => setAlertInfo(null),
         });
-    };
+      };
 
-    const updateStock = (
+      const updateStock = (
         updatedYearData: { [year: string]: YearData },
         year: string,
         stockName: string,
         shares: number,
         price: number,
         costPrice: number,
-        totalCost: number,
         transactionShares: number,
         transactionPrice: number,
         transactionType: 'buy' | 'sell',
         symbol?: string
-    ) => {
+      ) => {
         if (!updatedYearData[year]) {
-            updatedYearData[year] = { stocks: [], cashTransactions: [], stockTransactions: [], cashBalance: 0 };
+          updatedYearData[year] = { stocks: [], cashTransactions: [], stockTransactions: [], cashBalance: 0 };
         }
-
+      
         if (!updatedYearData[year].stocks) {
-            updatedYearData[year].stocks = [];
+          updatedYearData[year].stocks = [];
         }
-
+      
         const stockIndex = updatedYearData[year].stocks.findIndex((s) => s.name === stockName);
         if (stockIndex !== -1) {
-            updatedYearData[year].stocks[stockIndex] = {
-                ...updatedYearData[year].stocks[stockIndex],
-                shares,
-                price,
-                costPrice,
-                symbol: symbol || updatedYearData[year].stocks[stockIndex].symbol
-            };
-        } else {
-            updatedYearData[year].stocks.push({
-                name: stockName,
-                shares,
-                price,
-                costPrice,
-                id: uuidv4(),
-                symbol
-            });
+          // 更新现有股票
+          updatedYearData[year].stocks[stockIndex] = {
+            ...updatedYearData[year].stocks[stockIndex],
+            shares,
+            price,
+            costPrice,
+            symbol: symbol || updatedYearData[year].stocks[stockIndex].symbol
+          };
+          
+          // 如果股数为0，可以选择从列表中移除
+          if (shares <= 0) {
+            updatedYearData[year].stocks = updatedYearData[year].stocks.filter((_, i) => i !== stockIndex);
+          }
+        } else if (shares > 0) {
+          // 添加新股票
+          updatedYearData[year].stocks.push({
+            name: stockName,
+            shares,
+            price,
+            costPrice,
+            id: uuidv4(),
+            symbol
+          });
         }
-
+      
+        // 记录股票交易
         if (!updatedYearData[year].stockTransactions) {
-            updatedYearData[year].stockTransactions = [];
+          updatedYearData[year].stockTransactions = [];
         }
-
+      
         const stockTransaction: StockTransaction = {
-            stockName,
-            type: transactionType,
-            shares: transactionShares,
-            price: transactionPrice,
-            date: new Date().toISOString().split('T')[0]
+          stockName,
+          type: transactionType,
+          shares: transactionShares,
+          price: transactionPrice,
+          date: new Date().toISOString().split('T')[0]
         };
         updatedYearData[year].stockTransactions.push(stockTransaction);
-
+      
+        // 记录现金变化
         if (!updatedYearData[year].cashTransactions) {
-            updatedYearData[year].cashTransactions = [];
+          updatedYearData[year].cashTransactions = [];
         }
-
+      
         const cashTransaction: CashTransaction = {
-            amount: transactionType === 'buy' ? -transactionShares * transactionPrice : transactionShares * transactionPrice,
-            type: transactionType,
-            date: new Date().toISOString().split('T')[0],
-            stockName,
+          amount: transactionType === 'buy' ? -transactionShares * transactionPrice : transactionShares * transactionPrice,
+          type: transactionType,
+          date: new Date().toISOString().split('T')[0],
+          stockName,
         };
         updatedYearData[year].cashTransactions.push(cashTransaction);
-    };
+      };
 
     const resetForm = () => {
         setNewStockName('');

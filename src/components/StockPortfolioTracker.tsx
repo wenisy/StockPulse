@@ -777,56 +777,55 @@ const StockPortfolioTracker: React.FC = () => {
     const tableData = useCallback(() => {
         const stockSet = new Set<string>();
         Object.values(yearData).forEach((yearDataItem) => {
-            if (yearDataItem && yearDataItem.stocks) {
-                yearDataItem.stocks.forEach((stock) => stockSet.add(stock.name));
-            }
+          if (yearDataItem && yearDataItem.stocks) {
+            yearDataItem.stocks.forEach((stock) => stockSet.add(stock.name));
+          }
         });
-
+      
         const stockNames = Array.from(stockSet);
-
-        stockNames.sort((a, b) => {
-            if (!yearData[latestYear] || !yearData[latestYear].stocks) return 0;
-
-            const stockA = yearData[latestYear].stocks.find((s) => s.name === a);
-            const stockB = yearData[latestYear].stocks.find((s) => s.name === b);
-            const valueA = stockA ? stockA.shares * stockA.price : 0;
-            const valueB = stockB ? stockB.shares * stockB.price : 0;
-            return valueB - valueA;
-        });
-
+      
         const headers = ['可见性', '股票名称', ...years, '操作'];
-
+      
         const rows = stockNames.map((stockName) => {
-            const row: (any)[] = [];
-
-            row.push({ visibility: !hiddenStocks[stockName] });
-
-            const stockInLatestYear = yearData[latestYear]?.stocks?.find((s) => s.name === stockName);
-            row.push({ name: stockName, symbol: stockInLatestYear?.symbol });
-
-            years.forEach((year) => {
-                if (yearData[year] && yearData[year].stocks) {
-                    const stockInYear = yearData[year].stocks.find((s) => s.name === stockName);
-                    row.push(stockInYear ? {
-                        shares: stockInYear.shares,
-                        price: stockInYear.price,
-                        costPrice: stockInYear.costPrice,
-                        symbol: stockInYear.symbol
-                    } : null);
-                } else {
-                    row.push(null);
-                }
-            });
-
-            row.push(null);
-
-            return row;
+          const row = [];
+      
+          row.push({ visibility: !hiddenStocks[stockName] });
+      
+          // 查找股票代码：从最新年份到最早年份，找到最近一次有记录的代码
+          let symbol = '';
+          for (let i = years.length - 1; i >= 0; i--) {
+            const year = years[i];
+            const stockInYear = yearData[year]?.stocks?.find((s) => s.name === stockName);
+            if (stockInYear && stockInYear.symbol) {
+              symbol = stockInYear.symbol;
+              break;
+            }
+          }
+          row.push({ name: stockName, symbol });
+      
+          years.forEach((year) => {
+            if (yearData[year] && yearData[year].stocks) {
+              const stockInYear = yearData[year].stocks.find((s) => s.name === stockName);
+              row.push(stockInYear ? {
+                shares: stockInYear.shares,
+                price: stockInYear.price,
+                costPrice: stockInYear.costPrice,
+                symbol: stockInYear.symbol
+              } : null);
+            } else {
+              row.push(null);
+            }
+          });
+      
+          row.push(null);
+      
+          return row;
         });
-
+      
         const totalRow = ['', 'total', ...years.map(() => null), null];
-
+      
         return { headers, rows, totalRow };
-    }, [yearData, years, latestYear, hiddenStocks]);
+      }, [yearData, years, hiddenStocks]);
 
     const lineChartData = prepareLineChartData();
     const barChartData = preparePercentageBarChartData();

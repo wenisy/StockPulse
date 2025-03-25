@@ -777,55 +777,74 @@ const StockPortfolioTracker: React.FC = () => {
     const tableData = useCallback(() => {
         const stockSet = new Set<string>();
         Object.values(yearData).forEach((yearDataItem) => {
-          if (yearDataItem && yearDataItem.stocks) {
-            yearDataItem.stocks.forEach((stock) => stockSet.add(stock.name));
-          }
+            if (yearDataItem && yearDataItem.stocks) {
+                yearDataItem.stocks.forEach((stock) => stockSet.add(stock.name));
+            }
         });
-      
-        const stockNames = Array.from(stockSet);
-      
+
+        const stockValues2025 = {};
+        Object.values(yearData).forEach((yearDataItem) => {
+            if (yearDataItem && yearDataItem.stocks) {
+                yearDataItem.stocks.forEach((stock) => {
+                    if (stock.name in stockValues2025) return; // 避免重复覆盖
+                    const stockIn2025 = yearData['2025']?.stocks?.find((s) => s.name === stock.name);
+                    if (stockIn2025) {
+                        stockValues2025[stock.name] = stockIn2025.shares * stockIn2025.price; // 2025 年的市场价值
+                    } else {
+                        stockValues2025[stock.name] = 0; // 没有 2025 数据，设为 0
+                    }
+                });
+            }
+        });
+
+        const stockNames = Array.from(stockSet).sort((a, b) => {
+            const valueA = stockValues2025[a] || 0;
+            const valueB = stockValues2025[b] || 0;
+            return valueB - valueA; // 按 2025 市场价值倒序排序
+        });
+
         const headers = ['可见性', '股票名称', ...years, '操作'];
-      
+
         const rows = stockNames.map((stockName) => {
-          const row = [];
-      
-          row.push({ visibility: !hiddenStocks[stockName] });
-      
-          // 查找股票代码：从最新年份到最早年份，找到最近一次有记录的代码
-          let symbol = '';
-          for (let i = years.length - 1; i >= 0; i--) {
-            const year = years[i];
-            const stockInYear = yearData[year]?.stocks?.find((s) => s.name === stockName);
-            if (stockInYear && stockInYear.symbol) {
-              symbol = stockInYear.symbol;
-              break;
+            const row = [];
+
+            row.push({ visibility: !hiddenStocks[stockName] });
+
+            // 查找股票代码：从最新年份到最早年份，找到最近一次有记录的代码
+            let symbol = '';
+            for (let i = years.length - 1; i >= 0; i--) {
+                const year = years[i];
+                const stockInYear = yearData[year]?.stocks?.find((s) => s.name === stockName);
+                if (stockInYear && stockInYear.symbol) {
+                    symbol = stockInYear.symbol;
+                    break;
+                }
             }
-          }
-          row.push({ name: stockName, symbol });
-      
-          years.forEach((year) => {
-            if (yearData[year] && yearData[year].stocks) {
-              const stockInYear = yearData[year].stocks.find((s) => s.name === stockName);
-              row.push(stockInYear ? {
-                shares: stockInYear.shares,
-                price: stockInYear.price,
-                costPrice: stockInYear.costPrice,
-                symbol: stockInYear.symbol
-              } : null);
-            } else {
-              row.push(null);
-            }
-          });
-      
-          row.push(null);
-      
-          return row;
+            row.push({ name: stockName, symbol });
+
+            years.forEach((year) => {
+                if (yearData[year] && yearData[year].stocks) {
+                    const stockInYear = yearData[year].stocks.find((s) => s.name === stockName);
+                    row.push(stockInYear ? {
+                        shares: stockInYear.shares,
+                        price: stockInYear.price,
+                        costPrice: stockInYear.costPrice,
+                        symbol: stockInYear.symbol
+                    } : null);
+                } else {
+                    row.push(null);
+                }
+            });
+
+            row.push(null);
+
+            return row;
         });
-      
+
         const totalRow = ['', 'total', ...years.map(() => null), null];
-      
+
         return { headers, rows, totalRow };
-      }, [yearData, years, hiddenStocks]);
+    }, [yearData, years, hiddenStocks]);
 
     const lineChartData = prepareLineChartData();
     const barChartData = preparePercentageBarChartData();

@@ -395,29 +395,29 @@ const StockPortfolioTracker: React.FC = () => {
             // 找到年份列表中最接近但小于新年份的年份作为参考年
             const referenceYear = years.filter(y => y < trimmedYear)
                 .sort((a, b) => b.localeCompare(a))[0];
-                
+
             // 如果找到参考年且有现金余额，则进行结转
-            const cashToCarryOver = referenceYear ? 
+            const cashToCarryOver = referenceYear ?
                 (yearData[referenceYear]?.cashBalance || 0) : 0;
-                
-            const newYearDataItem: YearData = { 
-                stocks: [], 
-                cashTransactions: [], 
-                stockTransactions: [], 
-                cashBalance: 0 
+
+            const newYearDataItem: YearData = {
+                stocks: [],
+                cashTransactions: [],
+                stockTransactions: [],
+                cashBalance: 0
             };
-            
+
             // 只有在添加新年份且上一年有现金余额时才添加结转记录
             if (cashToCarryOver > 0) {
                 newYearDataItem.cashTransactions.push({
                     amount: cashToCarryOver,
                     type: 'deposit',
-                    date: `${trimmedYear}-01-01`,
-                    description: '上年结余'
+                    date: new Date().toISOString().split('T')[0],  // 使用当前日期
+                    description: '上年结余'  // 确保有描述字段
                 });
                 newYearDataItem.cashBalance = cashToCarryOver;
             }
-            
+
             setYearData({ ...yearData, [trimmedYear]: newYearDataItem });
             setYears([...years, trimmedYear]);
             setNewYear('');
@@ -952,7 +952,7 @@ const StockPortfolioTracker: React.FC = () => {
                                         {yearDataItem.cashTransactions && yearDataItem.cashTransactions.map((tx, index) => {
                                             const isIncrease = tx.type === 'deposit' || tx.type === 'sell';
                                             const colorClass = isIncrease ? 'text-green-500' : 'text-red-500';
-                                            const description = tx.type === 'deposit' ? '存入' : tx.type === 'withdraw' ? '取出' : tx.type === 'buy' ? `买入${tx.stockName}` : `卖出${tx.stockName}`;
+                                            const description = tx.description || (tx.type === 'deposit' ? '存入' : tx.type === 'withdraw' ? '取出' : tx.type === 'buy' ? `买入${tx.stockName}` : `卖出${tx.stockName}`);
                                             // 如果交易关联的股票被隐藏，则跳过
                                             if (tx.stockName && hiddenStocks[tx.stockName]) {
                                                 return null;

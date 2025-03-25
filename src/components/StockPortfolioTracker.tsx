@@ -37,6 +37,7 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { stockInitialData } from './data';
 
 interface Stock {
     name: string;
@@ -85,17 +86,7 @@ interface PriceData {
 }
 
 const StockPortfolioTracker: React.FC = () => {
-    const initialData: { [year: string]: YearData } = {
-        '2024': {
-            stocks: [
-                { name: '阿里巴巴', shares: 180, price: 105.2, costPrice: 90.0, id: '8', symbol: 'BABA' },
-                { name: '腾讯', shares: 75, price: 350.4, costPrice: 310.0, id: '9', symbol: '0700.HK' },
-            ],
-            cashTransactions: [{ amount: 20000, type: 'deposit', date: '2024-01-01' }],
-            stockTransactions: [],
-            cashBalance: 170000,
-        },
-    };
+    const initialData: { [year: string]: YearData } = stockInitialData
 
     const [yearData, setYearData] = useState<{ [year: string]: YearData }>(initialData);
     const [years, setYears] = useState<string[]>(Object.keys(initialData));

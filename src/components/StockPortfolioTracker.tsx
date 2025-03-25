@@ -129,6 +129,8 @@ const StockPortfolioTracker: React.FC = () => {
     const [exchangeRates, setExchangeRates] = useState<{ [key: string]: number }>({ USD: 1, HKD: 0.12864384, CNY: 0.14 }); // 汇率，USD 为基准
     const [retirementGoal, setRetirementGoal] = useState('');
     const [annualReturn, setAnnualReturn] = useState('');
+    const [calculationMode, setCalculationMode] = useState<'rate' | 'years'>('rate');
+    const [targetYears, setTargetYears] = useState('');
 
     const latestYear = years.length > 0 ? Math.max(...years.map(Number)).toString() : '2024';
 
@@ -966,6 +968,11 @@ const StockPortfolioTracker: React.FC = () => {
         return Math.ceil(years);
     };
 
+    const calculateRequiredReturnRate = (currentAmount: number, goalAmount: number, years: number) => {
+        if (years <= 0) return Infinity;
+        return (Math.pow(goalAmount / currentAmount, 1 / years) - 1) * 100;
+    };
+
     return (
         <div className="p-4 max-w-6xl mx-auto space-y-8">
             <h1 className="text-2xl font-bold text-center">股票投资组合追踪工具</h1>
@@ -1093,16 +1100,49 @@ const StockPortfolioTracker: React.FC = () => {
                                 className="w-full"
                             />
                         </div>
+                        <div className="space-y-2">
+                            <label className="block text-sm font-medium mb-1">计算模式</label>
+                            <div className="flex gap-4">
+                                <Button 
+                                    onClick={() => setCalculationMode('rate')}
+                                    className={cn(calculationMode === 'rate' ? 'bg-blue-500 text-white' : 'bg-gray-200')}
+                                >
+                                    输入年回报率
+                                </Button>
+                                <Button 
+                                    onClick={() => setCalculationMode('years')}
+                                    className={cn(calculationMode === 'years' ? 'bg-blue-500 text-white' : 'bg-gray-200')}
+                                >
+                                    输入目标年限
+                                </Button>
+                            </div>
+                        </div>
                         <div>
-                            <label className="block text-sm font-medium mb-1">预期年回报率 (%)</label>
-                            <Input
-                                type="number"
-                                value={annualReturn}
-                                onChange={(e) => setAnnualReturn(e.target.value)}
-                                placeholder="输入预期年回报率"
-                                className="w-full"
-                                step="0.1"
-                            />
+                            {calculationMode === 'rate' ? (
+                                <div>
+                                    <label className="block text-sm font-medium mb-1">预期年回报率 (%)</label>
+                                    <Input
+                                        type="number"
+                                        value={annualReturn}
+                                        onChange={(e) => setAnnualReturn(e.target.value)}
+                                        placeholder="输入预期年回报率"
+                                        className="w-full"
+                                        step="0.1"
+                                    />
+                                </div>
+                            ) : (
+                                <div>
+                                    <label className="block text-sm font-medium mb-1">目标年限 (年)</label>
+                                    <Input
+                                        type="number"
+                                        value={targetYears}
+                                        onChange={(e) => setTargetYears(e.target.value)}
+                                        placeholder="输入目标年限"
+                                        className="w-full"
+                                        step="1"
+                                    />
+                                </div>
+                            )}
                         </div>
                     </div>
                     
@@ -1111,29 +1151,56 @@ const StockPortfolioTracker: React.FC = () => {
                         {(() => {
                             const currentAmount = totalValues[latestYear] || 0;
                             const goalAmount = parseFloat(retirementGoal);
-                            const returnRate = parseFloat(annualReturn);
                             
                             if (!goalAmount || isNaN(goalAmount)) {
                                 return <p className="text-gray-500">请输入目标金额</p>;
                             }
-                            
-                            const yearsNeeded = calculateYearsToGoal(currentAmount, goalAmount, returnRate);
-                            
-                            return (
-                                <div className="space-y-2">
-                                    <p>当前总资产: <span className="font-semibold">{formatLargeNumber(currentAmount, currency)}</span></p>
-                                    <p>目标金额: <span className="font-semibold">{formatLargeNumber(goalAmount, currency)}</span></p>
-                                    <p>差距金额: <span className="font-semibold">{formatLargeNumber(goalAmount - currentAmount, currency)}</span></p>
-                                    <p>预期年回报率: <span className="font-semibold">{returnRate}%</span></p>
-                                    {yearsNeeded === Infinity ? (
-                                        <p className="text-red-500">无法达到目标（回报率过低）</p>
-                                    ) : yearsNeeded === 0 ? (
-                                        <p className="text-green-500">已达到目标！</p>
-                                    ) : (
-                                        <p>预计需要 <span className="font-semibold text-blue-600">{yearsNeeded}</span> 年可达到目标</p>
-                                    )}
-                                </div>
-                            );
+
+                            if (calculationMode === 'rate') {
+                                const returnRate = parseFloat(annualReturn);
+                                if (!returnRate || isNaN(returnRate)) {
+                                    return <p className="text-gray-500">请输入预期年回报率</p>;
+                                }
+                                const yearsNeeded = calculateYearsToGoal(currentAmount, goalAmount, returnRate);
+                                
+                                return (
+                                    <div className="space-y-2">
+                                        <p>当前总资产: <span className="font-semibold">{formatLargeNumber(currentAmount, currency)}</span></p>
+                                        <p>目标金额: <span className="font-semibold">{formatLargeNumber(goalAmount, currency)}</span></p>
+                                        <p>差距金额: <span className="font-semibold">{formatLargeNumber(goalAmount - currentAmount, currency)}</span></p>
+                                        <p>预期年回报率: <span className="font-semibold">{returnRate}%</span></p>
+                                        {yearsNeeded === Infinity ? (
+                                            <p className="text-red-500">无法达到目标（回报率过低）</p>
+                                        ) : yearsNeeded === 0 ? (
+                                            <p className="text-green-500">已达到目标！</p>
+                                        ) : (
+                                            <p>预计需要 <span className="font-semibold text-blue-600">{yearsNeeded.toFixed(1)}</span> 年可达到目标</p>
+                                        )}
+                                    </div>
+                                );
+                            } else {
+                                const years = parseFloat(targetYears);
+                                if (!years || isNaN(years)) {
+                                    return <p className="text-gray-500">请输入目标年限</p>;
+                                }
+                                const requiredRate = calculateRequiredReturnRate(currentAmount, goalAmount, years);
+                                
+                                return (
+                                    <div className="space-y-2">
+                                        <p>当前总资产: <span className="font-semibold">{formatLargeNumber(currentAmount, currency)}</span></p>
+                                        <p>目标金额: <span className="font-semibold">{formatLargeNumber(goalAmount, currency)}</span></p>
+                                        <p>差距金额: <span className="font-semibold">{formatLargeNumber(goalAmount - currentAmount, currency)}</span></p>
+                                        <p>目标年限: <span className="font-semibold">{years}</span> 年</p>
+                                        {currentAmount >= goalAmount ? (
+                                            <p className="text-green-500">已达到目标！</p>
+                                        ) : requiredRate > 100 ? (
+                                            <p className="text-red-500">年限过短，需要的回报率过高（超过100%）</p>
+                                        ) : (
+                                            <p>需要年回报率: <span className="font-semibold text-blue-600">{requiredRate.toFixed(2)}%</span></p>
+                                        )}
+                                    </div>
+                                );
+                            }
                         })()}
                     </div>
                 </div>

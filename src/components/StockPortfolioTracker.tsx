@@ -152,12 +152,66 @@ const StockPortfolioTracker: React.FC = () => {
 
     // --- Check Login Status on Mount ---
     useEffect(() => {
-        const token = localStorage.getItem('token');
-        if (token) {
-            setIsLoggedIn(true);
-            fetchJsonData(token); // Fetch data from backend if logged in
-        }
-    }, []);
+        const initializeData = async () => {
+            const token = localStorage.getItem('token');
+    
+            if (token) {
+                // 登录状态
+                setIsLoggedIn(true);
+                try {
+                    await fetchJsonData(token); // 从 api/data 获取数据
+                    setIsLoading(true);
+                    await refreshPrices(); // 从 api/updatePrices 更新价格
+                    setIsLoading(false);
+                } catch (error) {
+                    console.error('初始化登录态数据失败:', error);
+                    setAlertInfo({
+                        isOpen: true,
+                        title: '数据加载失败',
+                        description: '无法从服务器获取数据，请稍后重试',
+                        onConfirm: () => setAlertInfo(null),
+                    });
+                }
+            } else {
+                // 未登录状态
+                setIsLoggedIn(false);
+    
+                // 获取本地 symbols.json
+                try {
+                    const symbolsUrl = `${getBasePath()}/data/symbols.json`;
+                    const symbolsResponse = await fetch(symbolsUrl);
+                    if (symbolsResponse.ok) {
+                        const symbolsData = await symbolsResponse.json();
+                        setStockSymbols(symbolsData.stocks || []);
+                    }
+                } catch (error) {
+                    console.error('获取股票符号失败:', error);
+                }
+    
+                // 获取本地 prices.json
+                try {
+                    const pricesUrl = `${getBasePath()}/data/prices.json`;
+                    const timestamp = new Date().getTime();
+                    const pricesResponse = await fetch(`${pricesUrl}?t=${timestamp}`);
+                    if (pricesResponse.ok) {
+                        const pricesData = await pricesResponse.json();
+                        setPriceData(pricesData);
+    
+                        const rates = { USD: 1 };
+                        if (pricesData['HKD']) rates['HKD'] = pricesData['HKD'].price;
+                        if (pricesData['CNY']) rates['CNY'] = pricesData['CNY'].price;
+                        setExchangeRates(rates);
+    
+                        updateLatestPrices(pricesData);
+                    }
+                } catch (error) {
+                    console.error('获取最新价格时出错:', error);
+                }
+            }
+        };
+    
+        initializeData();
+    }, []); // 空依赖数组，确保只在组件挂载时运行一次
 
     // --- Login Function ---
     const handleLogin = async () => {
@@ -280,45 +334,7 @@ const StockPortfolioTracker: React.FC = () => {
         return '';
     };
 
-    useEffect(() => {
-        const fetchSymbols = async () => {
-            try {
-                const url = `${getBasePath()}/data/symbols.json`;
-                const response = await fetch(url);
-                if (response.ok) {
-                    const data = await response.json();
-                    setStockSymbols(data.stocks || []);
-                }
-            } catch (error) {
-                console.error('获取股票符号失败:', error);
-            }
-        };
-        fetchSymbols();
-    }, []);
 
-    useEffect(() => {
-        const fetchLatestPrices = async () => {
-            try {
-                const url = `${getBasePath()}/data/prices.json`;
-                const timestamp = new Date().getTime();
-                const response = await fetch(`${url}?t=${timestamp}`);
-                if (response.ok) {
-                    const data = await response.json();
-                    setPriceData(data);
-
-                    const rates: { [key: string]: number } = { USD: 1 };
-                    if (data['HKD']) rates['HKD'] = data['HKD'].price;
-                    if (data['CNY']) rates['CNY'] = data['CNY'].price;
-                    setExchangeRates(rates);
-
-                    updateLatestPrices(data);
-                }
-            } catch (error) {
-                console.error('获取最新价格时出错:', error);
-            }
-        };
-        fetchLatestPrices();
-    }, []);
 
     const updateLatestPrices = (prices: PriceData) => {
         setYearData((prevYearData) => {

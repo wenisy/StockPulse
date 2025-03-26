@@ -154,7 +154,7 @@ const StockPortfolioTracker: React.FC = () => {
     useEffect(() => {
         const initializeData = async () => {
             const token = localStorage.getItem('token');
-    
+
             if (token) {
                 // 登录状态
                 setIsLoggedIn(true);
@@ -175,7 +175,7 @@ const StockPortfolioTracker: React.FC = () => {
             } else {
                 // 未登录状态
                 setIsLoggedIn(false);
-    
+
                 // 获取本地 symbols.json
                 try {
                     const symbolsUrl = `${getBasePath()}/data/symbols.json`;
@@ -187,7 +187,7 @@ const StockPortfolioTracker: React.FC = () => {
                 } catch (error) {
                     console.error('获取股票符号失败:', error);
                 }
-    
+
                 // 获取本地 prices.json
                 try {
                     const pricesUrl = `${getBasePath()}/data/prices.json`;
@@ -196,12 +196,12 @@ const StockPortfolioTracker: React.FC = () => {
                     if (pricesResponse.ok) {
                         const pricesData = await pricesResponse.json();
                         setPriceData(pricesData);
-    
+
                         const rates = { USD: 1 };
                         if (pricesData['HKD']) rates['HKD'] = pricesData['HKD'].price;
                         if (pricesData['CNY']) rates['CNY'] = pricesData['CNY'].price;
                         setExchangeRates(rates);
-    
+
                         updateLatestPrices(pricesData);
                     }
                 } catch (error) {
@@ -209,7 +209,7 @@ const StockPortfolioTracker: React.FC = () => {
                 }
             }
         };
-    
+
         initializeData();
     }, []); // 空依赖数组，确保只在组件挂载时运行一次
 
@@ -360,7 +360,7 @@ const StockPortfolioTracker: React.FC = () => {
             const latestYear = years.length > 0 ? Math.max(...years.map(Number)).toString() : "2025";
             const latestStocks = yearData[latestYear]?.stocks || [];
             const symbols = latestStocks.map(stock => stock.symbol).filter(Boolean);
-    
+
             if (symbols.length === 0) {
                 if (isManual) {
                     setAlertInfo({
@@ -373,7 +373,7 @@ const StockPortfolioTracker: React.FC = () => {
                 setIsLoading(false);
                 return;
             }
-    
+
             const token = localStorage.getItem("token");
             const response = await fetch(`${backendDomain}/api/updatePrices`, {
                 method: "POST",
@@ -383,12 +383,12 @@ const StockPortfolioTracker: React.FC = () => {
                 },
                 body: JSON.stringify({ symbols }),
             });
-    
+
             const result = await response.json();
-    
+
             if (response.ok && result.success) {
                 const stockData = result.data;
-    
+
                 setYearData(prevYearData => {
                     const updatedYearData = { ...prevYearData };
                     if (updatedYearData[latestYear] && updatedYearData[latestYear].stocks) {
@@ -400,7 +400,7 @@ const StockPortfolioTracker: React.FC = () => {
                     }
                     return updatedYearData;
                 });
-    
+
                 // 仅在手动刷新时显示成功提示
                 if (isManual) {
                     setAlertInfo({
@@ -1092,35 +1092,35 @@ const StockPortfolioTracker: React.FC = () => {
 
     const renderReportDialog = () => {
         if (!selectedReportYear || !yearData[selectedReportYear]) return null;
-
+    
         const yearDataItem = yearData[selectedReportYear];
-
+    
         const stockValue = yearDataItem.stocks ? yearDataItem.stocks.reduce(
             (acc, stock) => hiddenStocks[stock.name] ? acc : acc + stock.shares * stock.price, 0
         ) : 0;
-
+    
         const totalPortfolioValue = stockValue + (yearDataItem.cashBalance || 0);
-
+    
         const yearlyInvested = yearDataItem.cashTransactions ? yearDataItem.cashTransactions.reduce(
             (acc, tx) => acc + (tx.type === 'deposit' ? tx.amount : tx.type === 'withdraw' ? -tx.amount : 0),
             0
         ) : 0;
-
+    
         const cumulativeInvested = calculateCumulativeInvested(selectedReportYear);
         const growth = totalPortfolioValue - cumulativeInvested;
         const growthRate = cumulativeInvested > 0 ? (growth / cumulativeInvested) * 100 : 0;
-
+    
         const preparePieChartData = () => {
-            const stocks = yearDataItem.stocks || [];
-            const totalValue = stockValue + (yearDataItem.cashBalance || 0);
+            const stocks = yearDataItem.stocks.filter(stock => !hiddenStocks[stock.name]);
+            const totalValue = stocks.reduce((acc, stock) => acc + stock.shares * stock.price, 0) + (yearDataItem.cashBalance || 0);
             return stocks.map(stock => ({
                 name: stock.name,
                 value: (stock.shares * stock.price / totalValue) * 100,
             }));
         };
-
+    
         const prepareBarChartData = () => {
-            const stocks = yearDataItem.stocks || [];
+            const stocks = yearDataItem.stocks.filter(stock => !hiddenStocks[stock.name]);
             return stocks
                 .map(stock => ({
                     name: stock.name,
@@ -1128,9 +1128,9 @@ const StockPortfolioTracker: React.FC = () => {
                 }))
                 .sort((a, b) => b.profitLoss - a.profitLoss);
         };
-
+    
         const prepareTopPerformersData = () => {
-            const stocks = yearDataItem.stocks || [];
+            const stocks = yearDataItem.stocks.filter(stock => !hiddenStocks[stock.name]);
             return stocks
                 .map(stock => ({
                     name: stock.name,
@@ -1140,9 +1140,9 @@ const StockPortfolioTracker: React.FC = () => {
                 .sort((a, b) => b.profitLoss - a.profitLoss)
                 .map((stock, index) => ({ rank: index + 1, ...stock }));
         };
-
+    
         const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
-
+    
         return (
             <Dialog open={isReportDialogOpen} onOpenChange={setIsReportDialogOpen}>
                 <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
@@ -1246,12 +1246,12 @@ const StockPortfolioTracker: React.FC = () => {
                                 <h3 className="font-semibold">现金变化历史</h3>
                                 <ul>
                                     {yearDataItem.cashTransactions && yearDataItem.cashTransactions.map((tx, index) => {
-                                        const isIncrease = tx.type === 'deposit' || tx.type === 'sell';
-                                        const colorClass = isIncrease ? 'text-green-500' : 'text-red-500';
-                                        const description = tx.description || (tx.type === 'deposit' ? '存入' : tx.type === 'withdraw' ? '取出' : tx.type === 'buy' ? `买入${tx.stockName}` : `卖出${tx.stockName}`);
                                         if (tx.stockName && hiddenStocks[tx.stockName]) {
                                             return null;
                                         }
+                                        const isIncrease = tx.type === 'deposit' || tx.type === 'sell';
+                                        const colorClass = isIncrease ? 'text-green-500' : 'text-red-500';
+                                        const description = tx.description || (tx.type === 'deposit' ? '存入' : tx.type === 'withdraw' ? '取出' : tx.type === 'buy' ? `买入${tx.stockName}` : `卖出${tx.stockName}`);
                                         return (
                                             <li key={index} className={colorClass}>
                                                 {tx.date}: {description} {formatLargeNumber(Math.abs(tx.amount), currency)}

@@ -330,53 +330,95 @@ const StockPortfolioTracker: React.FC = () => {
     };
 
     const refreshPrices = async () => {
-        setIsLoading(true);
+        // 检查是否登录
+        if (!isLoggedIn) {
+            setAlertInfo({
+                isOpen: true,
+                title: "未登录",
+                description: "请先登录以刷新价格",
+                onConfirm: () => setAlertInfo(null),
+            });
+            return;
+        }
+    
+        setIsLoading(true); // 显示加载状态
         try {
-            const url = `${getBasePath()}/data/prices.json`;
-            const timestamp = new Date().getTime();
-            const response = await fetch(`${url}?t=${timestamp}`);
-            if (response.ok) {
-                const data = await response.json();
-                setPriceData(data);
-
-                const rates: { [key: string]: number } = { USD: 1 };
-                if (data['HKD']) rates['HKD'] = data['HKD'].price;
-                if (data['CNY']) rates['CNY'] = data['CNY'].price;
-                setExchangeRates(rates);
-
-                setYearData((prevYearData) => {
+            // 获取最新一年的 symbols
+            const latestYear = years.length > 0 ? Math.max(...years.map(Number)).toString() : "2025";
+            const latestStocks = yearData[latestYear]?.stocks || [];
+            const symbols = latestStocks.map(stock => stock.symbol).filter(Boolean);
+    
+            // 如果没有股票数据，提示用户
+            if (symbols.length === 0) {
+                setAlertInfo({
+                    isOpen: true,
+                    title: "无股票数据",
+                    description: "当前无股票数据可供更新",
+                    onConfirm: () => setAlertInfo(null),
+                });
+                setIsLoading(false);
+                return;
+            }
+    
+            // 从 localStorage 获取 token
+            const token = localStorage.getItem("token");
+    
+            // 发送 POST 请求到后端
+            const response = await fetch(`${backendDomain}/api/updatePrices`, {
+                method: "POST",
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': token,
+                },
+                body: JSON.stringify({ symbols }),
+            });
+    
+            const result = await response.json();
+    
+            // 检查请求是否成功
+            if (response.ok && result.success) {
+                const stockData = result.data;
+    
+                // 更新 yearData 中的价格
+                setYearData(prevYearData => {
                     const updatedYearData = { ...prevYearData };
-                    if (updatedYearData[selectedYear] && updatedYearData[selectedYear].stocks) {
-                        updatedYearData[selectedYear].stocks.forEach(stock => {
-                            if (stock.symbol && data[stock.symbol]) {
-                                if (stock.symbol.endsWith('.HK') && data[stock.symbol].hkdPrice) {
-                                    stock.price = data[stock.symbol].hkdPrice * rates['HKD'];
-                                } else {
-                                    stock.price = data[stock.symbol].price;
-                                }
+                    if (updatedYearData[latestYear] && updatedYearData[latestYear].stocks) {
+                        updatedYearData[latestYear].stocks.forEach(stock => {
+                            if (stock.symbol && stockData[stock.symbol]) {
+                                stock.price = stockData[stock.symbol].price; // 更新实时价格（USD）
                             }
                         });
                     }
                     return updatedYearData;
                 });
-
+    
+                // 提示更新成功
                 setAlertInfo({
                     isOpen: true,
-                    title: '价格已更新',
+                    title: "价格已更新",
                     description: `股票价格已更新至最新数据（${new Date().toLocaleString()}）`,
+                    onConfirm: () => setAlertInfo(null),
+                });
+            } else {
+                // 请求失败，显示错误信息
+                setAlertInfo({
+                    isOpen: true,
+                    title: "更新失败",
+                    description: result.message || "获取最新价格时发生错误",
                     onConfirm: () => setAlertInfo(null),
                 });
             }
         } catch (error) {
-            console.error('刷新价格时出错:', error);
+            // 捕获网络错误或其他异常
+            console.error("刷新价格时出错:", error);
             setAlertInfo({
                 isOpen: true,
-                title: '更新失败',
-                description: '获取最新价格时发生错误，请稍后再试',
+                title: "更新失败",
+                description: "网络错误，请稍后再试",
                 onConfirm: () => setAlertInfo(null),
             });
         } finally {
-            setIsLoading(false);
+            setIsLoading(false); // 关闭加载状态
         }
     };
 

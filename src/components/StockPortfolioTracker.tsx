@@ -175,7 +175,8 @@ const StockPortfolioTracker: React.FC = () => {
                 setIsLoggedIn(true);
                 setIsLoginDialogOpen(false);
                 setLoginError('');
-                await fetchJsonData(data.token); // 获取数据
+                await fetchJsonData(data.token); // 先获取最新的数据
+                await refreshPrices(); // 然后刷新价格
             } else {
                 setLoginError(data.message || '登录失败');
             }

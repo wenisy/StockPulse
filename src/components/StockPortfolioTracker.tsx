@@ -43,6 +43,8 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { stockInitialData } from './data';
 
+import { DialogFooter } from '@/components/ui/dialog';
+
 interface Stock {
     name: string;
     shares: number;
@@ -137,7 +139,128 @@ const StockPortfolioTracker: React.FC = () => {
     const [targetYears, setTargetYears] = useState('');
     const [comparisonYear, setComparisonYear] = useState<string>(years[years?.length - 1]);
 
+    const [isLoginDialogOpen, setIsLoginDialogOpen] = useState(false);
+    const [username, setUsername] = useState('');
+    const [password, setPassword] = useState('');
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const [loginError, setLoginError] = useState('');
+    const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
+
     const latestYear = years.length > 0 ? Math.max(...years.map(Number)).toString() : '2024';
+
+    const backendDomain = "//your-vercel-app.vercel.app"
+
+    // --- Check Login Status on Mount ---
+    useEffect(() => {
+        const token = localStorage.getItem('token');
+        if (token) {
+            setIsLoggedIn(true);
+            fetchJsonData(token); // Fetch data from backend if logged in
+        }
+    }, []);
+
+    // --- Login Function ---
+    const handleLogin = async () => {
+        try {
+            const response = await fetch(`${backendDomain}/api/login`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ username, password }),
+            });
+            const data = await response.json();
+            if (response.ok) {
+                localStorage.setItem('token', data.token);
+                setIsLoggedIn(true);
+                setIsLoginDialogOpen(false);
+                setLoginError('');
+                await fetchJsonData(data.token); // Fetch data after login
+            } else {
+                setLoginError(data.message || '登录失败');
+            }
+        } catch (error) {
+            setLoginError('网络错误，请稍后再试');
+        }
+    };
+
+    // --- Fetch Data from Backend ---
+    const fetchJsonData = async (token: string) => {
+        try {
+            const response = await fetch(`${backendDomain}/api/data`, {
+                headers: {
+                    'Authorization': token,
+                },
+            });
+            const data = await response.json();
+            if (response.ok) {
+                setYearData(data);
+                setYears(Object.keys(data));
+                setSelectedYear(Object.keys(data)[Object.keys(data).length - 1]);
+            } else {
+                console.error('获取数据失败:', data.message);
+            }
+        } catch (error) {
+            console.error('获取数据时出错:', error);
+        }
+    };
+
+    // --- Save Data to Backend ---
+    const handleSaveData = () => {
+        if (isLoggedIn) {
+            setIsSaveDialogOpen(true);
+        }
+    };
+
+    const confirmSaveData = async () => {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+
+        try {
+            const response = await fetch(`${backendDomain}/api/update`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': token,
+                },
+                body: JSON.stringify(yearData),
+            });
+            const result = await response.json();
+            if (response.ok) {
+                setAlertInfo({
+                    isOpen: true,
+                    title: '保存成功',
+                    description: '数据已成功保存到后端',
+                    onConfirm: () => setAlertInfo(null),
+                });
+            } else {
+                setAlertInfo({
+                    isOpen: true,
+                    title: '保存失败',
+                    description: result.message || '保存数据时发生错误',
+                    onConfirm: () => setAlertInfo(null),
+                });
+            }
+        } catch (error) {
+            setAlertInfo({
+                isOpen: true,
+                title: '保存失败',
+                description: '网络错误，请稍后再试',
+                onConfirm: () => setAlertInfo(null),
+            });
+        } finally {
+            setIsSaveDialogOpen(false);
+        }
+    };
+
+    // --- Logout Function ---
+    const handleLogout = () => {
+        localStorage.removeItem('token');
+        setIsLoggedIn(false);
+        setYearData(stockInitialData); // Reset to initial data
+        setYears(Object.keys(stockInitialData));
+        setSelectedYear(Object.keys(stockInitialData)[Object.keys(stockInitialData).length - 1]);
+    };
 
     const getBasePath = () => {
         if (typeof window !== 'undefined') {
@@ -857,15 +980,15 @@ const StockPortfolioTracker: React.FC = () => {
     };
 
     useEffect(() => {
-        if (typeof window !== 'undefined') {
+        if (typeof window !== 'undefined' && !isLoggedIn) {
             localStorage.setItem('stockPortfolioData', JSON.stringify(yearData));
             localStorage.setItem('stockPortfolioYears', JSON.stringify(years));
             localStorage.setItem('stockPortfolioSelectedYear', selectedYear);
         }
-    }, [yearData, years, selectedYear]);
+    }, [yearData, years, selectedYear, isLoggedIn]);
 
     useEffect(() => {
-        if (typeof window !== 'undefined') {
+        if (typeof window !== 'undefined' && !isLoggedIn) {
             const savedData = localStorage.getItem('stockPortfolioData');
             const savedYears = localStorage.getItem('stockPortfolioYears');
             const savedSelectedYear = localStorage.getItem('stockPortfolioSelectedYear');
@@ -873,7 +996,7 @@ const StockPortfolioTracker: React.FC = () => {
             if (savedYears) setYears(JSON.parse(savedYears));
             if (savedSelectedYear) setSelectedYear(savedSelectedYear);
         }
-    }, []);
+    }, [isLoggedIn]);
 
     const handleReportClick = (year: string) => {
         setSelectedReportYear(year);
@@ -1282,8 +1405,65 @@ const StockPortfolioTracker: React.FC = () => {
 
     return (
         <div className="p-4 max-w-6xl mx-auto space-y-8">
-            <h1 className="text-2xl font-bold text-center">股票投资组合追踪工具</h1>
+            <div className="flex justify-between items-center">
+                <h1 className="text-2xl font-bold">股票投资组合追踪工具</h1>
+                <div className="space-x-2">
+                    {isLoggedIn ? (
+                        <>
+                            <Button onClick={handleSaveData}>保存数据</Button>
+                            <Button onClick={handleLogout}>登出</Button>
+                        </>
+                    ) : (
+                        <Button onClick={() => setIsLoginDialogOpen(true)}>登录</Button>
+                    )}
+                </div>
+            </div>
+            {/* Login Dialog */}
+            <Dialog open={isLoginDialogOpen} onOpenChange={setIsLoginDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>登录</DialogTitle>
+                        <DialogDescription>请输入用户名和密码</DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                        <Input
+                            type="text"
+                            placeholder="用户名"
+                            value={username}
+                            onChange={(e) => setUsername(e.target.value)}
+                        />
+                        <Input
+                            type="password"
+                            placeholder="密码"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                        />
+                        {loginError && <p className="text-red-500">{loginError}</p>}
+                    </div>
+                    <DialogFooter>
+                        <Button onClick={handleLogin}>登录</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
+            {/* Save Data Dialog */}
+            <Dialog open={isSaveDialogOpen} onOpenChange={setIsSaveDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>确认保存数据</DialogTitle>
+                        <DialogDescription>
+                            <p>以下是您将要保存的数据预览：</p>
+                            <pre className="whitespace-pre-wrap max-h-96 overflow-y-auto">
+                                {JSON.stringify(yearData, null, 2)}
+                            </pre>
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button onClick={confirmSaveData}>确定</Button>
+                        <Button onClick={() => setIsSaveDialogOpen(false)}>取消</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
             <div className="p-4 border rounded-lg bg-gray-50 space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>

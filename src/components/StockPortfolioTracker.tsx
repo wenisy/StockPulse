@@ -148,7 +148,7 @@ const StockPortfolioTracker: React.FC = () => {
 
     const latestYear = years.length > 0 ? Math.max(...years.map(Number)).toString() : '2024';
 
-    const backendDomain = "//your-vercel-app.vercel.app"
+    const backendDomain = "//stock-backend-tau.vercel.app"
 
     // --- Check Login Status on Mount ---
     useEffect(() => {

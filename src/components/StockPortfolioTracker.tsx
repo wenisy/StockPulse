@@ -332,16 +332,6 @@ const StockPortfolioTracker: React.FC = () => {
 
     const refreshPrices = async () => {
         // 检查是否登录
-        if (!isLoggedIn) {
-            setAlertInfo({
-                isOpen: true,
-                title: "未登录",
-                description: "请先登录以刷新价格",
-                onConfirm: () => setAlertInfo(null),
-            });
-            return;
-        }
-    
         setIsLoading(true); // 显示加载状态
         try {
             // 获取最新一年的 symbols

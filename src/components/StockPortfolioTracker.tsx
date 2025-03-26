@@ -161,7 +161,7 @@ const StockPortfolioTracker: React.FC = () => {
                 try {
                     await fetchJsonData(token); // 从 api/data 获取数据
                     setIsLoading(true);
-                    await refreshPrices(); // 从 api/updatePrices 更新价格
+                    await refreshPrices(false); // 从 api/updatePrices 更新价格
                     setIsLoading(false);
                 } catch (error) {
                     console.error('初始化登录态数据失败:', error);
@@ -231,7 +231,7 @@ const StockPortfolioTracker: React.FC = () => {
                 setLoginError('');
                 await fetchJsonData(data.token); // 获取最新的数据
                 setIsLoading(true); // 开始加载
-                await refreshPrices(); // 刷新价格
+                await refreshPrices(false); // 刷新价格
                 setIsLoading(false); // 结束加载
                 setAlertInfo({
                     isOpen: true,
@@ -354,31 +354,37 @@ const StockPortfolioTracker: React.FC = () => {
         });
     };
 
-    const refreshPrices = async () => {
-        // 检查是否登录
-        setIsLoading(true); // 显示加载状态
+    const refreshPrices = async (isManual = false) => {
+        if (!isLoggedIn) {
+            setAlertInfo({
+                isOpen: true,
+                title: "未登录",
+                description: "请先登录以刷新价格",
+                onConfirm: () => setAlertInfo(null),
+            });
+            return;
+        }
+    
+        setIsLoading(true);
         try {
-            // 获取最新一年的 symbols
             const latestYear = years.length > 0 ? Math.max(...years.map(Number)).toString() : "2025";
             const latestStocks = yearData[latestYear]?.stocks || [];
             const symbols = latestStocks.map(stock => stock.symbol).filter(Boolean);
     
-            // 如果没有股票数据，提示用户
             if (symbols.length === 0) {
-                setAlertInfo({
-                    isOpen: true,
-                    title: "无股票数据",
-                    description: "当前无股票数据可供更新",
-                    onConfirm: () => setAlertInfo(null),
-                });
+                if (isManual) {
+                    setAlertInfo({
+                        isOpen: true,
+                        title: "无股票数据",
+                        description: "当前无股票数据可供更新",
+                        onConfirm: () => setAlertInfo(null),
+                    });
+                }
                 setIsLoading(false);
                 return;
             }
     
-            // 从 localStorage 获取 token
             const token = localStorage.getItem("token");
-    
-            // 发送 POST 请求到后端
             const response = await fetch(`${backendDomain}/api/updatePrices`, {
                 method: "POST",
                 headers: {
@@ -390,50 +396,68 @@ const StockPortfolioTracker: React.FC = () => {
     
             const result = await response.json();
     
-            // 检查请求是否成功
             if (response.ok && result.success) {
                 const stockData = result.data;
     
-                // 更新 yearData 中的价格
                 setYearData(prevYearData => {
                     const updatedYearData = { ...prevYearData };
                     if (updatedYearData[latestYear] && updatedYearData[latestYear].stocks) {
                         updatedYearData[latestYear].stocks.forEach(stock => {
                             if (stock.symbol && stockData[stock.symbol]) {
-                                stock.price = stockData[stock.symbol].price; // 更新实时价格（USD）
+                                stock.price = stockData[stock.symbol].price;
                             }
                         });
                     }
                     return updatedYearData;
                 });
     
-                // 提示更新成功
-                setAlertInfo({
-                    isOpen: true,
-                    title: "价格已更新",
-                    description: `股票价格已更新至最新数据（${new Date().toLocaleString()}）`,
-                    onConfirm: () => setAlertInfo(null),
-                });
+                // 仅在手动刷新时显示成功提示
+                if (isManual) {
+                    setAlertInfo({
+                        isOpen: true,
+                        title: "价格已更新",
+                        description: `股票价格已更新至最新数据（${new Date().toLocaleString()}）`,
+                        onConfirm: () => setAlertInfo(null),
+                    });
+                }
             } else {
-                // 请求失败，显示错误信息
+                // 失败时区分手动和自动刷新
+                if (isManual) {
+                    setAlertInfo({
+                        isOpen: true,
+                        title: "更新失败",
+                        description: result.message || "获取最新价格时发生错误",
+                        onConfirm: () => setAlertInfo(null),
+                    });
+                } else {
+                    setAlertInfo({
+                        isOpen: true,
+                        title: "自动刷新失败",
+                        description: "无法自动更新价格，请手动点击“刷新价格”按钮",
+                        onConfirm: () => setAlertInfo(null),
+                    });
+                }
+            }
+        } catch (error) {
+            console.error("刷新价格时出错:", error);
+            // 失败时区分手动和自动刷新
+            if (isManual) {
                 setAlertInfo({
                     isOpen: true,
                     title: "更新失败",
-                    description: result.message || "获取最新价格时发生错误",
+                    description: "网络错误，请稍后再试",
+                    onConfirm: () => setAlertInfo(null),
+                });
+            } else {
+                setAlertInfo({
+                    isOpen: true,
+                    title: "自动刷新失败",
+                    description: "无法自动更新价格，请手动点击“刷新价格”按钮",
                     onConfirm: () => setAlertInfo(null),
                 });
             }
-        } catch (error) {
-            // 捕获网络错误或其他异常
-            console.error("刷新价格时出错:", error);
-            setAlertInfo({
-                isOpen: true,
-                title: "更新失败",
-                description: "网络错误，请稍后再试",
-                onConfirm: () => setAlertInfo(null),
-            });
         } finally {
-            setIsLoading(false); // 关闭加载状态
+            setIsLoading(false);
         }
     };
 
@@ -1591,7 +1615,7 @@ const StockPortfolioTracker: React.FC = () => {
                     <div className="flex gap-4">
                         <Button onClick={handleCopyData}>复制数据</Button>
                         <Button onClick={handlePasteData}>粘贴数据</Button>
-                        <Button onClick={refreshPrices} disabled={isLoading} className="flex items-center gap-2">
+                        <Button onClick={() => refreshPrices(true)} disabled={isLoading} className="flex items-center gap-2">
                             <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} /> 刷新价格
                         </Button>
                     </div>

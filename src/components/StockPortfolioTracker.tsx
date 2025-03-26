@@ -355,16 +355,6 @@ const StockPortfolioTracker: React.FC = () => {
     };
 
     const refreshPrices = async (isManual = false) => {
-        if (!isLoggedIn) {
-            setAlertInfo({
-                isOpen: true,
-                title: "未登录",
-                description: "请先登录以刷新价格",
-                onConfirm: () => setAlertInfo(null),
-            });
-            return;
-        }
-    
         setIsLoading(true);
         try {
             const latestYear = years.length > 0 ? Math.max(...years.map(Number)).toString() : "2025";

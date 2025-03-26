@@ -1,4 +1,4 @@
-import StockPortfolioTracker from "@/components/StockPortfolioTracker";
+import StockPortfolioTracker from "@/components/stock-portfolio/StockPortfolioTracker";
 
 export default function Home() {
   return (

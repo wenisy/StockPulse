@@ -997,7 +997,7 @@ const StockPortfolioTracker: React.FC = () => {
             return valueB - valueA; // 按 2025 市场价值倒序排序
         });
 
-        const headers = ['可见性', '股票名称', ...years, '操作'];
+        const headers = ['visible', '股票名称', ...years, '操作'];
 
         const rows = stockNames.map((stockName) => {
             const row = [];

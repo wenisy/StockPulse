@@ -150,7 +150,7 @@ const StockPortfolioTracker: React.FC = () => {
 
     const latestYear = years.length > 0 ? Math.max(...years.map(Number)).toString() : '2024';
 
-    const backendDomain = "//stock-backend-tau.vercel.app"
+    const backendDomain = "//stock-backend-tau.vercel.app";
 
     // --- Check Login Status on Mount ---
     useEffect(() => {
@@ -158,12 +158,11 @@ const StockPortfolioTracker: React.FC = () => {
             const token = localStorage.getItem('token');
 
             if (token) {
-                // 登录状态
                 setIsLoggedIn(true);
                 try {
-                    await fetchJsonData(token); // 从 api/data 获取数据
+                    await fetchJsonData(token);
                     setIsLoading(true);
-                    await refreshPrices(false); // 从 api/updatePrices 更新价格
+                    await refreshPrices(false);
                     setIsLoading(false);
                 } catch (error) {
                     console.error('初始化登录态数据失败:', error);
@@ -175,10 +174,7 @@ const StockPortfolioTracker: React.FC = () => {
                     });
                 }
             } else {
-                // 未登录状态
                 setIsLoggedIn(false);
-
-                // 获取本地 symbols.json
                 try {
                     const symbolsUrl = `${getBasePath()}/data/symbols.json`;
                     const symbolsResponse = await fetch(symbolsUrl);
@@ -189,8 +185,6 @@ const StockPortfolioTracker: React.FC = () => {
                 } catch (error) {
                     console.error('获取股票符号失败:', error);
                 }
-
-                // 获取本地 prices.json
                 try {
                     const pricesUrl = `${getBasePath()}/data/prices.json`;
                     const timestamp = new Date().getTime();
@@ -198,12 +192,10 @@ const StockPortfolioTracker: React.FC = () => {
                     if (pricesResponse.ok) {
                         const pricesData = await pricesResponse.json();
                         setPriceData(pricesData);
-
                         const rates = { USD: 1 };
                         if (pricesData['HKD']) rates['HKD'] = pricesData['HKD'].price;
                         if (pricesData['CNY']) rates['CNY'] = pricesData['CNY'].price;
                         setExchangeRates(rates);
-
                         updateLatestPrices(pricesData);
                     }
                 } catch (error) {
@@ -213,7 +205,7 @@ const StockPortfolioTracker: React.FC = () => {
         };
 
         initializeData();
-    }, []); // 空依赖数组，确保只在组件挂载时运行一次
+    }, []);
 
     // --- Login Function ---
     const handleLogin = async () => {
@@ -231,10 +223,10 @@ const StockPortfolioTracker: React.FC = () => {
                 setIsLoggedIn(true);
                 setIsLoginDialogOpen(false);
                 setLoginError('');
-                await fetchJsonData(data.token); // 获取最新的数据
-                setIsLoading(true); // 开始加载
-                await refreshPrices(false); // 刷新价格
-                setIsLoading(false); // 结束加载
+                await fetchJsonData(data.token);
+                setIsLoading(true);
+                await refreshPrices(false);
+                setIsLoading(false);
                 setAlertInfo({
                     isOpen: true,
                     title: '登录成功',
@@ -322,7 +314,7 @@ const StockPortfolioTracker: React.FC = () => {
     const handleLogout = () => {
         localStorage.removeItem('token');
         setIsLoggedIn(false);
-        setYearData(stockInitialData); // Reset to initial data
+        setYearData(stockInitialData);
         setYears(Object.keys(stockInitialData));
         setSelectedYear(Object.keys(stockInitialData)[Object.keys(stockInitialData).length - 1]);
     };
@@ -401,7 +393,6 @@ const StockPortfolioTracker: React.FC = () => {
                     return updatedYearData;
                 });
 
-                // 仅在手动刷新时显示成功提示
                 if (isManual) {
                     setAlertInfo({
                         isOpen: true,
@@ -411,7 +402,6 @@ const StockPortfolioTracker: React.FC = () => {
                     });
                 }
             } else {
-                // 失败时区分手动和自动刷新
                 if (isManual) {
                     setAlertInfo({
                         isOpen: true,
@@ -430,7 +420,6 @@ const StockPortfolioTracker: React.FC = () => {
             }
         } catch (error) {
             console.error("刷新价格时出错:", error);
-            // 失败时区分手动和自动刷新
             if (isManual) {
                 setAlertInfo({
                     isOpen: true,
@@ -683,7 +672,8 @@ const StockPortfolioTracker: React.FC = () => {
                             transactionShares,
                             transactionPrice,
                             transactionType,
-                            stockSymbol
+                            stockSymbol,
+                            oldCostPrice
                         );
                         setYearData(updatedYearData);
                         resetForm();
@@ -763,7 +753,7 @@ const StockPortfolioTracker: React.FC = () => {
                     transactionPrice,
                     transactionType,
                     stockSymbol,
-                    oldCostPrice // 传递交易前的成本价
+                    oldCostPrice
                 );
                 setYearData(updatedYearData);
                 resetForm();
@@ -784,7 +774,7 @@ const StockPortfolioTracker: React.FC = () => {
         transactionPrice: number,
         transactionType: 'buy' | 'sell',
         symbol?: string,
-        beforeCostPrice?: number // 交易前的成本价
+        beforeCostPrice?: number
     ) => {
         if (!updatedYearData[year]) {
             updatedYearData[year] = { stocks: [], cashTransactions: [], stockTransactions: [], cashBalance: 0 };
@@ -828,8 +818,8 @@ const StockPortfolioTracker: React.FC = () => {
             shares: transactionShares,
             price: transactionPrice,
             date: new Date().toISOString().split('T')[0],
-            beforeCostPrice: beforeCostPrice ?? 0, // 记录交易前成本价
-            afterCostPrice: costPrice // 记录交易后成本价
+            beforeCostPrice: beforeCostPrice ?? 0,
+            afterCostPrice: costPrice
         };
         updatedYearData[year].stockTransactions.push(stockTransaction);
 
@@ -984,12 +974,12 @@ const StockPortfolioTracker: React.FC = () => {
         Object.values(yearData).forEach((yearDataItem) => {
             if (yearDataItem && yearDataItem.stocks) {
                 yearDataItem.stocks.forEach((stock) => {
-                    if (stock.name in stockValues2025) return; // 避免重复覆盖
+                    if (stock.name in stockValues2025) return;
                     const stockIn2025 = yearData['2025']?.stocks?.find((s) => s.name === stock.name);
                     if (stockIn2025) {
-                        stockValues2025[stock.name] = stockIn2025.shares * stockIn2025.price; // 2025 年的市场价值
+                        stockValues2025[stock.name] = stockIn2025.shares * stockIn2025.price;
                     } else {
-                        stockValues2025[stock.name] = 0; // 没有 2025 数据，设为 0
+                        stockValues2025[stock.name] = 0;
                     }
                 });
             }
@@ -998,7 +988,7 @@ const StockPortfolioTracker: React.FC = () => {
         const stockNames = Array.from(stockSet).sort((a, b) => {
             const valueA = stockValues2025[a] || 0;
             const valueB = stockValues2025[b] || 0;
-            return valueB - valueA; // 按 2025 市场价值倒序排序
+            return valueB - valueA;
         });
 
         const headers = ['visible', '股票名称', ...years, '操作'];
@@ -1008,7 +998,6 @@ const StockPortfolioTracker: React.FC = () => {
 
             row.push({ visibility: !hiddenStocks[stockName] });
 
-            // 查找股票代码：从最新年份到最早年份，找到最近一次有记录的代码
             let symbol = '';
             for (let i = years.length - 1; i >= 0; i--) {
                 const year = years[i];
@@ -1096,24 +1085,24 @@ const StockPortfolioTracker: React.FC = () => {
 
     const renderReportDialog = () => {
         if (!selectedReportYear || !yearData[selectedReportYear]) return null;
-    
+
         const yearDataItem = yearData[selectedReportYear];
-    
+
         const stockValue = yearDataItem.stocks ? yearDataItem.stocks.reduce(
             (acc, stock) => hiddenStocks[stock.name] ? acc : acc + stock.shares * stock.price, 0
         ) : 0;
-    
+
         const totalPortfolioValue = stockValue + (yearDataItem.cashBalance || 0);
-    
+
         const yearlyInvested = yearDataItem.cashTransactions ? yearDataItem.cashTransactions.reduce(
             (acc, tx) => acc + (tx.type === 'deposit' ? tx.amount : tx.type === 'withdraw' ? -tx.amount : 0),
             0
         ) : 0;
-    
+
         const cumulativeInvested = calculateCumulativeInvested(selectedReportYear);
         const growth = totalPortfolioValue - cumulativeInvested;
         const growthRate = cumulativeInvested > 0 ? (growth / cumulativeInvested) * 100 : 0;
-    
+
         const preparePieChartData = () => {
             const stocks = yearDataItem.stocks.filter(stock => !hiddenStocks[stock.name]);
             const totalValue = stocks.reduce((acc, stock) => acc + stock.shares * stock.price, 0) + (yearDataItem.cashBalance || 0);
@@ -1122,7 +1111,7 @@ const StockPortfolioTracker: React.FC = () => {
                 value: (stock.shares * stock.price / totalValue) * 100,
             }));
         };
-    
+
         const prepareBarChartData = () => {
             const stocks = yearDataItem.stocks.filter(stock => !hiddenStocks[stock.name]);
             return stocks
@@ -1132,7 +1121,7 @@ const StockPortfolioTracker: React.FC = () => {
                 }))
                 .sort((a, b) => b.profitLoss - a.profitLoss);
         };
-    
+
         const prepareTopPerformersData = () => {
             const stocks = yearDataItem.stocks.filter(stock => !hiddenStocks[stock.name]);
             return stocks
@@ -1144,9 +1133,9 @@ const StockPortfolioTracker: React.FC = () => {
                 .sort((a, b) => b.profitLoss - a.profitLoss)
                 .map((stock, index) => ({ rank: index + 1, ...stock }));
         };
-    
+
         const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
-    
+
         return (
             <Dialog open={isReportDialogOpen} onOpenChange={setIsReportDialogOpen}>
                 <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
@@ -2030,7 +2019,8 @@ const StockPortfolioTracker: React.FC = () => {
                                                     symbol.endsWith('.HK') ?
                                                         Math.abs((priceData[symbol].hkdPrice * exchangeRates['HKD']) - price) < 0.0001 :
                                                         Math.abs(priceData[symbol].price - price) < 0.0001
-                                                ); return (
+                                                );
+                                                return (
                                                     <td key={cellIndex} className="px-6 py-4 whitespace-nowrap space-y-1 bg-inherit">
                                                         <div className="font-medium">
                                                             当前价值: {formatLargeNumber(shares * price, currency)} ({shares} * {formatLargeNumber(price, currency)})

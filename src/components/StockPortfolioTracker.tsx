@@ -68,6 +68,8 @@ interface StockTransaction {
     shares: number;
     price: number;
     date: string;
+    beforeCostPrice?: number; // 交易前的成本价
+    afterCostPrice?: number;  // 交易后的成本价
 }
 
 interface YearData {
@@ -334,8 +336,6 @@ const StockPortfolioTracker: React.FC = () => {
         return '';
     };
 
-
-
     const updateLatestPrices = (prices: PriceData) => {
         setYearData((prevYearData) => {
             const updatedYearData = { ...prevYearData };
@@ -529,7 +529,7 @@ const StockPortfolioTracker: React.FC = () => {
     }, [calculateYearlyValues, yearData, latestYear, hiddenStocks]);
 
     const preparePercentageBarChartData = useCallback(() => {
-        const result: { name: string;[year: string]: number }[] = [];
+        const result: { name: string; [year: string]: number }[] = [];
         const yearTotals: { [year: string]: number } = {};
 
         Object.keys(yearData).forEach((year) => {
@@ -553,7 +553,7 @@ const StockPortfolioTracker: React.FC = () => {
         }
 
         latestStocks.forEach((stockName) => {
-            const stockData: { name: string;[year: string]: number } = { name: stockName };
+            const stockData: { name: string; [year: string]: number } = { name: stockName };
 
             Object.keys(yearData).forEach((year) => {
                 if (yearData[year] && yearData[year].stocks) {
@@ -762,7 +762,8 @@ const StockPortfolioTracker: React.FC = () => {
                     transactionShares,
                     transactionPrice,
                     transactionType,
-                    stockSymbol
+                    stockSymbol,
+                    oldCostPrice // 传递交易前的成本价
                 );
                 setYearData(updatedYearData);
                 resetForm();
@@ -782,7 +783,8 @@ const StockPortfolioTracker: React.FC = () => {
         transactionShares: number,
         transactionPrice: number,
         transactionType: 'buy' | 'sell',
-        symbol?: string
+        symbol?: string,
+        beforeCostPrice?: number // 交易前的成本价
     ) => {
         if (!updatedYearData[year]) {
             updatedYearData[year] = { stocks: [], cashTransactions: [], stockTransactions: [], cashBalance: 0 };
@@ -825,7 +827,9 @@ const StockPortfolioTracker: React.FC = () => {
             type: transactionType,
             shares: transactionShares,
             price: transactionPrice,
-            date: new Date().toISOString().split('T')[0]
+            date: new Date().toISOString().split('T')[0],
+            beforeCostPrice: beforeCostPrice ?? 0, // 记录交易前成本价
+            afterCostPrice: costPrice // 记录交易后成本价
         };
         updatedYearData[year].stockTransactions.push(stockTransaction);
 
@@ -1278,6 +1282,9 @@ const StockPortfolioTracker: React.FC = () => {
                                         return (
                                             <li key={index} className={colorClass}>
                                                 {tx.date}: {tx.type === 'buy' ? '买入' : '卖出'} {tx.stockName} {tx.shares}股，价格 {formatLargeNumber(tx.price, currency)}
+                                                {tx.beforeCostPrice !== undefined && tx.afterCostPrice !== undefined && (
+                                                    `，交易前成本价 ${formatLargeNumber(tx.beforeCostPrice, currency)}，交易后成本价 ${formatLargeNumber(tx.afterCostPrice, currency)}`
+                                                )}
                                                 {tx.type === 'sell' && (
                                                     <>
                                                         ，当前价格 {formatLargeNumber(currentPrice, currency)}，

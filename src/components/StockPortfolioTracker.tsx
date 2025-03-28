@@ -1122,6 +1122,16 @@ const StockPortfolioTracker: React.FC = () => {
     };
 
     useEffect(() => {
+        if (lastRefreshTime) {
+            const timer = setTimeout(() => {
+                // Force re-render or reset lastRefreshTime to null after 10 seconds
+                setLastRefreshTime(null); // Or trigger a state update to re-render
+            }, 10000); // 10 seconds
+            return () => clearTimeout(timer); // Cleanup on unmount or re-run
+        }
+    }, [lastRefreshTime]);
+
+    useEffect(() => {
         if (typeof window !== 'undefined' && !isLoggedIn) {
             localStorage.setItem('stockPortfolioData', JSON.stringify(yearData));
             localStorage.setItem('stockPortfolioYears', JSON.stringify(years));
@@ -2095,9 +2105,9 @@ const StockPortfolioTracker: React.FC = () => {
                                                 const { shares, price, costPrice, symbol } = stockData;
 
                                                 // Check if the last refresh was within 10 seconds
-                                                const isLatestPrice = lastRefreshTime
-                                                    ? (new Date().getTime() - lastRefreshTime.getTime()) / 1000 < 10
-                                                    : false;
+                                                const isLatestPrice = year === latestYear && lastRefreshTime
+                                                ? (new Date().getTime() - lastRefreshTime.getTime()) / 1000 < 10
+                                                : false;
 
                                                 return (
                                                     <td key={cellIndex} className="px-6 py-4 whitespace-nowrap space-y-1 bg-inherit">

@@ -1124,9 +1124,9 @@ const StockPortfolioTracker: React.FC = () => {
     useEffect(() => {
         if (lastRefreshTime) {
             const timer = setTimeout(() => {
-                // Force re-render or reset lastRefreshTime to null after 10 seconds
+                // Force re-render or reset lastRefreshTime to null after 120 seconds
                 setLastRefreshTime(null); // Or trigger a state update to re-render
-            }, 10000); // 10 seconds
+            }, 120000); // 120 seconds
             return () => clearTimeout(timer); // Cleanup on unmount or re-run
         }
     }, [lastRefreshTime]);
@@ -2104,9 +2104,9 @@ const StockPortfolioTracker: React.FC = () => {
                                                 const stockData = cell as { shares: number; price: number; costPrice: number; symbol?: string };
                                                 const { shares, price, costPrice, symbol } = stockData;
 
-                                                // Check if the last refresh was within 10 seconds
+                                                // Check if the last refresh was within 120 seconds
                                                 const isLatestPrice = year === latestYear && lastRefreshTime
-                                                ? (new Date().getTime() - lastRefreshTime.getTime()) / 1000 < 10
+                                                ? (new Date().getTime() - lastRefreshTime.getTime()) / 1000 < 120
                                                 : false;
 
                                                 return (

@@ -113,6 +113,7 @@ const StockPortfolioTracker: React.FC = () => {
     } | null>(null);
     const [hiddenSeries, setHiddenSeries] = useState<{ [dataKey: string]: boolean }>({});
     const [hiddenStocks, setHiddenStocks] = useState<{ [stockName: string]: boolean }>({});
+    const [lastRefreshTime, setLastRefreshTime] = useState<Date | null>(null);
     const [alertInfo, setAlertInfo] = useState<{
         isOpen: boolean;
         title: string;
@@ -367,7 +368,7 @@ const StockPortfolioTracker: React.FC = () => {
             const latestYear = years.length > 0 ? Math.max(...years.map(Number)).toString() : "2025";
             const latestStocks = yearData[latestYear]?.stocks || [];
             const symbols = latestStocks.map(stock => stock.symbol).filter(Boolean);
-
+    
             if (symbols.length === 0) {
                 if (isManual) {
                     setAlertInfo({
@@ -380,7 +381,7 @@ const StockPortfolioTracker: React.FC = () => {
                 setIsLoading(false);
                 return;
             }
-
+    
             const token = localStorage.getItem("token");
             const response = await fetch(`${backendDomain}/api/updatePrices`, {
                 method: "POST",
@@ -390,12 +391,12 @@ const StockPortfolioTracker: React.FC = () => {
                 },
                 body: JSON.stringify({ symbols }),
             });
-
+    
             const result = await response.json();
-
+    
             if (response.ok && result.success) {
                 const stockData = result.data;
-
+    
                 setYearData(prevYearData => {
                     const updatedYearData = { ...prevYearData };
                     if (updatedYearData[latestYear] && updatedYearData[latestYear].stocks) {
@@ -407,7 +408,10 @@ const StockPortfolioTracker: React.FC = () => {
                     }
                     return updatedYearData;
                 });
-
+    
+                // Set the last refresh time to now
+                setLastRefreshTime(new Date());
+    
                 if (isManual) {
                     setAlertInfo({
                         isOpen: true,
@@ -533,7 +537,7 @@ const StockPortfolioTracker: React.FC = () => {
     }, [calculateYearlyValues, yearData, latestYear, hiddenStocks]);
 
     const preparePercentageBarChartData = useCallback(() => {
-        const result: { name: string; [year: string]: number }[] = [];
+        const result: { name: string;[year: string]: number }[] = [];
         const yearTotals: { [year: string]: number } = {};
 
         Object.keys(yearData).forEach((year) => {
@@ -557,7 +561,7 @@ const StockPortfolioTracker: React.FC = () => {
         }
 
         latestStocks.forEach((stockName) => {
-            const stockData: { name: string; [year: string]: number } = { name: stockName };
+            const stockData: { name: string;[year: string]: number } = { name: stockName };
 
             Object.keys(yearData).forEach((year) => {
                 if (yearData[year] && yearData[year].stocks) {
@@ -2089,11 +2093,12 @@ const StockPortfolioTracker: React.FC = () => {
                                             } else if (cell) {
                                                 const stockData = cell as { shares: number; price: number; costPrice: number; symbol?: string };
                                                 const { shares, price, costPrice, symbol } = stockData;
-                                                const isLatestPrice = symbol && priceData[symbol] && (
-                                                    symbol.endsWith('.HK') ?
-                                                        Math.abs((priceData[symbol].hkdPrice * exchangeRates['HKD']) - price) < 0.0001 :
-                                                        Math.abs(priceData[symbol].price - price) < 0.0001
-                                                );
+
+                                                // Check if the last refresh was within 10 seconds
+                                                const isLatestPrice = lastRefreshTime
+                                                    ? (new Date().getTime() - lastRefreshTime.getTime()) / 1000 < 10
+                                                    : false;
+
                                                 return (
                                                     <td key={cellIndex} className="px-6 py-4 whitespace-nowrap space-y-1 bg-inherit">
                                                         <div className="font-medium">

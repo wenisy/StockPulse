@@ -155,10 +155,10 @@ const StockPortfolioTracker: React.FC = () => {
 
     // 增量变化跟踪
     const [incrementalChanges, setIncrementalChanges] = useState({
-        stocks: {},        // 年份 -> 股票数据
-        cashTransactions: {}, // 年份 -> 现金交易
-        stockTransactions: {}, // 年份 -> 股票交易
-        yearlySummaries: {}   // 年份 -> 年汇总
+        stocks: {},
+        cashTransactions: {},
+        stockTransactions: {},
+        yearlySummaries: {}
     });
 
     // --- Check Login Status on Mount ---
@@ -368,7 +368,7 @@ const StockPortfolioTracker: React.FC = () => {
             const latestYear = years.length > 0 ? Math.max(...years.map(Number)).toString() : "2025";
             const latestStocks = yearData[latestYear]?.stocks || [];
             const symbols = latestStocks.map(stock => stock.symbol).filter(Boolean);
-    
+
             if (symbols.length === 0) {
                 if (isManual) {
                     setAlertInfo({
@@ -381,7 +381,7 @@ const StockPortfolioTracker: React.FC = () => {
                 setIsLoading(false);
                 return;
             }
-    
+
             const token = localStorage.getItem("token");
             const response = await fetch(`${backendDomain}/api/updatePrices`, {
                 method: "POST",
@@ -391,12 +391,12 @@ const StockPortfolioTracker: React.FC = () => {
                 },
                 body: JSON.stringify({ symbols }),
             });
-    
+
             const result = await response.json();
-    
+
             if (response.ok && result.success) {
                 const stockData = result.data;
-    
+
                 setYearData(prevYearData => {
                     const updatedYearData = { ...prevYearData };
                     if (updatedYearData[latestYear] && updatedYearData[latestYear].stocks) {
@@ -408,10 +408,9 @@ const StockPortfolioTracker: React.FC = () => {
                     }
                     return updatedYearData;
                 });
-    
-                // Set the last refresh time to now
+
                 setLastRefreshTime(new Date());
-    
+
                 if (isManual) {
                     setAlertInfo({
                         isOpen: true,
@@ -736,16 +735,8 @@ const StockPortfolioTracker: React.FC = () => {
             newSharesValue = oldShares - transactionShares;
             transactionCost = transactionShares * transactionPrice;
 
-            const sellCost = oldCostPrice * transactionShares;
             const sellProceeds = transactionPrice * transactionShares;
-            const profitLoss = sellProceeds - sellCost;
-
-            newTotalCost = oldTotalCost - sellCost;
-
-            if (transactionPrice > oldCostPrice && newSharesValue > 0) {
-                newTotalCost = Math.max(0, newTotalCost - profitLoss);
-            }
-
+            newTotalCost = oldTotalCost - sellProceeds;
             newCostPrice = newSharesValue > 0 ? newTotalCost / newSharesValue : 0;
         }
 
@@ -1124,10 +1115,9 @@ const StockPortfolioTracker: React.FC = () => {
     useEffect(() => {
         if (lastRefreshTime) {
             const timer = setTimeout(() => {
-                // Force re-render or reset lastRefreshTime to null after 120 seconds
-                setLastRefreshTime(null); // Or trigger a state update to re-render
-            }, 120000); // 120 seconds
-            return () => clearTimeout(timer); // Cleanup on unmount or re-run
+                setLastRefreshTime(null);
+            }, 120000);
+            return () => clearTimeout(timer);
         }
     }, [lastRefreshTime]);
 
@@ -2104,10 +2094,9 @@ const StockPortfolioTracker: React.FC = () => {
                                                 const stockData = cell as { shares: number; price: number; costPrice: number; symbol?: string };
                                                 const { shares, price, costPrice, symbol } = stockData;
 
-                                                // Check if the last refresh was within 120 seconds
                                                 const isLatestPrice = year === latestYear && lastRefreshTime
-                                                ? (new Date().getTime() - lastRefreshTime.getTime()) / 1000 < 120
-                                                : false;
+                                                    ? (new Date().getTime() - lastRefreshTime.getTime()) / 1000 < 120
+                                                    : false;
 
                                                 return (
                                                     <td key={cellIndex} className="px-6 py-4 whitespace-nowrap space-y-1 bg-inherit">

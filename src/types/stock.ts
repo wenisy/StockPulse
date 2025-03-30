@@ -1,4 +1,4 @@
-export interface RequestHeaders extends Record<string, string> {
+export interface RequestHeaders extends Record<string, string | undefined> {
     'Content-Type': string;
     Authorization?: string;
 }

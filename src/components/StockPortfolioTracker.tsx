@@ -359,7 +359,7 @@ const StockPortfolioTracker: React.FC = () => {
                 headers: {
                     'Content-Type': 'application/json',
                     ...(token ? { 'Authorization': token } : {})
-                } as RequestHeaders,
+                } as Record<string, string>,
                 body: JSON.stringify({ symbols }),
             });
 
@@ -1083,7 +1083,7 @@ const StockPortfolioTracker: React.FC = () => {
     const table = tableData();
 
     const handleLegendClick = (data: { value: string }) => {
-        const key = data.value;
+        const key = data.value === '总计' ? 'total' : data.value;
         setHiddenSeries((prev) => ({ ...prev, [key]: !prev[key] }));
     };
 

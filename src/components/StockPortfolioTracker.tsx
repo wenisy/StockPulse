@@ -42,57 +42,26 @@ import {
 } from "@/components/ui/tooltip";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { stockInitialData } from './data';
-
 import { DialogFooter } from '@/components/ui/dialog';
-
-interface Stock {
-    name: string;
-    shares: number;
-    price: number;
-    costPrice: number;
-    id: string;
-    symbol?: string;
-}
-
-interface CashTransaction {
-    amount: number;
-    type: 'deposit' | 'withdraw' | 'buy' | 'sell';
-    date: string;
-    stockName?: string;
-    description?: string;
-}
-
-interface StockTransaction {
-    stockName: string;
-    type: 'buy' | 'sell';
-    shares: number;
-    price: number;
-    date: string;
-    beforeCostPrice?: number; // 交易前的成本价
-    afterCostPrice?: number;  // 交易后的成本价
-}
-
-interface YearData {
-    stocks: Stock[];
-    cashTransactions: CashTransaction[];
-    stockTransactions: StockTransaction[];
-    cashBalance: number;
-}
-
-interface StockSymbol {
-    symbol: string;
-    name: string;
-}
-
-interface PriceData {
-    [symbol: string]: {
-        price: number;
-        hkdPrice?: number;
-        name: string;
-        currency?: string;
-        lastUpdated: string;
-    };
-}
+import ReportDialog from './ReportDialog';
+import GrowthInfo from './GrowthInfo';
+import {
+    Stock,
+    CashTransaction,
+    StockTransaction,
+    YearData,
+    StockSymbol,
+    PriceData,
+    ExchangeRates,
+    StockValueMap,
+    YearlyStockValues,
+    IncrementalChanges,
+    AlertInfo,
+    StockChartData,
+    TableCell,
+    ChartValue,
+    RequestHeaders
+} from '@/types/stock';
 
 const StockPortfolioTracker: React.FC = () => {
     const initialData: { [year: string]: YearData } = stockInitialData;
@@ -135,7 +104,7 @@ const StockPortfolioTracker: React.FC = () => {
     const [priceData, setPriceData] = useState<PriceData>({});
     const [isLoading, setIsLoading] = useState(false);
     const [currency, setCurrency] = useState('USD');
-    const [exchangeRates, setExchangeRates] = useState<{ [key: string]: number }>({ USD: 1, HKD: 0.12864384, CNY: 0.14 });
+    const [exchangeRates, setExchangeRates] = useState<ExchangeRates>({ USD: 1, HKD: 0.12864384, CNY: 0.14 });
     const [retirementGoal, setRetirementGoal] = useState('');
     const [annualReturn, setAnnualReturn] = useState('');
     const [calculationMode, setCalculationMode] = useState<'rate' | 'years'>('rate');
@@ -154,7 +123,7 @@ const StockPortfolioTracker: React.FC = () => {
     const backendDomain = "//stock-backend-tau.vercel.app";
 
     // 增量变化跟踪
-    const [incrementalChanges, setIncrementalChanges] = useState({
+    const [incrementalChanges, setIncrementalChanges] = useState<IncrementalChanges>({
         stocks: {},
         cashTransactions: {},
         stockTransactions: {},
@@ -201,9 +170,11 @@ const StockPortfolioTracker: React.FC = () => {
                     if (pricesResponse.ok) {
                         const pricesData = await pricesResponse.json();
                         setPriceData(pricesData);
-                        const rates = { USD: 1 };
-                        if (pricesData['HKD']) rates['HKD'] = pricesData['HKD'].price;
-                        if (pricesData['CNY']) rates['CNY'] = pricesData['CNY'].price;
+                        const rates: ExchangeRates = {
+                            USD: 1,
+                            HKD: pricesData['HKD']?.price || 0,
+                            CNY: pricesData['CNY']?.price || 0
+                        };
                         setExchangeRates(rates);
                         updateLatestPrices(pricesData);
                     }
@@ -387,8 +358,8 @@ const StockPortfolioTracker: React.FC = () => {
                 method: "POST",
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': token,
-                },
+                    ...(token ? { 'Authorization': token } : {})
+                } as RequestHeaders,
                 body: JSON.stringify({ symbols }),
             });
 
@@ -471,7 +442,7 @@ const StockPortfolioTracker: React.FC = () => {
     const calculateYearlyValues = useCallback(() => {
         const yearlyValues: { [year: string]: { [stockName: string]: number; total: number } } = {};
         Object.keys(yearData).forEach((year) => {
-            yearlyValues[year] = {};
+            yearlyValues[year] = { total: 0 };
             let yearTotal = 0;
 
             if (yearData[year] && yearData[year].stocks) {
@@ -536,7 +507,7 @@ const StockPortfolioTracker: React.FC = () => {
     }, [calculateYearlyValues, yearData, latestYear, hiddenStocks]);
 
     const preparePercentageBarChartData = useCallback(() => {
-        const result: { name: string;[year: string]: number }[] = [];
+        const result: StockChartData[] = [];
         const yearTotals: { [year: string]: number } = {};
 
         Object.keys(yearData).forEach((year) => {
@@ -560,7 +531,7 @@ const StockPortfolioTracker: React.FC = () => {
         }
 
         latestStocks.forEach((stockName) => {
-            const stockData: { name: string;[year: string]: number } = { name: stockName };
+            const stockData: StockChartData = { name: stockName };
 
             Object.keys(yearData).forEach((year) => {
                 if (yearData[year] && yearData[year].stocks) {
@@ -684,7 +655,10 @@ const StockPortfolioTracker: React.FC = () => {
         const oldCostPrice = currentStock ? currentStock.costPrice : 0;
         const oldTotalCost = oldShares * oldCostPrice;
 
-        let newSharesValue, newTotalCost, newCostPrice, transactionCost;
+        let newSharesValue = 0;
+        let newTotalCost = 0;
+        let newCostPrice = 0;
+        let transactionCost = 0;
 
         if (transactionType === 'buy') {
             newSharesValue = oldShares + transactionShares;
@@ -962,7 +936,8 @@ const StockPortfolioTracker: React.FC = () => {
                                 shares,
                                 price,
                                 costPrice,
-                                symbol
+                                symbol,
+                                id: uuidv4()
                             }]
                         },
                         yearlySummaries: {
@@ -1039,7 +1014,7 @@ const StockPortfolioTracker: React.FC = () => {
             }
         });
 
-        const stockValues2025 = {};
+        const stockValues2025: StockValueMap = {};
         Object.values(yearData).forEach((yearDataItem) => {
             if (yearDataItem && yearDataItem.stocks) {
                 yearDataItem.stocks.forEach((stock) => {
@@ -1107,8 +1082,8 @@ const StockPortfolioTracker: React.FC = () => {
     const totalValues = calculateTotalValues();
     const table = tableData();
 
-    const handleLegendClick = (data: { dataKey: string }) => {
-        const key = data.dataKey;
+    const handleLegendClick = (data: { value: string }) => {
+        const key = data.value;
         setHiddenSeries((prev) => ({ ...prev, [key]: !prev[key] }));
     };
 
@@ -1161,216 +1136,6 @@ const StockPortfolioTracker: React.FC = () => {
         return cumulativeInvested;
     };
 
-    const renderReportDialog = () => {
-        if (!selectedReportYear || !yearData[selectedReportYear]) return null;
-
-        const yearDataItem = yearData[selectedReportYear];
-
-        const stockValue = yearDataItem.stocks ? yearDataItem.stocks.reduce(
-            (acc, stock) => hiddenStocks[stock.name] ? acc : acc + stock.shares * stock.price, 0
-        ) : 0;
-
-        const totalPortfolioValue = stockValue + (yearDataItem.cashBalance || 0);
-
-        const yearlyInvested = yearDataItem.cashTransactions ? yearDataItem.cashTransactions.reduce(
-            (acc, tx) => acc + (tx.type === 'deposit' ? tx.amount : tx.type === 'withdraw' ? -tx.amount : 0),
-            0
-        ) : 0;
-
-        const cumulativeInvested = calculateCumulativeInvested(selectedReportYear);
-        const growth = totalPortfolioValue - cumulativeInvested;
-        const growthRate = cumulativeInvested > 0 ? (growth / cumulativeInvested) * 100 : 0;
-
-        const preparePieChartData = () => {
-            const stocks = yearDataItem.stocks.filter(stock => !hiddenStocks[stock.name]);
-            const totalValue = stocks.reduce((acc, stock) => acc + stock.shares * stock.price, 0) + (yearDataItem.cashBalance || 0);
-            return stocks.map(stock => ({
-                name: stock.name,
-                value: (stock.shares * stock.price / totalValue) * 100,
-            }));
-        };
-
-        const prepareBarChartData = () => {
-            const stocks = yearDataItem.stocks.filter(stock => !hiddenStocks[stock.name]);
-            return stocks
-                .map(stock => ({
-                    name: stock.name,
-                    profitLoss: stock.costPrice > 0 ? ((stock.price - stock.costPrice) / stock.costPrice) * 100 : 0,
-                }))
-                .sort((a, b) => b.profitLoss - a.profitLoss);
-        };
-
-        const prepareTopPerformersData = () => {
-            const stocks = yearDataItem.stocks.filter(stock => !hiddenStocks[stock.name]);
-            return stocks
-                .map(stock => ({
-                    name: stock.name,
-                    symbol: stock.symbol || 'N/A',
-                    profitLoss: stock.costPrice > 0 ? ((stock.price - stock.costPrice) / stock.costPrice) * 100 : 0,
-                }))
-                .sort((a, b) => b.profitLoss - a.profitLoss)
-                .map((stock, index) => ({ rank: index + 1, ...stock }));
-        };
-
-        const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
-
-        return (
-            <Dialog open={isReportDialogOpen} onOpenChange={setIsReportDialogOpen}>
-                <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-                    <DialogHeader>
-                        <DialogTitle>{selectedReportYear}年详细报表</DialogTitle>
-                    </DialogHeader>
-                    <Tabs defaultValue="summary" className="w-full">
-                        <TabsList>
-                            <TabsTrigger value="summary">概览</TabsTrigger>
-                            <TabsTrigger value="portfolio">投资组合分布</TabsTrigger>
-                            <TabsTrigger value="performance">盈亏表现</TabsTrigger>
-                            <TabsTrigger value="top">最佳排名</TabsTrigger>
-                            <TabsTrigger value="cash">现金历史</TabsTrigger>
-                            <TabsTrigger value="trades">买卖历史</TabsTrigger>
-                        </TabsList>
-                        <TabsContent value="summary">
-                            <div className="grid grid-cols-3 gap-4 mb-4">
-                                <div className="p-4 bg-gray-50 rounded-lg">
-                                    <h3 className="font-semibold">当年总持仓</h3>
-                                    <p>{formatLargeNumber(totalPortfolioValue, currency)}</p>
-                                </div>
-                                <div className="p-4 bg-gray-50 rounded-lg">
-                                    <h3 className="font-semibold">累计投入现金</h3>
-                                    <p>{formatLargeNumber(cumulativeInvested, currency)}</p>
-                                </div>
-                                <div className="p-4 bg-gray-50 rounded-lg">
-                                    <h3 className="font-semibold">投资增长</h3>
-                                    <p className={growth >= 0 ? 'text-green-500' : 'text-red-500'}>
-                                        {formatLargeNumber(growth, currency)} ({growthRate.toFixed(2)}%)
-                                    </p>
-                                </div>
-                            </div>
-                        </TabsContent>
-                        <TabsContent value="portfolio">
-                            <ResponsiveContainer width="100%" height={300}>
-                                <PieChart>
-                                    <Pie
-                                        data={preparePieChartData()}
-                                        dataKey="value"
-                                        nameKey="name"
-                                        cx="50%"
-                                        cy="50%"
-                                        outerRadius={100}
-                                        label={({ name, percent }) => `${name} (${(percent * 100).toFixed(2)}%)`}
-                                    >
-                                        {preparePieChartData().map((entry, index) => (
-                                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                        ))}
-                                    </Pie>
-                                    <Tooltip formatter={(value) => `${value.toFixed(2)}%`} />
-                                    <Legend />
-                                </PieChart>
-                            </ResponsiveContainer>
-                        </TabsContent>
-                        <TabsContent value="performance">
-                            <ResponsiveContainer width="100%" height={300}>
-                                <BarChart data={prepareBarChartData()} layout="vertical">
-                                    <CartesianGrid strokeDasharray="3 3" />
-                                    <XAxis type="number" domain={[-100, 100]} tickFormatter={(value) => `${value}%`} />
-                                    <YAxis type="category" dataKey="name" />
-                                    <Tooltip formatter={(value) => `${value.toFixed(2)}%`} />
-                                    <Bar dataKey="profitLoss" fill="#82ca9d">
-                                        {prepareBarChartData().map((entry, index) => (
-                                            <Cell key={`cell-${index}`} fill={entry.profitLoss >= 0 ? '#82ca9d' : '#ff7300'} />
-                                        ))}
-                                    </Bar>
-                                </BarChart>
-                            </ResponsiveContainer>
-                        </TabsContent>
-                        <TabsContent value="top">
-                            <div>
-                                <h3 className="font-semibold">最佳表现排名</h3>
-                                <table className="w-full border-collapse border mt-2">
-                                    <thead>
-                                        <tr>
-                                            <th className="border p-2">排名</th>
-                                            <th className="border p-2">股票名称</th>
-                                            <th className="border p-2">股票代码</th>
-                                            <th className="border p-2">盈亏比例</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {prepareTopPerformersData().map(stock => (
-                                            <tr key={stock.rank}>
-                                                <td className="border p-2 text-center">{stock.rank}</td>
-                                                <td className="border p-2">{stock.name}</td>
-                                                <td className="border p-2">{stock.symbol}</td>
-                                                <td className="border p-2 text-right">
-                                                    <span className={stock.profitLoss >= 0 ? 'text-green-500' : 'text-red-500'}>
-                                                        {stock.profitLoss.toFixed(2)}%
-                                                    </span>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </TabsContent>
-                        <TabsContent value="cash">
-                            <div>
-                                <h3 className="font-semibold">现金变化历史</h3>
-                                <ul>
-                                    {yearDataItem.cashTransactions && yearDataItem.cashTransactions.map((tx, index) => {
-                                        if (tx.stockName && hiddenStocks[tx.stockName]) {
-                                            return null;
-                                        }
-                                        const isIncrease = tx.type === 'deposit' || tx.type === 'sell';
-                                        const colorClass = isIncrease ? 'text-green-500' : 'text-red-500';
-                                        const description = tx.description || (tx.type === 'deposit' ? '存入' : tx.type === 'withdraw' ? '取出' : tx.type === 'buy' ? `买入${tx.stockName}` : `卖出${tx.stockName}`);
-                                        return (
-                                            <li key={index} className={colorClass}>
-                                                {tx.date}: {description} {formatLargeNumber(Math.abs(tx.amount), currency)}
-                                            </li>
-                                        );
-                                    })}
-                                </ul>
-                            </div>
-                        </TabsContent>
-                        <TabsContent value="trades">
-                            <div>
-                                <h3 className="font-semibold">股票买卖历史</h3>
-                                <ul>
-                                    {yearDataItem.stockTransactions && yearDataItem.stockTransactions.map((tx, index) => {
-                                        if (hiddenStocks[tx.stockName]) {
-                                            return null;
-                                        }
-                                        const stock = yearDataItem.stocks.find(s => s.name === tx.stockName);
-                                        const costPrice = stock?.costPrice || 0;
-                                        const currentPrice = stock?.price || 0;
-                                        const profit = tx.type === 'sell' ? (tx.price - costPrice) * tx.shares : 0;
-                                        const profitPercentage = costPrice > 0 ? (profit / (costPrice * tx.shares)) * 100 : 0;
-                                        const colorClass = tx.type === 'buy' ? 'text-blue-500' : profit >= 0 ? 'text-green-500' : 'text-red-500';
-                                        return (
-                                            <li key={index} className={colorClass}>
-                                                {tx.date}: {tx.type === 'buy' ? '买入' : '卖出'} {tx.stockName} {tx.shares}股，价格 {formatLargeNumber(tx.price, currency)}
-                                                {tx.beforeCostPrice !== undefined && tx.afterCostPrice !== undefined && (
-                                                    `，交易前成本价 ${formatLargeNumber(tx.beforeCostPrice, currency)}，交易后成本价 ${formatLargeNumber(tx.afterCostPrice, currency)}`
-                                                )}
-                                                {tx.type === 'sell' && (
-                                                    <>
-                                                        ，当前价格 {formatLargeNumber(currentPrice, currency)}，
-                                                        盈利 {formatLargeNumber(profit, currency)} ({profitPercentage.toFixed(2)}%)
-                                                    </>
-                                                )}
-                                            </li>
-                                        );
-                                    })}
-                                </ul>
-                            </div>
-                        </TabsContent>
-                    </Tabs>
-                    <Button onClick={() => setIsReportDialogOpen(false)} className="mt-4">关闭</Button>
-                </DialogContent>
-            </Dialog>
-        );
-    };
-
     const handleCopyData = () => setIsCopyDialogOpen(true);
     const handlePasteData = () => setIsPasteDialogOpen(true);
 
@@ -1410,32 +1175,6 @@ const StockPortfolioTracker: React.FC = () => {
         return (Math.pow(goalAmount / currentAmount, 1 / years) - 1) * 100;
     };
 
-    const calculateYearGrowth = useCallback((currentYear: string) => {
-        const yearIndex = years.indexOf(currentYear);
-        if (yearIndex <= 0) return null;
-
-        const previousYear = years[yearIndex - 1];
-        const currentValue = totalValues[currentYear];
-        const previousValue = totalValues[previousYear];
-
-        const yearDeposits = yearData[currentYear]?.cashTransactions
-            .reduce((sum, tx) => sum + (tx.type === 'deposit' ? tx.amount : 0), 0) || 0;
-
-        const actualGrowth = currentValue - previousValue;
-        const actualGrowthRate = ((currentValue / previousValue) - 1) * 100;
-
-        const investmentGrowth = actualGrowth - yearDeposits;
-        const investmentGrowthRate = ((currentValue - yearDeposits) / previousValue - 1) * 100;
-
-        return {
-            actualGrowth,
-            actualGrowthRate,
-            investmentGrowth,
-            investmentGrowthRate,
-            yearDeposits
-        };
-    }, [years, totalValues, yearData]);
-
     const handleYearChange = useCallback((newYear: string) => {
         setSelectedYear(newYear);
     }, []);
@@ -1472,81 +1211,6 @@ const StockPortfolioTracker: React.FC = () => {
         };
     }, [calculateTotalInvestment, totalValues]);
 
-    const renderGrowthInfo = (year: string) => {
-        const growth = calculateYearGrowth(year);
-        const yearIndex = years.indexOf(year);
-
-        if (yearIndex === 0) {
-            const initialInvestment = yearData[year]?.cashTransactions
-                .reduce((sum, tx) => sum + (tx.type === 'deposit' ? tx.amount : tx.type === 'withdraw' ? -tx.amount : 0), 0) || 0;
-
-            return (
-                <div className="space-y-1 text-sm">
-                    <p className="text-blue-500">
-                        初始投入: {formatLargeNumber(initialInvestment, currency)}
-                    </p>
-                </div>
-            );
-        }
-
-        if (!growth) return null;
-
-        return (
-            <div className="space-y-1 text-sm">
-                <div className="flex items-center gap-1">
-                    <p className={cn(growth.actualGrowth >= 0 ? 'text-green-500' : 'text-red-500')}>
-                        较上年总增长: {formatLargeNumber(growth.actualGrowth, currency)}
-                        ({growth.actualGrowthRate.toFixed(2)}%)
-                    </p>
-                    <TooltipProvider>
-                        <UITooltip>
-                            <TooltipTrigger>
-                                <HelpCircle className="h-4 w-4 text-gray-400" />
-                            </TooltipTrigger>
-                            <TooltipContent>
-                                <p>包含入金在内的总体增长金额和比例，<br />计算公式：当年总资产 - 上年总资产</p>
-                            </TooltipContent>
-                        </UITooltip>
-                    </TooltipProvider>
-                </div>
-
-                <div className="flex items-center gap-1">
-                    <p className={cn(growth.investmentGrowth >= 0 ? 'text-green-500' : 'text-red-500')}>
-                        投资回报: {formatLargeNumber(growth.investmentGrowth, currency)}
-                        ({growth.investmentGrowthRate.toFixed(2)}%)
-                    </p>
-                    <TooltipProvider>
-                        <UITooltip>
-                            <TooltipTrigger>
-                                <HelpCircle className="h-4 w-4 text-gray-400" />
-                            </TooltipTrigger>
-                            <TooltipContent>
-                                <p>扣除当年入金后的实际投资回报，<br />计算公式：(当年总资产 - 当年入金) - 上年总资产</p>
-                            </TooltipContent>
-                        </UITooltip>
-                    </TooltipProvider>
-                </div>
-
-                {growth.yearDeposits > 0 && (
-                    <div className="flex items-center gap-1">
-                        <p className="text-blue-500">
-                            当年入金: {formatLargeNumber(growth.yearDeposits, currency)}
-                        </p>
-                        <TooltipProvider>
-                            <UITooltip>
-                                <TooltipTrigger>
-                                    <HelpCircle className="h-4 w-4 text-gray-400" />
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    <p>当年新增投入的资金总额，<br />不包括股票交易产生的现金流动</p>
-                                </TooltipContent>
-                            </UITooltip>
-                        </TooltipProvider>
-                    </div>
-                )}
-            </div>
-        );
-    };
 
     return (
         <div className="p-4 max-w-6xl mx-auto space-y-8">
@@ -1786,7 +1450,13 @@ const StockPortfolioTracker: React.FC = () => {
                             onClick={() => handleReportClick(year)}>
                             <h3 className="text-lg font-medium">{year}年总持仓</h3>
                             <p className="text-2xl font-bold text-blue-600">{formatLargeNumber(totalValues[year], currency)}</p>
-                            {renderGrowthInfo(year)}
+                            <GrowthInfo
+                                year={year}
+                                years={years}
+                                yearData={yearData}
+                                formatLargeNumber={formatLargeNumber}
+                                currency={currency}
+                            />
                         </div>
                     ))}
                 </div>
@@ -2091,7 +1761,7 @@ const StockPortfolioTracker: React.FC = () => {
                                                     </td>
                                                 );
                                             } else if (cell) {
-                                                const stockData = cell as { shares: number; price: number; costPrice: number; symbol?: string };
+                                                const stockData = (cell as unknown) as TableCell;
                                                 const { shares, price, costPrice, symbol } = stockData;
 
                                                 const isLatestPrice = year === latestYear && lastRefreshTime
@@ -2101,11 +1771,15 @@ const StockPortfolioTracker: React.FC = () => {
                                                 return (
                                                     <td key={cellIndex} className="px-6 py-4 whitespace-nowrap space-y-1 bg-inherit">
                                                         <div className="font-medium">
-                                                            当前价值: {formatLargeNumber(shares * price, currency)} ({shares} * {formatLargeNumber(price, currency)})
+                                                            当前价值: {shares !== undefined && price !== undefined ?
+                                                                `${formatLargeNumber(shares * price, currency)} (${shares} * ${formatLargeNumber(price, currency)})`
+                                                                : 'N/A'}
                                                             {isLatestPrice && <span className="ml-2 text-xs text-green-500">实时</span>}
                                                         </div>
                                                         <div className="text-sm text-gray-500">
-                                                            成本: {formatLargeNumber(shares * costPrice, currency)} ({shares} * {formatLargeNumber(costPrice, currency)})
+                                                            成本: {shares !== undefined && costPrice !== undefined ?
+                                                                `${formatLargeNumber(shares * costPrice, currency)} (${shares} * ${formatLargeNumber(costPrice, currency)})`
+                                                                : 'N/A'}
                                                         </div>
                                                     </td>
                                                 );
@@ -2165,7 +1839,19 @@ const StockPortfolioTracker: React.FC = () => {
                 </div>
             </div>
 
-            {renderReportDialog()}
+            <ReportDialog
+                isOpen={isReportDialogOpen}
+                onOpenChange={setIsReportDialogOpen}
+                selectedYear={selectedReportYear}
+                yearData={yearData}
+                hiddenStocks={hiddenStocks}
+                formatLargeNumber={formatLargeNumber}
+                currency={currency}
+                totalPortfolioValue={selectedReportYear ? (yearData[selectedReportYear]?.stocks?.reduce(
+                    (acc, stock) => hiddenStocks[stock.name] ? acc : acc + stock.shares * stock.price, 0
+                ) || 0) + (yearData[selectedReportYear]?.cashBalance || 0) : 0}
+                cumulativeInvested={selectedReportYear ? calculateCumulativeInvested(selectedReportYear) : 0}
+            />
 
             <Dialog open={alertInfo?.isOpen} onOpenChange={(open) => {
                 if (!open) setAlertInfo(null);

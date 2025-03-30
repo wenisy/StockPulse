@@ -18,6 +18,8 @@
 .idea/
 /out/
 
+/vscode/
+
 # production
 /build
 

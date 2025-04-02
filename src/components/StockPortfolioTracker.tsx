@@ -235,7 +235,19 @@ const StockPortfolioTracker: React.FC = () => {
                 setYears(Object.keys(data));
                 setSelectedYear(Object.keys(data)[Object.keys(data).length - 1]);
             } else {
-                console.error('获取数据失败:', data.message);
+                // Check for invalid/expired token
+                if (response.status === 401 || (data.message && data.message.includes("无效或过期的令牌"))) {
+                    console.warn('Token invalid or expired. Logging out.');
+                    handleLogout(); // Call logout function
+                    setAlertInfo({ // Inform the user
+                        isOpen: true,
+                        title: '会话已过期',
+                        description: '您的登录已过期，请重新登录。',
+                        onConfirm: () => setAlertInfo(null),
+                    });
+                } else {
+                    console.error('获取数据失败:', data.message || response.statusText);
+                }
             }
         } catch (error) {
             console.error('获取数据时出错:', error);

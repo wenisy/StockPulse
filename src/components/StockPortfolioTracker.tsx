@@ -1,21 +1,13 @@
 "use client";
-import React, { useState, useEffect, useCallback } from 'react';
-import {
-    LineChart,
-    Line,
-    BarChart,
-    Bar,
-    XAxis,
-    YAxis,
-    CartesianGrid,
-    Tooltip,
-    Legend,
-    ResponsiveContainer,
-    PieChart,
-    Pie,
-    Cell,
-} from 'recharts';
 import { Button } from '@/components/ui/button';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import {
     Select,
@@ -24,44 +16,43 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { cn } from '@/lib/utils';
-import { Trash2, Edit, Save, RefreshCw, Eye, EyeOff, HelpCircle } from 'lucide-react';
-import { v4 as uuidv4 } from 'uuid';
 import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog';
-import {
-    Tooltip as UITooltip,
     TooltipContent,
     TooltipProvider,
     TooltipTrigger,
+    Tooltip as UITooltip,
 } from "@/components/ui/tooltip";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { stockInitialData } from './data';
-import { DialogFooter } from '@/components/ui/dialog';
-import ReportDialog from './ReportDialog';
-import GrowthInfo from './GrowthInfo';
+import { cn } from '@/lib/utils';
 import {
-    Stock,
     CashTransaction,
-    StockTransaction,
-    YearData,
-    StockSymbol,
-    PriceData,
     ExchangeRates,
-    StockValueMap,
-    YearlyStockValues,
     IncrementalChanges,
-    AlertInfo,
+    PriceData,
     StockChartData,
+    StockSymbol,
+    StockTransaction,
+    StockValueMap,
     TableCell,
-    ChartValue,
-    RequestHeaders
+    YearData
 } from '@/types/stock';
+import { Edit, Eye, EyeOff, HelpCircle, RefreshCw, Save, Trash2 } from 'lucide-react';
+import React, { useCallback, useEffect, useState } from 'react';
+import {
+    Bar,
+    BarChart,
+    CartesianGrid,
+    Legend,
+    Line,
+    LineChart,
+    ResponsiveContainer,
+    Tooltip,
+    XAxis,
+    YAxis
+} from 'recharts';
+import { v4 as uuidv4 } from 'uuid';
+import { stockInitialData } from './data';
+import GrowthInfo from './GrowthInfo';
+import ReportDialog from './ReportDialog';
 
 const StockPortfolioTracker: React.FC = () => {
     const initialData: { [year: string]: YearData } = stockInitialData;

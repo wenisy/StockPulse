@@ -85,6 +85,19 @@ npm run dev
 
 4. 在浏览器中访问 `http://localhost:3000` 查看应用
 
+### 运行测试
+
+```bash
+# 运行所有测试
+npm test
+
+# 监视模式（在开发过程中持续运行测试）
+npm run test:watch
+
+# 生成测试覆盖率报告
+npm run test:coverage
+```
+
 ### 构建生产版本
 
 ```bash

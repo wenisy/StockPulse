@@ -72,7 +72,8 @@ const ReportDialog: React.FC<ReportDialogProps> = ({
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
                 <DialogHeader>
-                    <DialogTitle>{selectedYear}年详细报表</DialogTitle>
+                    <DialogTitle>投资报表</DialogTitle>
+                    <div className="text-lg font-semibold mt-2">{selectedYear}年详细报表</div>
                 </DialogHeader>
                 <Tabs defaultValue="summary" className="w-full">
                     <TabsList>

@@ -979,31 +979,46 @@ const StockPortfolioTracker: React.FC = () => {
     };
 
     const handleDeleteStock = (stockName: string) => {
-        setYearData((prevYearData) => {
-            const updatedYearData: { [year: string]: YearData } = {};
-            Object.keys(prevYearData).forEach((year) => {
-                if (prevYearData[year] && prevYearData[year].stocks) {
-                    updatedYearData[year] = {
-                        ...prevYearData[year],
-                        stocks: prevYearData[year].stocks.filter((stock) => stock.name !== stockName)
-                    };
-                } else {
-                    updatedYearData[year] = prevYearData[year];
-                }
-            });
-            return updatedYearData;
-        });
+        // 显示确认对话框
+        setAlertInfo({
+            isOpen: true,
+            title: '确认删除',
+            description: `确定要删除 ${stockName} 吗？`,
+            onConfirm: () => {
+                // 执行删除操作
+                setYearData((prevYearData) => {
+                    const updatedYearData: { [year: string]: YearData } = {};
+                    Object.keys(prevYearData).forEach((year) => {
+                        if (prevYearData[year] && prevYearData[year].stocks) {
+                            updatedYearData[year] = {
+                                ...prevYearData[year],
+                                stocks: prevYearData[year].stocks.filter((stock) => stock.name !== stockName)
+                            };
+                        } else {
+                            updatedYearData[year] = prevYearData[year];
+                        }
+                    });
+                    return updatedYearData;
+                });
 
-        // 记录删除股票的增量变化
-        setIncrementalChanges((prev) => {
-            const updatedStocks = { ...prev.stocks };
-            Object.keys(updatedStocks).forEach((year) => {
-                updatedStocks[year] = updatedStocks[year].filter((stock) => stock.name !== stockName);
-            });
-            return {
-                ...prev,
-                stocks: updatedStocks
-            };
+                // 记录删除股票的增量变化
+                setIncrementalChanges((prev) => {
+                    const updatedStocks = { ...prev.stocks };
+                    Object.keys(updatedStocks).forEach((year) => {
+                        updatedStocks[year] = updatedStocks[year].filter((stock) => stock.name !== stockName);
+                    });
+                    return {
+                        ...prev,
+                        stocks: updatedStocks
+                    };
+                });
+
+                // 关闭对话框
+                setAlertInfo(null);
+            },
+            onCancel: () => setAlertInfo(null),
+            confirmText: '确认',
+            cancelText: '取消',
         });
     };
 
@@ -1454,8 +1469,12 @@ const StockPortfolioTracker: React.FC = () => {
                 <h2 className="text-xl font-semibold mb-4">总持仓概览</h2>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     {Object.keys(totalValues).map((year) => (
-                        <div key={year} className="p-4 border rounded-lg shadow bg-white cursor-pointer"
-                            onClick={() => handleReportClick(year)}>
+                        <div
+                            key={year}
+                            className="p-4 border rounded-lg shadow bg-white cursor-pointer"
+                            onClick={() => handleReportClick(year)}
+                            data-testid={`report-button-${year}`}
+                        >
                             <h3 className="text-lg font-medium">{year}年总持仓</h3>
                             <p className="text-2xl font-bold text-blue-600">{formatLargeNumber(totalValues[year], currency)}</p>
                             <GrowthInfo
@@ -1725,8 +1744,13 @@ const StockPortfolioTracker: React.FC = () => {
                                         isHidden && 'opacity-50'
                                     )}>
                                         <td className="sticky left-0 z-10 px-6 py-4 whitespace-nowrap text-center bg-inherit">
-                                            <Button size="icon" onClick={() => toggleStockVisibility(stockName)}
-                                                className="text-gray-500 hover:text-gray-700">
+                                            <Button
+                                                size="icon"
+                                                onClick={() => toggleStockVisibility(stockName)}
+                                                className="text-gray-500 hover:text-gray-700"
+                                                data-testid={`visibility-${stockName}`}
+                                                aria-label="可见性"
+                                            >
                                                 {isHidden ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                                             </Button>
                                         </td>
@@ -1763,7 +1787,7 @@ const StockPortfolioTracker: React.FC = () => {
                                             if (isEditing) {
                                                 return (
                                                     <td key={cellIndex} className="px-6 py-4 whitespace-nowrap space-y-1 bg-inherit">
-                                                        <div><label className="text-sm">数量</label><Input type="number" value={editedRowData?.[year]?.quantity || ''} onChange={(e) => handleInputChange(year, 'quantity', e.target.value)} className="w-24" /></div>
+                                                        <div><label className="text-sm">数量</label><Input type="number" value={editedRowData?.[year]?.quantity || ''} onChange={(e) => handleInputChange(year, 'quantity', e.target.value)} className="w-24" data-testid={`quantity-input-${year}`} /></div>
                                                         <div><label className="text-sm">价格</label><Input type="number" value={editedRowData?.[year]?.unitPrice || ''} onChange={(e) => handleInputChange(year, 'unitPrice', e.target.value)} className="w-24" /></div>
                                                         <div><label className="text-sm">成本</label><Input type="number" value={editedRowData?.[year]?.costPrice || ''} onChange={(e) => handleInputChange(year, 'costPrice', e.target.value)} className="w-24" /></div>
                                                     </td>
@@ -1797,18 +1821,30 @@ const StockPortfolioTracker: React.FC = () => {
                                         })}
                                         <td className="sticky right-0 z-10 px-6 py-4 whitespace-nowrap space-x-2 bg-inherit">
                                             {editingStockName === stockName ? (
-                                                <Button size="icon" onClick={() => handleSaveRow(stockName)}
-                                                    className="text-green-500 hover:text-green-700">
+                                                <Button
+                                                    size="icon"
+                                                    onClick={() => handleSaveRow(stockName)}
+                                                    className="text-green-500 hover:text-green-700"
+                                                    data-testid={`save-${stockName}`}
+                                                >
                                                     <Save className="h-4 w-4" />
                                                 </Button>
                                             ) : (
-                                                <Button size="icon" onClick={() => handleEditRow(stockName)}
-                                                    className="text-blue-500 hover:text-blue-700">
+                                                <Button
+                                                    size="icon"
+                                                    onClick={() => handleEditRow(stockName)}
+                                                    className="text-blue-500 hover:text-blue-700"
+                                                    data-testid={`edit-${stockName}`}
+                                                >
                                                     <Edit className="h-4 w-4" />
                                                 </Button>
                                             )}
-                                            <Button size="icon" onClick={() => handleDeleteStock(stockName)}
-                                                className="text-red-500 hover:text-red-700">
+                                            <Button
+                                                size="icon"
+                                                onClick={() => handleDeleteStock(stockName)}
+                                                className="text-red-500 hover:text-red-700"
+                                                data-testid={`delete-${stockName}`}
+                                            >
                                                 <Trash2 className="h-4 w-4" />
                                             </Button>
                                         </td>

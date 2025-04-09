@@ -311,8 +311,13 @@ const StockPortfolioTracker: React.FC = () => {
 
     const getBasePath = () => {
         if (typeof window !== 'undefined') {
+            // 如果是GitHub Pages默认域名，使用/StockPulse前缀
             if (window.location.hostname.includes('github.io')) {
                 return '/StockPulse';
+            }
+            // 如果是自定义域名，不使用前缀
+            if (window.location.hostname === 'stock.nodal.link') {
+                return '';
             }
         }
         return '';

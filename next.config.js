@@ -1,7 +1,12 @@
 /** @type {import('next').NextConfig} */
+
+// 检查是否使用自定义域名
+const useCustomDomain = process.env.USE_CUSTOM_DOMAIN === 'true';
+
 const nextConfig = {
     output: 'export',
-    basePath: '/StockPulse',  // 替换为你的GitHub仓库名
+    // 根据环境变量决定是否使用basePath
+    basePath: useCustomDomain ? '' : '/StockPulse',
     images: {
         unoptimized: true,
     },
@@ -14,6 +19,8 @@ const nextConfig = {
         ignoreBuildErrors: true,
     },
     trailingSlash: true,
+    // 添加自定义域名的assetPrefix配置
+    assetPrefix: useCustomDomain ? '' : '/StockPulse',
 };
 
 module.exports = nextConfig;

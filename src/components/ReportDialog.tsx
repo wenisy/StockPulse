@@ -171,19 +171,21 @@ const ReportDialog: React.FC<ReportDialogProps> = ({
                         <div>
                             <h3 className="font-semibold">现金变化历史</h3>
                             <ul>
-                                {yearDataItem.cashTransactions && yearDataItem.cashTransactions.map((tx, index) => {
-                                    if (tx.stockName && hiddenStocks[tx.stockName]) {
-                                        return null;
-                                    }
-                                    const isIncrease = tx.type === 'deposit' || tx.type === 'sell';
-                                    const colorClass = isIncrease ? 'text-green-500' : 'text-red-500';
-                                    const description = tx.description || (tx.type === 'deposit' ? '存入' : tx.type === 'withdraw' ? '取出' : tx.type === 'buy' ? `买入${tx.stockName}` : `卖出${tx.stockName}`);
-                                    return (
-                                        <li key={index} className={colorClass}>
-                                            {tx.date}: {description} {formatLargeNumber(Math.abs(tx.amount), currency)}
-                                        </li>
-                                    );
-                                })}
+                                {yearDataItem.cashTransactions && [...yearDataItem.cashTransactions]
+                                    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                                    .map((tx, index) => {
+                                        if (tx.stockName && hiddenStocks[tx.stockName]) {
+                                            return null;
+                                        }
+                                        const isIncrease = tx.type === 'deposit' || tx.type === 'sell';
+                                        const colorClass = isIncrease ? 'text-green-500' : 'text-red-500';
+                                        const description = tx.description || (tx.type === 'deposit' ? '存入' : tx.type === 'withdraw' ? '取出' : tx.type === 'buy' ? `买入${tx.stockName}` : `卖出${tx.stockName}`);
+                                        return (
+                                            <li key={index} className={colorClass}>
+                                                {tx.date}: {description} {formatLargeNumber(Math.abs(tx.amount), currency)}
+                                            </li>
+                                        );
+                                    })}
                             </ul>
                         </div>
                     </TabsContent>
@@ -191,31 +193,41 @@ const ReportDialog: React.FC<ReportDialogProps> = ({
                         <div>
                             <h3 className="font-semibold">股票买卖历史</h3>
                             <ul>
-                                {yearDataItem.stockTransactions && yearDataItem.stockTransactions.map((tx, index) => {
-                                    if (hiddenStocks[tx.stockName]) {
-                                        return null;
-                                    }
-                                    const stock = yearDataItem.stocks.find(s => s.name === tx.stockName);
-                                    const costPrice = stock?.costPrice || 0;
-                                    const currentPrice = stock?.price || 0;
-                                    const profit = tx.type === 'sell' ? (tx.price - costPrice) * tx.shares : 0;
-                                    const profitPercentage = costPrice > 0 ? (profit / (costPrice * tx.shares)) * 100 : 0;
-                                    const colorClass = tx.type === 'buy' ? 'text-blue-500' : profit >= 0 ? 'text-green-500' : 'text-red-500';
-                                    return (
-                                        <li key={index} className={colorClass}>
-                                            {tx.date}: {tx.type === 'buy' ? '买入' : '卖出'} {tx.stockName} {tx.shares}股，价格 {formatLargeNumber(tx.price, currency)}
-                                            {tx.beforeCostPrice !== undefined && tx.afterCostPrice !== undefined && (
-                                                `，交易前成本价 ${formatLargeNumber(tx.beforeCostPrice, currency)}，交易后成本价 ${formatLargeNumber(tx.afterCostPrice, currency)}`
-                                            )}
-                                            {tx.type === 'sell' && (
-                                                <>
-                                                    ，当前价格 {formatLargeNumber(currentPrice, currency)}，
-                                                    盈利 {formatLargeNumber(profit, currency)} ({profitPercentage.toFixed(2)}%)
-                                                </>
-                                            )}
-                                        </li>
-                                    );
-                                })}
+                                {yearDataItem.stockTransactions && [...yearDataItem.stockTransactions]
+                                    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                                    .map((tx, index) => {
+                                        if (hiddenStocks[tx.stockName]) {
+                                            return null;
+                                        }
+                                        const stock = yearDataItem.stocks.find(s => s.name === tx.stockName);
+                                        const costPrice = stock?.costPrice || 0;
+                                        const currentPrice = stock?.price || 0;
+                                        const profit = tx.type === 'sell' ? (tx.price - costPrice) * tx.shares : 0;
+                                        const profitPercentage = costPrice > 0 ? (profit / (costPrice * tx.shares)) * 100 : 0;
+                                        const colorClass = tx.type === 'buy' ? 'text-blue-500' : profit >= 0 ? 'text-green-500' : 'text-red-500';
+                                        return (
+                                            <li key={index} className={colorClass}>
+                                                {tx.date}: {tx.type === 'buy' ? '买入' : '卖出'} {tx.stockName} {tx.shares}股，价格 {formatLargeNumber(tx.price, currency)}
+                                                {tx.beforeCostPrice !== undefined && tx.afterCostPrice !== undefined && (
+                                                    <>
+                                                        ，交易前成本价 {formatLargeNumber(tx.beforeCostPrice, currency)}，
+                                                        交易后成本价 <span className={tx.afterCostPrice < tx.beforeCostPrice ? 'text-green-500' : tx.afterCostPrice > tx.beforeCostPrice ? 'text-red-500' : ''}>
+                                                            {formatLargeNumber(tx.afterCostPrice, currency)}
+                                                            {tx.afterCostPrice !== tx.beforeCostPrice && (
+                                                                <> ({tx.afterCostPrice < tx.beforeCostPrice ? '↓' : '↑'})</>
+                                                            )}
+                                                        </span>
+                                                    </>
+                                                )}
+                                                {tx.type === 'sell' && (
+                                                    <>
+                                                        ，当前价格 {formatLargeNumber(currentPrice, currency)}，
+                                                        盈利 {formatLargeNumber(profit, currency)} ({profitPercentage.toFixed(2)}%)
+                                                    </>
+                                                )}
+                                            </li>
+                                        );
+                                    })}
                             </ul>
                         </div>
                     </TabsContent>

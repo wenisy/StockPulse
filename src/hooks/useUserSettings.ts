@@ -113,7 +113,7 @@ export const useUserSettings = (
   // 更新退休目标金额
   const updateRetirementGoal = useCallback((value: string) => {
     setRetirementGoal(value);
-    
+
     // 如果用户已登录，更新用户信息
     if (currentUser && isLoggedIn && setCurrentUser) {
       const updatedUser: User = {
@@ -131,7 +131,7 @@ export const useUserSettings = (
   // 更新预期年回报率
   const updateAnnualReturn = useCallback((value: string) => {
     setAnnualReturn(value);
-    
+
     // 如果用户已登录，更新用户信息
     if (currentUser && isLoggedIn && setCurrentUser) {
       const updatedUser: User = {
@@ -149,7 +149,7 @@ export const useUserSettings = (
   // 更新目标年限
   const updateTargetYears = useCallback((value: string) => {
     setTargetYears(value);
-    
+
     // 如果用户已登录，更新用户信息
     if (currentUser && isLoggedIn && setCurrentUser) {
       const updatedUser: User = {
@@ -167,7 +167,7 @@ export const useUserSettings = (
   // 更新计算模式
   const updateCalculationMode = useCallback((value: 'rate' | 'years') => {
     setCalculationMode(value);
-    
+
     // 如果用户已登录，更新用户信息
     if (currentUser && isLoggedIn && setCurrentUser) {
       const updatedUser: User = {
@@ -188,7 +188,7 @@ export const useUserSettings = (
     if (settings.annualReturn !== undefined) setAnnualReturn(settings.annualReturn);
     if (settings.targetYears !== undefined) setTargetYears(settings.targetYears);
     if (settings.calculationMode !== undefined) setCalculationMode(settings.calculationMode);
-    
+
     // 如果用户已登录，更新用户信息
     if (currentUser && isLoggedIn && setCurrentUser) {
       const updatedUser: User = {
@@ -217,7 +217,14 @@ export const useUserSettings = (
       if (user.targetYears) setTargetYears(user.targetYears);
       if (user.calculationMode) setCalculationMode(user.calculationMode);
     }
-  }, []);
+  }, [setRetirementGoal, setAnnualReturn, setTargetYears, setCalculationMode]);
+
+  // 监听 currentUser 变化，自动加载用户设置
+  useEffect(() => {
+    if (currentUser && isLoggedIn) {
+      loadUserSettings(currentUser);
+    }
+  }, [currentUser, isLoggedIn, loadUserSettings]);
 
   return {
     retirementGoal,

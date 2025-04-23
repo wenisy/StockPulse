@@ -259,30 +259,55 @@ const StockPortfolioTracker: React.FC = () => {
             const data = await response.json();
 
             if (response.ok) {
-                // 保存用户信息
-                if (data.user) {
+                // 保存令牌和用户信息
+                if (data.token && data.user) {
+                    localStorage.setItem('token', data.token);
+
                     const user: User = {
                         username: data.user.username,
                         email: data.user.email,
                         uuid: data.user.uuid,
                     };
-                    // 注意：我们不在注册时保存用户信息到本地存储，因为用户需要先登录
-                }
+                    localStorage.setItem('user', JSON.stringify(user));
+                    setCurrentUser(user);
 
-                setIsRegisterDialogOpen(false);
-                setRegisterError('');
-                setUsername('');
-                setPassword('');
-                setEmail('');
-                setAlertInfo({
-                    isOpen: true,
-                    title: '注册成功',
-                    description: '请使用您的新账号登录',
-                    onConfirm: () => {
-                        setAlertInfo(null);
-                        setIsLoginDialogOpen(true);
-                    },
-                });
+                    // 直接设置为登录状态
+                    setIsLoggedIn(true);
+                    setIsRegisterDialogOpen(false);
+                    setRegisterError('');
+                    setUsername('');
+                    setPassword('');
+                    setEmail('');
+
+                    // 加载数据
+                    fetchJsonData(data.token);
+                    setIsLoading(true);
+                    refreshPrices(false);
+                    setIsLoading(false);
+
+                    setAlertInfo({
+                        isOpen: true,
+                        title: '注册成功',
+                        description: '您已经成功注册并登录，数据已加载',
+                        onConfirm: () => setAlertInfo(null),
+                    });
+                } else {
+                    // 如果没有返回令牌或用户信息，则返回到登录页面
+                    setIsRegisterDialogOpen(false);
+                    setRegisterError('');
+                    setUsername('');
+                    setPassword('');
+                    setEmail('');
+                    setAlertInfo({
+                        isOpen: true,
+                        title: '注册成功',
+                        description: '请使用您的新账号登录',
+                        onConfirm: () => {
+                            setAlertInfo(null);
+                            setIsLoginDialogOpen(true);
+                        },
+                    });
+                }
             } else {
                 setRegisterError(data.message || '注册失败');
             }

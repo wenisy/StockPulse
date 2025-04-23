@@ -128,18 +128,29 @@ const StockCharts: React.FC<StockChartsProps> = ({
                   return value === 'total' ? '总计' : value;
                 }}
               />
-              {years
-                .slice() // 创建副本以避免修改原数组
-                .sort((a, b) => parseInt(a) - parseInt(b)) // 按年份从小到大排序
-                .map((year, index) => (
-                  <Bar
-                    key={year}
-                    dataKey={year}
-                    name={`${year}年占比`}
-                    hide={!!hiddenSeries[year]}
-                    fill={['#8884d8', '#82ca9d', '#ffc658', '#ff7300', '#0088fe'][index % 5]}
-                  />
-                ))}
+              {(() => {
+                // 检查哪些年份有实际数据
+                const yearsWithData = years.filter(year => {
+                  // 检查是否至少有一个股票在这一年有数据
+                  return barChartData.some(stock => {
+                    const value = stock[year] as number;
+                    return value !== undefined && value > 0;
+                  });
+                });
+
+                return yearsWithData
+                  .slice() // 创建副本以避免修改原数组
+                  .sort((a, b) => parseInt(a) - parseInt(b)) // 按年份从小到大排序
+                  .map((year, index) => (
+                    <Bar
+                      key={year}
+                      dataKey={year}
+                      name={`${year}年占比`}
+                      hide={!!hiddenSeries[year]}
+                      fill={['#8884d8', '#82ca9d', '#ffc658', '#ff7300', '#0088fe'][index % 5]}
+                    />
+                  ));
+              })()}
             </BarChart>
           )}
         </ResponsiveContainer>

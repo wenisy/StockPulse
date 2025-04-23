@@ -100,10 +100,113 @@ const StockPortfolioTracker: React.FC = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [currency, setCurrency] = useState('USD');
     const [exchangeRates, setExchangeRates] = useState<ExchangeRates>({ USD: 1, HKD: 0.12864384, CNY: 0.14 });
-    const [retirementGoal, setRetirementGoal] = useState('');
-    const [annualReturn, setAnnualReturn] = useState('');
-    const [calculationMode, setCalculationMode] = useState<'rate' | 'years'>('rate');
-    const [targetYears, setTargetYears] = useState('');
+    const [retirementGoal, setRetirementGoal] = useState(() => {
+        // 如果用户已登录，使用用户信息中的退休目标金额
+        if (typeof window !== 'undefined') {
+            const userJson = localStorage.getItem('user');
+            if (userJson) {
+                try {
+                    const user = JSON.parse(userJson);
+                    if (user.retirementGoal) {
+                        return user.retirementGoal;
+                    }
+                } catch (error) {
+                    console.error('解析用户数据失败:', error);
+                }
+            }
+            // 如果用户未登录或没有设置退休目标金额，使用 localStorage
+            const savedGoal = localStorage.getItem('retirementGoal');
+            return savedGoal || '';
+        }
+        return '';
+    });
+    // 获取最新一年的投资增长率
+    const getLatestYearGrowthRate = useCallback(() => {
+        if (years.length < 2) return '';
+
+        const latestYear = years[0]; // 年份数组已经按照降序排列（最新的在前）
+        const previousYear = years[1];
+
+        const calculateTotalValue = (year: string) => {
+            if (!yearData[year]?.stocks) return 0;
+            const stockValue = yearData[year].stocks.reduce((acc, stock) => acc + stock.shares * stock.price, 0);
+            return stockValue + (yearData[year].cashBalance || 0);
+        };
+
+        const currentValue = calculateTotalValue(latestYear);
+        const previousValue = calculateTotalValue(previousYear);
+
+        if (previousValue <= 0) return '';
+
+        const yearDeposits = yearData[latestYear]?.cashTransactions
+            .reduce((sum, tx) => sum + (tx.type === 'deposit' ? tx.amount : 0), 0) || 0;
+
+        // 投资回报率
+        const investmentGrowthRate = ((currentValue - yearDeposits) / previousValue - 1) * 100;
+
+        return investmentGrowthRate.toFixed(2);
+    }, [years, yearData]);
+
+    const [annualReturn, setAnnualReturn] = useState(() => {
+        // 如果用户已登录，使用用户信息中的预期年回报率
+        if (typeof window !== 'undefined') {
+            const userJson = localStorage.getItem('user');
+            if (userJson) {
+                try {
+                    const user = JSON.parse(userJson);
+                    if (user.annualReturn) {
+                        return user.annualReturn;
+                    }
+                } catch (error) {
+                    console.error('解析用户数据失败:', error);
+                }
+            }
+            // 如果用户未登录或没有设置预期年回报率，使用 localStorage
+            const savedReturn = localStorage.getItem('annualReturn');
+            return savedReturn || '';
+        }
+        return '';
+    });
+    const [calculationMode, setCalculationMode] = useState<'rate' | 'years'>(() => {
+        // 如果用户已登录，使用用户信息中的计算模式
+        if (typeof window !== 'undefined') {
+            const userJson = localStorage.getItem('user');
+            if (userJson) {
+                try {
+                    const user = JSON.parse(userJson);
+                    if (user.calculationMode && (user.calculationMode === 'rate' || user.calculationMode === 'years')) {
+                        return user.calculationMode;
+                    }
+                } catch (error) {
+                    console.error('解析用户数据失败:', error);
+                }
+            }
+            // 如果用户未登录或没有设置计算模式，使用 localStorage
+            const savedMode = localStorage.getItem('calculationMode');
+            return (savedMode === 'rate' || savedMode === 'years') ? savedMode : 'rate';
+        }
+        return 'rate';
+    });
+    const [targetYears, setTargetYears] = useState(() => {
+        // 如果用户已登录，使用用户信息中的目标年限
+        if (typeof window !== 'undefined') {
+            const userJson = localStorage.getItem('user');
+            if (userJson) {
+                try {
+                    const user = JSON.parse(userJson);
+                    if (user.targetYears) {
+                        return user.targetYears;
+                    }
+                } catch (error) {
+                    console.error('解析用户数据失败:', error);
+                }
+            }
+            // 如果用户未登录或没有设置目标年限，使用 localStorage
+            const savedYears = localStorage.getItem('targetYears');
+            return savedYears || '';
+        }
+        return '';
+    });
     const [comparisonYear, setComparisonYear] = useState<string>(years[0]);
 
     const [isLoginDialogOpen, setIsLoginDialogOpen] = useState(false);
@@ -225,9 +328,19 @@ const StockPortfolioTracker: React.FC = () => {
                         nickname: data.user.nickname,
                         email: data.user.email,
                         uuid: data.user.uuid,
+                        retirementGoal: data.user.retirementGoal,
+                        annualReturn: data.user.annualReturn,
+                        targetYears: data.user.targetYears,
+                        calculationMode: data.user.calculationMode as 'rate' | 'years' || 'rate',
                     };
                     localStorage.setItem('user', JSON.stringify(user));
                     setCurrentUser(user);
+
+                    // 设置退休目标计算器相关状态
+                    if (user.retirementGoal) setRetirementGoal(user.retirementGoal);
+                    if (user.annualReturn) setAnnualReturn(user.annualReturn);
+                    if (user.targetYears) setTargetYears(user.targetYears);
+                    if (user.calculationMode) setCalculationMode(user.calculationMode);
                 }
 
                 setIsLoggedIn(true);
@@ -264,7 +377,16 @@ const StockPortfolioTracker: React.FC = () => {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ username, password, email, nickname }),
+                body: JSON.stringify({
+                    username,
+                    password,
+                    email,
+                    nickname,
+                    retirementGoal: retirementGoal || '',
+                    annualReturn: annualReturn || '',
+                    targetYears: targetYears || '',
+                    calculationMode: calculationMode || 'rate'
+                }),
             });
             const data = await response.json();
 
@@ -278,9 +400,19 @@ const StockPortfolioTracker: React.FC = () => {
                         nickname: data.user.nickname,
                         email: data.user.email,
                         uuid: data.user.uuid,
+                        retirementGoal: data.user.retirementGoal,
+                        annualReturn: data.user.annualReturn,
+                        targetYears: data.user.targetYears,
+                        calculationMode: data.user.calculationMode as 'rate' | 'years' || 'rate',
                     };
                     localStorage.setItem('user', JSON.stringify(user));
                     setCurrentUser(user);
+
+                    // 设置退休目标计算器相关状态
+                    if (user.retirementGoal) setRetirementGoal(user.retirementGoal);
+                    if (user.annualReturn) setAnnualReturn(user.annualReturn);
+                    if (user.targetYears) setTargetYears(user.targetYears);
+                    if (user.calculationMode) setCalculationMode(user.calculationMode);
 
                     // 直接设置为登录状态
                     setIsLoggedIn(true);
@@ -444,6 +576,12 @@ const StockPortfolioTracker: React.FC = () => {
             if (newPassword) updateData.newPassword = newPassword;
             updateData.oldPassword = oldPassword; // 添加旧密码验证
 
+            // 添加退休目标相关字段
+            updateData.retirementGoal = retirementGoal;
+            updateData.annualReturn = annualReturn;
+            updateData.targetYears = targetYears;
+            updateData.calculationMode = calculationMode;
+
             const response = await fetch(`${backendDomain}/api/updateProfile`, {
                 method: 'POST',
                 headers: {
@@ -462,6 +600,10 @@ const StockPortfolioTracker: React.FC = () => {
                         ...currentUser,
                         nickname: nickname || currentUser.nickname,
                         email: email || currentUser.email,
+                        retirementGoal: retirementGoal,
+                        annualReturn: annualReturn,
+                        targetYears: targetYears,
+                        calculationMode: calculationMode,
                     };
                     localStorage.setItem('user', JSON.stringify(updatedUser));
                     setCurrentUser(updatedUser);
@@ -1479,6 +1621,13 @@ const StockPortfolioTracker: React.FC = () => {
                                 setNewPassword('');
                                 setConfirmPassword('');
                                 setProfileError('');
+
+                                // 初始化退休目标相关字段
+                                if (currentUser?.retirementGoal) setRetirementGoal(currentUser.retirementGoal);
+                                if (currentUser?.annualReturn) setAnnualReturn(currentUser.annualReturn);
+                                if (currentUser?.targetYears) setTargetYears(currentUser.targetYears);
+                                if (currentUser?.calculationMode) setCalculationMode(currentUser.calculationMode);
+
                                 setIsProfileDialogOpen(true);
                             }} variant="outline">个人资料</Button>
                             <Button onClick={handleLogout}>登出</Button>
@@ -1555,6 +1704,16 @@ const StockPortfolioTracker: React.FC = () => {
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                         />
+                        <div>
+                            <label className="text-sm font-medium">退休目标金额（可选）</label>
+                            <Input
+                                type="number"
+                                placeholder="输入您的退休目标金额"
+                                value={retirementGoal}
+                                onChange={(e) => setRetirementGoal(e.target.value)}
+                                className="mt-1"
+                            />
+                        </div>
                         {registerError && <p className="text-red-500">{registerError}</p>}
                     </div>
                     <DialogFooter>
@@ -1634,6 +1793,42 @@ const StockPortfolioTracker: React.FC = () => {
                                 onChange={(e) => setConfirmPassword(e.target.value)}
                                 className="mt-1"
                             />
+                        </div>
+                        <div>
+                            <label className="text-sm font-medium">退休目标金额</label>
+                            <Input
+                                type="number"
+                                placeholder="输入您的退休目标金额"
+                                value={retirementGoal}
+                                onChange={(e) => setRetirementGoal(e.target.value)}
+                                className="mt-1"
+                            />
+                        </div>
+                        <div>
+                            <label className="text-sm font-medium">预期年回报率 (%)</label>
+                            <div className="flex gap-2 mt-1">
+                                <Input
+                                    type="number"
+                                    placeholder="输入预期年回报率"
+                                    value={annualReturn}
+                                    onChange={(e) => setAnnualReturn(e.target.value)}
+                                    className="w-full"
+                                    step="0.1"
+                                />
+                                <Button
+                                    onClick={() => {
+                                        const latestRate = getLatestYearGrowthRate();
+                                        if (latestRate) {
+                                            setAnnualReturn(latestRate);
+                                        }
+                                    }}
+                                    type="button"
+                                    variant="outline"
+                                    className="whitespace-nowrap"
+                                >
+                                    使用最新回报率
+                                </Button>
+                            </div>
                         </div>
                         {profileError && <p className="text-red-500">{profileError}</p>}
                     </div>
@@ -1873,7 +2068,20 @@ const StockPortfolioTracker: React.FC = () => {
                             <Input
                                 type="number"
                                 value={retirementGoal}
-                                onChange={(e) => setRetirementGoal(e.target.value)}
+                                onChange={(e) => {
+                                    const value = e.target.value;
+                                    setRetirementGoal(value);
+
+                                    // 如果用户已登录，更新用户信息
+                                    if (currentUser && isLoggedIn) {
+                                        const updatedUser: User = {
+                                            ...currentUser,
+                                            retirementGoal: value,
+                                        };
+                                        localStorage.setItem('user', JSON.stringify(updatedUser));
+                                        setCurrentUser(updatedUser);
+                                    }
+                                }}
                                 placeholder="输入您的退休目标金额"
                                 className="w-full"
                             />
@@ -1882,13 +2090,37 @@ const StockPortfolioTracker: React.FC = () => {
                             <label className="block text-sm font-medium mb-1">计算模式</label>
                             <div className="flex gap-4">
                                 <Button
-                                    onClick={() => setCalculationMode('rate')}
+                                    onClick={() => {
+                                        setCalculationMode('rate');
+
+                                        // 如果用户已登录，更新用户信息
+                                        if (currentUser && isLoggedIn) {
+                                            const updatedUser: User = {
+                                                ...currentUser,
+                                                calculationMode: 'rate',
+                                            };
+                                            localStorage.setItem('user', JSON.stringify(updatedUser));
+                                            setCurrentUser(updatedUser);
+                                        }
+                                    }}
                                     className={cn(calculationMode === 'rate' ? 'bg-blue-500 text-white' : 'bg-gray-200')}
                                 >
                                     输入年回报率
                                 </Button>
                                 <Button
-                                    onClick={() => setCalculationMode('years')}
+                                    onClick={() => {
+                                        setCalculationMode('years');
+
+                                        // 如果用户已登录，更新用户信息
+                                        if (currentUser && isLoggedIn) {
+                                            const updatedUser: User = {
+                                                ...currentUser,
+                                                calculationMode: 'years',
+                                            };
+                                            localStorage.setItem('user', JSON.stringify(updatedUser));
+                                            setCurrentUser(updatedUser);
+                                        }
+                                    }}
                                     className={cn(calculationMode === 'years' ? 'bg-blue-500 text-white' : 'bg-gray-200')}
                                 >
                                     输入目标年限
@@ -1899,14 +2131,52 @@ const StockPortfolioTracker: React.FC = () => {
                             {calculationMode === 'rate' ? (
                                 <div>
                                     <label className="block text-sm font-medium mb-1">预期年回报率 (%)</label>
-                                    <Input
-                                        type="number"
-                                        value={annualReturn}
-                                        onChange={(e) => setAnnualReturn(e.target.value)}
-                                        placeholder="输入预期年回报率"
-                                        className="w-full"
-                                        step="0.1"
-                                    />
+                                    <div className="flex gap-2">
+                                        <Input
+                                            type="number"
+                                            value={annualReturn}
+                                            onChange={(e) => {
+                                                const value = e.target.value;
+                                                setAnnualReturn(value);
+
+                                                // 如果用户已登录，更新用户信息
+                                                if (currentUser && isLoggedIn) {
+                                                    const updatedUser: User = {
+                                                        ...currentUser,
+                                                        annualReturn: value,
+                                                    };
+                                                    localStorage.setItem('user', JSON.stringify(updatedUser));
+                                                    setCurrentUser(updatedUser);
+                                                }
+                                            }}
+                                            placeholder="输入预期年回报率"
+                                            className="w-full"
+                                            step="0.1"
+                                        />
+                                        <Button
+                                            onClick={() => {
+                                                const latestRate = getLatestYearGrowthRate();
+                                                if (latestRate) {
+                                                    setAnnualReturn(latestRate);
+
+                                                    // 如果用户已登录，更新用户信息
+                                                    if (currentUser && isLoggedIn) {
+                                                        const updatedUser: User = {
+                                                            ...currentUser,
+                                                            annualReturn: latestRate,
+                                                        };
+                                                        localStorage.setItem('user', JSON.stringify(updatedUser));
+                                                        setCurrentUser(updatedUser);
+                                                    }
+                                                }
+                                            }}
+                                            type="button"
+                                            variant="outline"
+                                            className="whitespace-nowrap"
+                                        >
+                                            使用最新回报率
+                                        </Button>
+                                    </div>
                                 </div>
                             ) : (
                                 <div>
@@ -1914,7 +2184,20 @@ const StockPortfolioTracker: React.FC = () => {
                                     <Input
                                         type="number"
                                         value={targetYears}
-                                        onChange={(e) => setTargetYears(e.target.value)}
+                                        onChange={(e) => {
+                                            const value = e.target.value;
+                                            setTargetYears(value);
+
+                                            // 如果用户已登录，更新用户信息
+                                            if (currentUser && isLoggedIn) {
+                                                const updatedUser: User = {
+                                                    ...currentUser,
+                                                    targetYears: value,
+                                                };
+                                                localStorage.setItem('user', JSON.stringify(updatedUser));
+                                                setCurrentUser(updatedUser);
+                                            }
+                                        }}
                                         placeholder="输入目标年限"
                                         className="w-full"
                                         step="1"

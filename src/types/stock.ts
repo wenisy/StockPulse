@@ -10,6 +10,10 @@ export interface User {
     uuid: string;
     createdAt?: string;
     lastLogin?: string;
+    retirementGoal?: string;
+    annualReturn?: string;
+    targetYears?: string;
+    calculationMode?: 'rate' | 'years';
 }
 
 export interface Stock {

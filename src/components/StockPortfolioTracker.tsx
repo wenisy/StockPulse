@@ -8,6 +8,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { MultiSelect, Option } from '@/components/ui/multi-select';
 import { Input } from '@/components/ui/input';
 import {
     Select,
@@ -111,6 +112,7 @@ const StockPortfolioTracker: React.FC = () => {
     const [username, setUsername] = useState('');
     const [nickname, setNickname] = useState('');
     const [password, setPassword] = useState('');
+    const [oldPassword, setOldPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [email, setEmail] = useState('');
@@ -420,6 +422,11 @@ const StockPortfolioTracker: React.FC = () => {
     const handleUpdateProfile = async () => {
         try {
             // 验证密码
+            if (!oldPassword) {
+                setProfileError('请输入当前密码以验证身份');
+                return;
+            }
+
             if (newPassword && newPassword !== confirmPassword) {
                 setProfileError('新密码和确认密码不匹配');
                 return;
@@ -435,6 +442,7 @@ const StockPortfolioTracker: React.FC = () => {
             if (nickname) updateData.nickname = nickname;
             if (email) updateData.email = email;
             if (newPassword) updateData.newPassword = newPassword;
+            updateData.oldPassword = oldPassword; // 添加旧密码验证
 
             const response = await fetch(`${backendDomain}/api/updateProfile`, {
                 method: 'POST',
@@ -461,6 +469,7 @@ const StockPortfolioTracker: React.FC = () => {
 
                 setIsProfileDialogOpen(false);
                 setProfileError('');
+                setOldPassword(''); // 重置旧密码
                 setNewPassword('');
                 setConfirmPassword('');
 
@@ -1596,6 +1605,17 @@ const StockPortfolioTracker: React.FC = () => {
                             />
                         </div>
                         <div>
+                            <label className="text-sm font-medium">当前密码</label>
+                            <Input
+                                type="password"
+                                placeholder="输入当前密码以验证身份"
+                                value={oldPassword}
+                                onChange={(e) => setOldPassword(e.target.value)}
+                                className="mt-1"
+                                required
+                            />
+                        </div>
+                        <div>
                             <label className="text-sm font-medium">新密码</label>
                             <Input
                                 type="password"
@@ -1622,6 +1642,7 @@ const StockPortfolioTracker: React.FC = () => {
                         <Button variant="outline" onClick={() => {
                             setIsProfileDialogOpen(false);
                             setProfileError('');
+                            setOldPassword(''); // 重置旧密码
                             setNewPassword('');
                             setConfirmPassword('');
                             // 重置昵称和邮箱为当前用户的值
@@ -2061,24 +2082,25 @@ const StockPortfolioTracker: React.FC = () => {
                     <h2 className="text-xl font-semibold">持仓明细表</h2>
                     <div className="flex items-center gap-2">
                         <span className="text-sm text-gray-600">年份筛选：</span>
-                        <div className="flex flex-wrap gap-2">
-                            <Button
-                                variant={filteredYears.length === years.length ? "default" : "outline"}
-                                size="sm"
-                                onClick={() => handleYearFilterChange('all')}
-                            >
-                                全部
-                            </Button>
-                            {years.map((year) => (
-                                <Button
-                                    key={year}
-                                    variant={filteredYears.includes(year) ? "default" : "outline"}
-                                    size="sm"
-                                    onClick={() => handleYearToggle(year)}
-                                >
-                                    {year}
-                                </Button>
-                            ))}
+                        <div className="w-64">
+                            <MultiSelect
+                                options={[
+                                    { label: '全部年份', value: 'all' },
+                                    ...years.map(year => ({ label: year, value: year }))
+                                ]}
+                                selected={filteredYears.length === years.length ? ['all'] : filteredYears}
+                                onChange={(selected) => {
+                                    if (selected.includes('all')) {
+                                        handleYearFilterChange('all');
+                                    } else if (selected.length === 0) {
+                                        // 如果没有选择任何年份，默认显示所有年份
+                                        handleYearFilterChange('all');
+                                    } else {
+                                        setFilteredYears(selected.sort((a, b) => parseInt(b) - parseInt(a)));
+                                    }
+                                }}
+                                placeholder="选择年份"
+                            />
                         </div>
                     </div>
                 </div>

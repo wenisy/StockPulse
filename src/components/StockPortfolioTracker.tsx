@@ -120,31 +120,62 @@ const StockPortfolioTracker: React.FC = () => {
         }
         return '';
     });
-    // 获取最新一年的投资增长率
+    // 获取平均年化收益率
     const getLatestYearGrowthRate = useCallback(() => {
-        if (years.length < 2) return '';
+        if (years.length < 1) return '';
 
-        const latestYear = years[0]; // 年份数组已经按照降序排列（最新的在前）
-        const previousYear = years[1];
+        // 年份数组已经按照降序排列（最新的在前）
+        const latestYear = years[0];
+        const earliestYear = years[years.length - 1];
 
+        // 计算投资年数（包括可能缺失的年份）
+        const investmentYears = parseInt(latestYear) - parseInt(earliestYear) + 1;
+
+        // 计算总价值函数
         const calculateTotalValue = (year: string) => {
             if (!yearData[year]?.stocks) return 0;
             const stockValue = yearData[year].stocks.reduce((acc, stock) => acc + stock.shares * stock.price, 0);
             return stockValue + (yearData[year].cashBalance || 0);
         };
 
+        // 获取最新年份的总价值
         const currentValue = calculateTotalValue(latestYear);
-        const previousValue = calculateTotalValue(previousYear);
 
-        if (previousValue <= 0) return '';
+        // 获取最早年份的总价值
+        const initialValue = calculateTotalValue(earliestYear);
 
-        const yearDeposits = yearData[latestYear]?.cashTransactions
-            .reduce((sum, tx) => sum + (tx.type === 'deposit' ? tx.amount : 0), 0) || 0;
+        // 计算所有年份的累计投入现金
+        let totalDeposits = 0;
+        years.forEach(year => {
+            const deposits = yearData[year]?.cashTransactions
+                .reduce((sum, tx) => sum + (tx.type === 'deposit' ? tx.amount : 0), 0) || 0;
+            totalDeposits += deposits;
+        });
 
-        // 投资回报率
-        const investmentGrowthRate = ((currentValue - yearDeposits) / previousValue - 1) * 100;
+        // 计算所有年份的累计提取现金
+        let totalWithdrawals = 0;
+        years.forEach(year => {
+            const withdrawals = yearData[year]?.cashTransactions
+                .reduce((sum, tx) => sum + (tx.type === 'withdraw' ? tx.amount : 0), 0) || 0;
+            totalWithdrawals += withdrawals;
+        });
 
-        return investmentGrowthRate.toFixed(2);
+        // 累计净投入现金
+        const netDeposits = totalDeposits - totalWithdrawals;
+
+        // 如果初始投资为零，则使用累计净投入现金作为基数
+        const baseValue = initialValue > 0 ? initialValue : netDeposits;
+
+        if (baseValue <= 0) return '';
+
+        // 计算总收益率
+        const totalReturn = (currentValue / baseValue) - 1;
+
+        // 计算平均年化收益率
+        // 公式：(1 + r)^n = (1 + totalReturn)，其中 r 是年化收益率，n 是年数
+        const annualizedReturn = (Math.pow(1 + totalReturn, 1 / investmentYears) - 1) * 100;
+
+        return annualizedReturn.toFixed(2);
     }, [years, yearData]);
 
     const [annualReturn, setAnnualReturn] = useState(() => {
@@ -1815,19 +1846,30 @@ const StockPortfolioTracker: React.FC = () => {
                                     className="w-full"
                                     step="0.1"
                                 />
-                                <Button
-                                    onClick={() => {
-                                        const latestRate = getLatestYearGrowthRate();
-                                        if (latestRate) {
-                                            setAnnualReturn(latestRate);
-                                        }
-                                    }}
-                                    type="button"
-                                    variant="outline"
-                                    className="whitespace-nowrap"
-                                >
-                                    使用最新回报率
-                                </Button>
+                                <TooltipProvider>
+                                    <UITooltip>
+                                        <TooltipTrigger asChild>
+                                            <Button
+                                                onClick={() => {
+                                                    const latestRate = getLatestYearGrowthRate();
+                                                    if (latestRate) {
+                                                        setAnnualReturn(latestRate);
+                                                    }
+                                                }}
+                                                type="button"
+                                                variant="outline"
+                                                className="whitespace-nowrap"
+                                            >
+                                                使用平均年化回报率
+                                            </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent className="max-w-sm">
+                                            <p>平均年化回报率是从最早投资年份到最新年份的年化收益率。</p>
+                                            <p>计算公式：(1 + r)^n = (1 + 总收益率)</p>
+                                            <p>其中，r 是年化收益率，n 是投资年数，总收益率 = (当前总价值 / 初始总价值) - 1</p>
+                                        </TooltipContent>
+                                    </UITooltip>
+                                </TooltipProvider>
                             </div>
                         </div>
                         {profileError && <p className="text-red-500">{profileError}</p>}
@@ -2153,29 +2195,40 @@ const StockPortfolioTracker: React.FC = () => {
                                             className="w-full"
                                             step="0.1"
                                         />
-                                        <Button
-                                            onClick={() => {
-                                                const latestRate = getLatestYearGrowthRate();
-                                                if (latestRate) {
-                                                    setAnnualReturn(latestRate);
+                                        <TooltipProvider>
+                                            <UITooltip>
+                                                <TooltipTrigger asChild>
+                                                    <Button
+                                                        onClick={() => {
+                                                            const latestRate = getLatestYearGrowthRate();
+                                                            if (latestRate) {
+                                                                setAnnualReturn(latestRate);
 
-                                                    // 如果用户已登录，更新用户信息
-                                                    if (currentUser && isLoggedIn) {
-                                                        const updatedUser: User = {
-                                                            ...currentUser,
-                                                            annualReturn: latestRate,
-                                                        };
-                                                        localStorage.setItem('user', JSON.stringify(updatedUser));
-                                                        setCurrentUser(updatedUser);
-                                                    }
-                                                }
-                                            }}
-                                            type="button"
-                                            variant="outline"
-                                            className="whitespace-nowrap"
-                                        >
-                                            使用最新回报率
-                                        </Button>
+                                                                // 如果用户已登录，更新用户信息
+                                                                if (currentUser && isLoggedIn) {
+                                                                    const updatedUser: User = {
+                                                                        ...currentUser,
+                                                                        annualReturn: latestRate,
+                                                                    };
+                                                                    localStorage.setItem('user', JSON.stringify(updatedUser));
+                                                                    setCurrentUser(updatedUser);
+                                                                }
+                                                            }
+                                                        }}
+                                                        type="button"
+                                                        variant="outline"
+                                                        className="whitespace-nowrap"
+                                                    >
+                                                        使用平均年化回报率
+                                                    </Button>
+                                                </TooltipTrigger>
+                                                <TooltipContent className="max-w-sm">
+                                                    <p>平均年化回报率是从最早投资年份到最新年份的年化收益率。</p>
+                                                    <p>计算公式：(1 + r)^n = (1 + 总收益率)</p>
+                                                    <p>其中，r 是年化收益率，n 是投资年数，总收益率 = (当前总价值 / 初始总价值) - 1</p>
+                                                </TooltipContent>
+                                            </UITooltip>
+                                        </TooltipProvider>
                                     </div>
                                 </div>
                             ) : (

@@ -103,7 +103,7 @@ const StockPortfolioTracker: React.FC = () => {
     const [annualReturn, setAnnualReturn] = useState('');
     const [calculationMode, setCalculationMode] = useState<'rate' | 'years'>('rate');
     const [targetYears, setTargetYears] = useState('');
-    const [comparisonYear, setComparisonYear] = useState<string>(years[years?.length - 1]);
+    const [comparisonYear, setComparisonYear] = useState<string>(years[0]);
 
     const [isLoginDialogOpen, setIsLoginDialogOpen] = useState(false);
     const [isRegisterDialogOpen, setIsRegisterDialogOpen] = useState(false);
@@ -340,6 +340,7 @@ const StockPortfolioTracker: React.FC = () => {
                 setYears(sortedYears);
                 setFilteredYears(sortedYears);
                 setSelectedYear(sortedYears[0]);
+                setComparisonYear(sortedYears[0]);
             } else {
                 // Check for invalid/expired token
                 if (response.status === 401 || (data.message && data.message.includes("无效或过期的令牌"))) {
@@ -488,6 +489,7 @@ const StockPortfolioTracker: React.FC = () => {
         setYears(sortedYears);
         setFilteredYears(sortedYears);
         setSelectedYear(sortedYears[0]);
+        setComparisonYear(sortedYears[0]);
     };
 
     const getBasePath = () => {
@@ -1223,8 +1225,21 @@ const StockPortfolioTracker: React.FC = () => {
         if (value === 'all') {
             setFilteredYears(years);
         } else {
+            // 单选模式
             setFilteredYears([value]);
         }
+    };
+
+    const handleYearToggle = (year: string) => {
+        setFilteredYears(prev => {
+            if (prev.includes(year)) {
+                // 如果已经选中，则移除
+                return prev.filter(y => y !== year);
+            } else {
+                // 如果未选中，则添加
+                return [...prev, year].sort((a, b) => parseInt(b) - parseInt(a));
+            }
+        });
     };
 
     const tableData = useCallback(() => {
@@ -2046,17 +2061,25 @@ const StockPortfolioTracker: React.FC = () => {
                     <h2 className="text-xl font-semibold">持仓明细表</h2>
                     <div className="flex items-center gap-2">
                         <span className="text-sm text-gray-600">年份筛选：</span>
-                        <Select onValueChange={handleYearFilterChange} value={yearFilter}>
-                            <SelectTrigger className="w-32">
-                                <SelectValue placeholder="选择年份" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">全部年份</SelectItem>
-                                {years.map((year) => (
-                                    <SelectItem key={year} value={year}>{year}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                        <div className="flex flex-wrap gap-2">
+                            <Button
+                                variant={filteredYears.length === years.length ? "default" : "outline"}
+                                size="sm"
+                                onClick={() => handleYearFilterChange('all')}
+                            >
+                                全部
+                            </Button>
+                            {years.map((year) => (
+                                <Button
+                                    key={year}
+                                    variant={filteredYears.includes(year) ? "default" : "outline"}
+                                    size="sm"
+                                    onClick={() => handleYearToggle(year)}
+                                >
+                                    {year}
+                                </Button>
+                            ))}
+                        </div>
                     </div>
                 </div>
                 <div className="overflow-x-auto relative">

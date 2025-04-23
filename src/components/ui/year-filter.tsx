@@ -1,11 +1,11 @@
 "use client";
 
-import * as React from "react";
-import { Check, ChevronDown, ChevronUp, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import * as PopoverPrimitive from "@radix-ui/react-popover";
+import { Check, ChevronDown, X } from "lucide-react";
+import * as React from "react";
 
 export type YearOption = {
   label: string;

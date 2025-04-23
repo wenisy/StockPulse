@@ -177,7 +177,8 @@ const StockPortfolioTracker: React.FC = () => {
         updateRetirementGoal,
         updateAnnualReturn,
         updateTargetYears,
-        updateCalculationMode
+        updateCalculationMode,
+        loadUserSettings
     } = useUserSettings(currentUser, isLoggedIn, setCurrentUser);
     const [comparisonYear, setComparisonYear] = useState<string>(years[0]);
 
@@ -205,6 +206,8 @@ const StockPortfolioTracker: React.FC = () => {
                 try {
                     user = JSON.parse(userJson);
                     setCurrentUser(user);
+                    // 加载用户的退休目标计算器设置
+                    loadUserSettings(user);
                 } catch (error) {
                     console.error('解析用户数据失败:', error);
                 }

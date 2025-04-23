@@ -59,7 +59,9 @@ const StockPortfolioTracker: React.FC = () => {
     const initialData: { [year: string]: YearData } = stockInitialData;
 
     const [yearData, setYearData] = useState<{ [year: string]: YearData }>(initialData);
-    const [years, setYears] = useState<string[]>(Object.keys(initialData));
+    const [years, setYears] = useState<string[]>(Object.keys(initialData).sort((a, b) => parseInt(b) - parseInt(a)));
+    const [filteredYears, setFilteredYears] = useState<string[]>(Object.keys(initialData).sort((a, b) => parseInt(b) - parseInt(a)));
+    const [yearFilter, setYearFilter] = useState<string>('all');
     const [newYear, setNewYear] = useState('');
     const [newStockName, setNewStockName] = useState('');
     const [newShares, setNewShares] = useState('');
@@ -327,8 +329,10 @@ const StockPortfolioTracker: React.FC = () => {
             const data = await response.json();
             if (response.ok) {
                 setYearData(data);
-                setYears(Object.keys(data));
-                setSelectedYear(Object.keys(data)[Object.keys(data).length - 1]);
+                const sortedYears = Object.keys(data).sort((a, b) => parseInt(b) - parseInt(a));
+                setYears(sortedYears);
+                setFilteredYears(sortedYears);
+                setSelectedYear(sortedYears[0]);
             } else {
                 // Check for invalid/expired token
                 if (response.status === 401 || (data.message && data.message.includes("无效或过期的令牌"))) {
@@ -411,8 +415,10 @@ const StockPortfolioTracker: React.FC = () => {
         setIsLoggedIn(false);
         setCurrentUser(null);
         setYearData(stockInitialData);
-        setYears(Object.keys(stockInitialData));
-        setSelectedYear(Object.keys(stockInitialData)[Object.keys(stockInitialData).length - 1]);
+        const sortedYears = Object.keys(stockInitialData).sort((a, b) => parseInt(b) - parseInt(a));
+        setYears(sortedYears);
+        setFilteredYears(sortedYears);
+        setSelectedYear(sortedYears[0]);
     };
 
     const getBasePath = () => {
@@ -691,7 +697,9 @@ const StockPortfolioTracker: React.FC = () => {
             }
 
             setYearData({ ...yearData, [trimmedYear]: newYearDataItem });
-            setYears([...years, trimmedYear]);
+            const newYears = [...years, trimmedYear].sort((a, b) => parseInt(b) - parseInt(a));
+            setYears(newYears);
+            setFilteredYears(newYears);
             setNewYear('');
             setSelectedYear(trimmedYear);
 
@@ -1141,6 +1149,15 @@ const StockPortfolioTracker: React.FC = () => {
         }));
     };
 
+    const handleYearFilterChange = (value: string) => {
+        setYearFilter(value);
+        if (value === 'all') {
+            setFilteredYears(years);
+        } else {
+            setFilteredYears([value]);
+        }
+    };
+
     const tableData = useCallback(() => {
         const stockSet = new Set<string>();
         Object.values(yearData).forEach((yearDataItem) => {
@@ -1170,7 +1187,7 @@ const StockPortfolioTracker: React.FC = () => {
             return valueB - valueA;
         });
 
-        const headers = ['visible', '股票名称', ...years, '操作'];
+        const headers = ['visible', '股票名称', ...filteredYears, '操作'];
 
         const rows = stockNames.map((stockName) => {
             const row = [];
@@ -1188,7 +1205,7 @@ const StockPortfolioTracker: React.FC = () => {
             }
             row.push({ name: stockName, symbol });
 
-            years.forEach((year) => {
+            filteredYears.forEach((year) => {
                 if (yearData[year] && yearData[year].stocks) {
                     const stockInYear = yearData[year].stocks.find((s) => s.name === stockName);
                     row.push(stockInYear ? {
@@ -1207,10 +1224,10 @@ const StockPortfolioTracker: React.FC = () => {
             return row;
         });
 
-        const totalRow = ['', 'total', ...years.map(() => null), null];
+        const totalRow = ['', 'total', ...filteredYears.map(() => null), null];
 
         return { headers, rows, totalRow };
-    }, [yearData, years, hiddenStocks]);
+    }, [yearData, years, filteredYears, hiddenStocks]);
 
     const lineChartData = prepareLineChartData();
     const barChartData = preparePercentageBarChartData();
@@ -1867,13 +1884,29 @@ const StockPortfolioTracker: React.FC = () => {
             </div>
 
             <div>
-                <h2 className="text-xl font-semibold mb-4">持仓明细表</h2>
+                <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-xl font-semibold">持仓明细表</h2>
+                    <div className="flex items-center gap-2">
+                        <span className="text-sm text-gray-600">年份筛选：</span>
+                        <Select onValueChange={handleYearFilterChange} value={yearFilter}>
+                            <SelectTrigger className="w-32">
+                                <SelectValue placeholder="选择年份" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">全部年份</SelectItem>
+                                {years.map((year) => (
+                                    <SelectItem key={year} value={year}>{year}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </div>
                 <div className="overflow-x-auto relative">
                     <table className="min-w-full border-collapse border border-gray-300">
                         <colgroup>
                             <col style={{ width: '50px' }} />
                             <col style={{ width: '200px' }} />
-                            {years.map((year) => (
+                            {filteredYears.map((year) => (
                                 <col key={year} />
                             ))}
                             <col style={{ width: '100px' }} />
@@ -2024,7 +2057,7 @@ const StockPortfolioTracker: React.FC = () => {
                                 <td className="sticky left-[50px] z-10 px-6 py-3 text-left text-sm font-semibold uppercase tracking-wider bg-gray-100">
                                     {table.totalRow[1]}
                                 </td>
-                                {years.map((year, index) => (
+                                {filteredYears.map((year, index) => (
                                     <td key={year}
                                         className="px-6 py-3 text-center text-sm font-semibold uppercase tracking-wider bg-gray-100">
                                         {yearData[year] && yearData[year].stocks

@@ -17,12 +17,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import {
-    TooltipContent,
-    TooltipProvider,
-    TooltipTrigger,
-    Tooltip as UITooltip,
-} from "@/components/ui/tooltip";
+
 import { cn } from '@/lib/utils';
 import {
     CashTransaction,
@@ -37,7 +32,7 @@ import {
     User,
     YearData
 } from '@/types/stock';
-import { Edit, Eye, EyeOff, HelpCircle, RefreshCw, Save, Trash2 } from 'lucide-react';
+import { Edit, Eye, EyeOff, RefreshCw, Save, Trash2 } from 'lucide-react';
 import React, { useCallback, useEffect, useState } from 'react';
 import RetirementCalculator from './RetirementCalculator';
 import { useUserSettings } from '@/hooks/useUserSettings';
@@ -58,6 +53,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { stockInitialData } from './data';
 import GrowthInfo from './GrowthInfo';
 import ReportDialog from './ReportDialog';
+import InvestmentOverview from './InvestmentOverview';
 
 const StockPortfolioTracker: React.FC = () => {
     const initialData: { [year: string]: YearData } = stockInitialData;
@@ -1459,82 +1455,14 @@ const StockPortfolioTracker: React.FC = () => {
                 </div>
             </div>
 
-            <div>
-                <h2 className="text-xl font-semibold mb-4">投资总览</h2>
-                <div className="p-6 border rounded-lg bg-white shadow-sm space-y-4">
-                    <div className="flex items-center gap-4">
-                        <span className="text-gray-600">选择对比年份：</span>
-                        <Select onValueChange={setComparisonYear} value={comparisonYear}>
-                            <SelectTrigger className="w-32">
-                                <SelectValue placeholder="选择年份" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {years.map((year) => (
-                                    <SelectItem key={year} value={year}>{year}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-
-                    {(() => {
-                        const result = calculateInvestmentReturn(comparisonYear);
-                        return (
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                                <div className="p-4 bg-gray-50 rounded-lg">
-                                    <div className="flex items-center gap-1">
-                                        <div className="text-sm text-gray-500">截至{comparisonYear}年累计投入</div>
-                                        <TooltipProvider>
-                                            <UITooltip>
-                                                <TooltipTrigger>
-                                                    <HelpCircle className="h-4 w-4 text-gray-400" />
-                                                </TooltipTrigger>
-                                                <TooltipContent>
-                                                    <p>从最早记录年份至{comparisonYear}年的净投入金额<br />（所有存入金额减去取出金额）
-                                                    </p>
-                                                </TooltipContent>
-                                            </UITooltip>
-                                        </TooltipProvider>
-                                    </div>
-                                    <div className="text-xl font-bold text-blue-600">
-                                        {formatLargeNumber(result.totalInvestment, currency)}
-                                    </div>
-                                </div>
-
-                                <div className="p-4 bg-gray-50 rounded-lg">
-                                    <div className="text-sm text-gray-500">{comparisonYear}年总持仓</div>
-                                    <div className="text-xl font-bold text-blue-600">
-                                        {formatLargeNumber(result.portfolioValue, currency)}
-                                    </div>
-                                </div>
-
-                                <div className="p-4 bg-gray-50 rounded-lg">
-                                    <div className="text-sm text-gray-500">总收益金额</div>
-                                    <div className={cn(
-                                        "text-xl font-bold",
-                                        result.absoluteReturn >= 0 ? "text-green-600" : "text-red-600"
-                                    )}>
-                                        {formatLargeNumber(result.absoluteReturn, currency)}
-                                    </div>
-                                </div>
-
-                                <div className="p-4 bg-gray-50 rounded-lg">
-                                    <div className="text-sm text-gray-500">总收益率</div>
-                                    <div className={cn(
-                                        "text-xl font-bold",
-                                        result.percentageReturn >= 0 ? "text-green-600" : "text-red-600"
-                                    )}>
-                                        {result.percentageReturn.toFixed(2)}%
-                                    </div>
-                                </div>
-                            </div>
-                        );
-                    })()}
-
-                    <div className="text-sm text-gray-500 mt-2">
-                        * 总收益基于历史累计投入资金（存入减去取出）与选定年份的总持仓价值进行计算
-                    </div>
-                </div>
-            </div>
+            <InvestmentOverview
+                years={years}
+                comparisonYear={comparisonYear}
+                setComparisonYear={setComparisonYear}
+                calculateInvestmentReturn={calculateInvestmentReturn}
+                formatLargeNumber={formatLargeNumber}
+                currency={currency}
+            />
 
             <div>
                 <h2 className="text-xl font-semibold mb-4">总持仓概览</h2>

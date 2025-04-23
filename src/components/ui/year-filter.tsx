@@ -62,6 +62,7 @@ export function YearFilter({
             role="combobox"
             aria-expanded={open}
             className="w-full justify-between"
+            type="button"
           >
             <div className="flex flex-wrap gap-1 overflow-hidden">
               {selected.length > 0 ? (
@@ -115,8 +116,12 @@ export function YearFilter({
           >
             <div className="max-h-[300px] overflow-auto p-1">
               <div
-                className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
-                onClick={handleSelectAll}
+                className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleSelectAll();
+                }}
               >
                 <div
                   className={cn(
@@ -137,8 +142,12 @@ export function YearFilter({
                 return (
                   <div
                     key={option.value}
-                    className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
-                    onClick={() => handleSelect(option.value)}
+                    className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleSelect(option.value);
+                    }}
                   >
                     <div
                       className={cn(

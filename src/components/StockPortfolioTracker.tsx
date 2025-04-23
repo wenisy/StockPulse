@@ -141,9 +141,6 @@ const StockPortfolioTracker: React.FC = () => {
         // 获取最新年份的总价值
         const currentValue = calculateTotalValue(latestYear);
 
-        // 获取最早年份的总价值
-        const initialValue = calculateTotalValue(earliestYear);
-
         // 计算所有年份的累计投入现金
         let totalDeposits = 0;
         years.forEach(year => {
@@ -163,16 +160,13 @@ const StockPortfolioTracker: React.FC = () => {
         // 累计净投入现金
         const netDeposits = totalDeposits - totalWithdrawals;
 
-        // 如果初始投资为零，则使用累计净投入现金作为基数
-        const baseValue = initialValue > 0 ? initialValue : netDeposits;
+        if (netDeposits <= 0) return '';
 
-        if (baseValue <= 0) return '';
+        // 计算总收益率 = (当前总持仓价值 - 累计投入现金) / 累计投入现金
+        const totalReturn = (currentValue - netDeposits) / netDeposits;
 
-        // 计算总收益率
-        const totalReturn = (currentValue / baseValue) - 1;
-
-        // 计算平均年化收益率
-        // 公式：(1 + r)^n = (1 + totalReturn)，其中 r 是年化收益率，n 是年数
+        // 计算复合年增长率(CAGR)
+        // 公式：CAGR = ((1 + 总收益率)^(1/投资年数)) - 1
         const annualizedReturn = (Math.pow(1 + totalReturn, 1 / investmentYears) - 1) * 100;
 
         return annualizedReturn.toFixed(2);
@@ -1864,9 +1858,9 @@ const StockPortfolioTracker: React.FC = () => {
                                             </Button>
                                         </TooltipTrigger>
                                         <TooltipContent className="max-w-sm">
-                                            <p>平均年化回报率是从最早投资年份到最新年份的年化收益率。</p>
-                                            <p>计算公式：(1 + r)^n = (1 + 总收益率)</p>
-                                            <p>其中，r 是年化收益率，n 是投资年数，总收益率 = (当前总价值 / 初始总价值) - 1</p>
+                                            <p>平均年化回报率是从最早投资年份到最新年份的复合年增长率(CAGR)。</p>
+                                            <p>计算公式：CAGR = ((1 + 总收益率)^(1/投资年数)) - 1</p>
+                                            <p>其中，总收益率 = (当前总持仓价值 - 累计投入现金) / 累计投入现金</p>
                                         </TooltipContent>
                                     </UITooltip>
                                 </TooltipProvider>
@@ -2223,9 +2217,9 @@ const StockPortfolioTracker: React.FC = () => {
                                                     </Button>
                                                 </TooltipTrigger>
                                                 <TooltipContent className="max-w-sm">
-                                                    <p>平均年化回报率是从最早投资年份到最新年份的年化收益率。</p>
-                                                    <p>计算公式：(1 + r)^n = (1 + 总收益率)</p>
-                                                    <p>其中，r 是年化收益率，n 是投资年数，总收益率 = (当前总价值 / 初始总价值) - 1</p>
+                                                    <p>平均年化回报率是从最早投资年份到最新年份的复合年增长率(CAGR)。</p>
+                                                    <p>计算公式：CAGR = ((1 + 总收益率)^(1/投资年数)) - 1</p>
+                                                    <p>其中，总收益率 = (当前总持仓价值 - 累计投入现金) / 累计投入现金</p>
                                                 </TooltipContent>
                                             </UITooltip>
                                         </TooltipProvider>

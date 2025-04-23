@@ -690,6 +690,7 @@ const StockPortfolioTracker: React.FC = () => {
             amount: cashTransactionType === 'deposit' ? amount : -amount,
             type: cashTransactionType,
             date: new Date().toISOString().split('T')[0],
+            userUuid: currentUser?.uuid,
         };
 
         setYearData((prevYearData) => {
@@ -884,7 +885,8 @@ const StockPortfolioTracker: React.FC = () => {
             price,
             costPrice,
             id: stockIndex !== -1 ? updatedYearData[year].stocks[stockIndex].id : uuidv4(),
-            symbol: symbol || (stockIndex !== -1 ? updatedYearData[year].stocks[stockIndex].symbol : '')
+            symbol: symbol || (stockIndex !== -1 ? updatedYearData[year].stocks[stockIndex].symbol : ''),
+            userUuid: currentUser?.uuid
         };
 
         if (stockIndex !== -1) {
@@ -903,7 +905,8 @@ const StockPortfolioTracker: React.FC = () => {
             price: transactionPrice,
             date: new Date().toISOString().split('T')[0],
             beforeCostPrice: beforeCostPrice ?? 0,
-            afterCostPrice: costPrice
+            afterCostPrice: costPrice,
+            userUuid: currentUser?.uuid
         };
         updatedYearData[year].stockTransactions.push(stockTransaction);
 
@@ -912,6 +915,7 @@ const StockPortfolioTracker: React.FC = () => {
             type: transactionType,
             date: new Date().toISOString().split('T')[0],
             stockName,
+            userUuid: currentUser?.uuid
         };
         updatedYearData[year].cashTransactions.push(cashTransaction);
 
@@ -1011,7 +1015,8 @@ const StockPortfolioTracker: React.FC = () => {
                             price,
                             costPrice,
                             id: uuidv4(),
-                            symbol
+                            symbol,
+                            userUuid: currentUser?.uuid
                         });
                     }
 
@@ -1026,7 +1031,8 @@ const StockPortfolioTracker: React.FC = () => {
                                 price,
                                 costPrice,
                                 symbol,
-                                id: uuidv4()
+                                id: uuidv4(),
+                                userUuid: currentUser?.uuid
                             }]
                         },
                         yearlySummaries: {
@@ -1319,7 +1325,14 @@ const StockPortfolioTracker: React.FC = () => {
     return (
         <div className="p-4 max-w-6xl mx-auto space-y-8">
             <div className="flex justify-between items-center">
-                <h1 className="text-2xl font-bold">股票投资组合追踪工具</h1>
+                <div className="flex items-center space-x-4">
+                    <h1 className="text-2xl font-bold">股票投资组合追踪工具</h1>
+                    {isLoggedIn && currentUser && (
+                        <div className="text-sm text-gray-600">
+                            欢迎, <span className="font-semibold">{currentUser.username}</span>
+                        </div>
+                    )}
+                </div>
                 <div className="space-x-2">
                     {isLoggedIn ? (
                         <>
@@ -2021,6 +2034,7 @@ const StockPortfolioTracker: React.FC = () => {
                     (acc, stock) => hiddenStocks[stock.name] ? acc : acc + stock.shares * stock.price, 0
                 ) || 0) + (yearData[selectedReportYear]?.cashBalance || 0) : 0}
                 cumulativeInvested={selectedReportYear ? calculateCumulativeInvested(selectedReportYear) : 0}
+                currentUser={currentUser}
             />
 
             <Dialog open={alertInfo?.isOpen} onOpenChange={(open) => {

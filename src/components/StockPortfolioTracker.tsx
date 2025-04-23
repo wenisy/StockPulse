@@ -37,23 +37,13 @@ import React, { useCallback, useEffect, useState } from 'react';
 import RetirementCalculator from './RetirementCalculator';
 import { useUserSettings } from '@/hooks/useUserSettings';
 import UserProfileManager from './UserProfileManager';
-import {
-    Bar,
-    BarChart,
-    CartesianGrid,
-    Legend,
-    Line,
-    LineChart,
-    ResponsiveContainer,
-    Tooltip,
-    XAxis,
-    YAxis
-} from 'recharts';
+
 import { v4 as uuidv4 } from 'uuid';
 import { stockInitialData } from './data';
 import GrowthInfo from './GrowthInfo';
 import ReportDialog from './ReportDialog';
 import InvestmentOverview from './InvestmentOverview';
+import StockCharts from './StockCharts';
 
 const StockPortfolioTracker: React.FC = () => {
     const initialData: { [year: string]: YearData } = stockInitialData;
@@ -1511,82 +1501,18 @@ const StockPortfolioTracker: React.FC = () => {
                 />
             </div>
 
-            <div>
-                <h2 className="text-xl font-semibold mb-4">图表类型</h2>
-                <div className="flex gap-4 mb-4">
-                    <Button onClick={() => setShowPositionChart(true)}
-                        className={cn('px-4 py-2 rounded', showPositionChart ? 'bg-blue-500 text-white' : 'bg-gray-200')}>
-                        仓位变化图（折线图）
-                    </Button>
-                    <Button onClick={() => setShowPositionChart(false)}
-                        className={cn('px-4 py-2 rounded', !showPositionChart ? 'bg-blue-500 text-white' : 'bg-gray-200')}>
-                        股票占比图（柱状图）
-                    </Button>
-                </div>
-                <h2 className="text-xl font-semibold mb-4">{showPositionChart ? '各股票仓位变化（按年）' : '各股票仓位占比（按年）'}</h2>
-                <div className="h-96 w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                        {showPositionChart ? (
-                            <LineChart data={lineChartData}>
-                                <CartesianGrid strokeDasharray="3 3" />
-                                <XAxis dataKey="year" />
-                                <YAxis tickCount={5} tick={{ fontSize: 12 }}
-                                    tickFormatter={(value) => {
-                                        if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
-                                        if (value >= 1000) return `${(value / 1000).toFixed(1)}K`;
-                                        return value.toFixed(0);
-                                    }} />
-                                <Tooltip
-                                    formatter={(value: number, name: string) => [
-                                        formatLargeNumber(value, currency),
-                                        name === 'total' ? '总计' : name
-                                    ]}
-                                    labelFormatter={(label) => `${label}年`}
-                                />
-                                <Legend onClick={handleLegendClick} formatter={(value) => value === 'total' ? '总计' : value} />
-                                {Object.keys(lineChartData[0] || {})
-                                    .filter((key) => key !== 'year')
-                                    .filter((stockName) => !hiddenStocks[stockName])
-                                    .map((stock, index) => (
-                                        <Line
-                                            key={stock}
-                                            type="monotone"
-                                            dataKey={stock}
-                                            name={stock === 'total' ? '总计' : stock}
-                                            hide={!!hiddenSeries[stock]}
-                                            stroke={['#8884d8', '#82ca9d', '#ffc658', '#ff7300', '#0088fe'][index % 5]}
-                                            strokeWidth={stock === 'total' ? 3 : 1.5}
-                                        />
-                                    ))}
-                            </LineChart>
-                        ) : (
-                            <BarChart data={barChartData}>
-                                <CartesianGrid strokeDasharray="3 3" />
-                                <XAxis dataKey="name" />
-                                <YAxis
-                                    tickFormatter={(value: number) => `${value.toFixed(0)}%`}
-                                    domain={[0, 100]}
-                                />
-                                <Tooltip
-                                    formatter={(value: number, name: string) => [`${value.toFixed(2)}%`, `${name}年占比`]}
-                                    labelFormatter={(label) => `${label}`}
-                                />
-                                <Legend onClick={handleLegendClick} formatter={(value) => value === 'total' ? '总计' : value} />
-                                {years
-                                    .map((year, index) => (
-                                        <Bar
-                                            key={year}
-                                            dataKey={year}
-                                            name={`${year}年占比`}
-                                            hide={!!hiddenSeries[year]}
-                                            fill={['#8884d8', '#82ca9d', '#ffc658', '#ff7300', '#0088fe'][index % 5]}
-                                        />
-                                    ))}
-                            </BarChart>
-                        )}
-                    </ResponsiveContainer>
-                </div>
-            </div>
+            <StockCharts
+                showPositionChart={showPositionChart}
+                setShowPositionChart={setShowPositionChart}
+                lineChartData={lineChartData}
+                barChartData={barChartData}
+                years={years}
+                hiddenStocks={hiddenStocks}
+                hiddenSeries={hiddenSeries}
+                handleLegendClick={handleLegendClick}
+                formatLargeNumber={formatLargeNumber}
+                currency={currency}
+            />
 
             <div>
                 <div className="flex justify-between items-center mb-4">

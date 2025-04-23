@@ -34,16 +34,17 @@ export function YearFilter({
     onChange(selected.filter((s) => s !== option));
   };
 
-  const handleSelect = (option: string) => {
+  const handleSelect = React.useCallback((option: string) => {
     const isSelected = selected.includes(option);
     if (isSelected) {
       onChange(selected.filter((s) => s !== option));
     } else {
       onChange([...selected, option]);
     }
-  };
+    // 不要在选择后立即关闭弹出框，允许多选
+  }, [selected, onChange]);
 
-  const handleSelectAll = () => {
+  const handleSelectAll = React.useCallback(() => {
     // 如果已经全选了，则清空选择
     if (selected.includes('all') || (options.length > 1 && selected.length === options.length - 1)) {
       onChange([]);
@@ -51,11 +52,12 @@ export function YearFilter({
       // 否则选择全部（除了 "all" 选项外的所有选项）
       onChange(options.filter(opt => opt.value !== 'all').map(opt => opt.value));
     }
-  };
+    // 不要在选择后立即关闭弹出框
+  }, [selected, onChange, options]);
 
   return (
     <div className={cn("relative w-full", className)} {...props}>
-      <PopoverPrimitive.Root open={open} onOpenChange={setOpen}>
+      <PopoverPrimitive.Root open={open} onOpenChange={setOpen} modal={false}>
         <PopoverPrimitive.Trigger asChild>
           <Button
             variant="outline"
@@ -122,6 +124,14 @@ export function YearFilter({
                   e.stopPropagation();
                   handleSelectAll();
                 }}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleSelectAll();
+                  }
+                }}
               >
                 <div
                   className={cn(
@@ -148,6 +158,14 @@ export function YearFilter({
                       e.stopPropagation();
                       handleSelect(option.value);
                     }}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        handleSelect(option.value);
+                      }
+                    }}
                   >
                     <div
                       className={cn(
@@ -156,13 +174,26 @@ export function YearFilter({
                           ? "bg-primary border-primary text-primary-foreground"
                           : "opacity-50"
                       )}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleSelect(option.value);
+                      }}
                     >
                       {isSelected && <Check className="h-3 w-3" />}
                     </div>
-                    <span>{option.label}</span>
+                    <span
+                      className="flex-grow"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleSelect(option.value);
+                      }}
+                    >{option.label}</span>
                   </div>
                 );
               })}
+
             </div>
           </PopoverPrimitive.Content>
         </PopoverPrimitive.Portal>

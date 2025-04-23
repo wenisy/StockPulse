@@ -2420,6 +2420,7 @@ const StockPortfolioTracker: React.FC = () => {
                                 ]}
                                 selected={filteredYears.length === years.length ? ['all'] : filteredYears}
                                 onChange={(selected) => {
+                                    console.log('YearFilter onChange:', selected);
                                     if (selected.includes('all')) {
                                         handleYearFilterChange('all');
                                     } else if (selected.length === 0) {

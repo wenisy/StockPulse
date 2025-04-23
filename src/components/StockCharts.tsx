@@ -49,13 +49,13 @@ const StockCharts: React.FC<StockChartsProps> = ({
     <div>
       <h2 className="text-xl font-semibold mb-4">图表类型</h2>
       <div className="flex gap-4 mb-4">
-        <Button 
+        <Button
           onClick={() => setShowPositionChart(true)}
           className={cn('px-4 py-2 rounded', showPositionChart ? 'bg-blue-500 text-white' : 'bg-gray-200')}
         >
           仓位变化图（折线图）
         </Button>
-        <Button 
+        <Button
           onClick={() => setShowPositionChart(false)}
           className={cn('px-4 py-2 rounded', !showPositionChart ? 'bg-blue-500 text-white' : 'bg-gray-200')}
         >
@@ -71,14 +71,14 @@ const StockCharts: React.FC<StockChartsProps> = ({
             <LineChart data={lineChartData}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="year" />
-              <YAxis 
-                tickCount={5} 
+              <YAxis
+                tickCount={5}
                 tick={{ fontSize: 12 }}
                 tickFormatter={(value) => {
                   if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
                   if (value >= 1000) return `${(value / 1000).toFixed(1)}K`;
                   return value.toFixed(0);
-                }} 
+                }}
               />
               <Tooltip
                 formatter={(value: number, name: string) => [
@@ -87,9 +87,9 @@ const StockCharts: React.FC<StockChartsProps> = ({
                 ]}
                 labelFormatter={(label) => `${label}年`}
               />
-              <Legend 
-                onClick={handleLegendClick} 
-                formatter={(value) => value === 'total' ? '总计' : value} 
+              <Legend
+                onClick={handleLegendClick}
+                formatter={(value) => value === 'total' ? '总计' : value}
               />
               {Object.keys(lineChartData[0] || {})
                 .filter((key) => key !== 'year')
@@ -118,11 +118,19 @@ const StockCharts: React.FC<StockChartsProps> = ({
                 formatter={(value: number, name: string) => [`${value.toFixed(2)}%`, `${name}年占比`]}
                 labelFormatter={(label) => `${label}`}
               />
-              <Legend 
-                onClick={handleLegendClick} 
-                formatter={(value) => value === 'total' ? '总计' : value} 
+              <Legend
+                onClick={handleLegendClick}
+                formatter={(value) => {
+                  // 处理年份标签，显示为 'XXXX年占比'
+                  if (value.endsWith('年占比')) {
+                    return value;
+                  }
+                  return value === 'total' ? '总计' : value;
+                }}
               />
               {years
+                .slice() // 创建副本以避免修改原数组
+                .sort((a, b) => parseInt(a) - parseInt(b)) // 按年份从小到大排序
                 .map((year, index) => (
                   <Bar
                     key={year}

@@ -3,6 +3,14 @@ export interface RequestHeaders extends Record<string, string | undefined> {
     Authorization?: string;
 }
 
+export interface User {
+    username: string;
+    email?: string;
+    uuid: string;
+    createdAt?: string;
+    lastLogin?: string;
+}
+
 export interface Stock {
     name: string;
     shares: number;
@@ -10,6 +18,7 @@ export interface Stock {
     costPrice: number;
     id: string;
     symbol?: string;
+    userUuid?: string;
 }
 
 export interface CashTransaction {
@@ -18,6 +27,7 @@ export interface CashTransaction {
     date: string;
     stockName?: string;
     description?: string;
+    userUuid?: string;
 }
 
 export interface StockTransaction {
@@ -28,6 +38,7 @@ export interface StockTransaction {
     date: string;
     beforeCostPrice?: number;
     afterCostPrice?: number;
+    userUuid?: string;
 }
 
 export interface YearData {

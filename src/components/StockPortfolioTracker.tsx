@@ -33,6 +33,7 @@ import {
     StockTransaction,
     StockValueMap,
     TableCell,
+    User,
     YearData
 } from '@/types/stock';
 import { Edit, Eye, EyeOff, HelpCircle, RefreshCw, Save, Trash2 } from 'lucide-react';
@@ -103,10 +104,14 @@ const StockPortfolioTracker: React.FC = () => {
     const [comparisonYear, setComparisonYear] = useState<string>(years[years?.length - 1]);
 
     const [isLoginDialogOpen, setIsLoginDialogOpen] = useState(false);
+    const [isRegisterDialogOpen, setIsRegisterDialogOpen] = useState(false);
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
+    const [email, setEmail] = useState('');
     const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const [currentUser, setCurrentUser] = useState<User | null>(null);
     const [loginError, setLoginError] = useState('');
+    const [registerError, setRegisterError] = useState('');
     const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
 
     const latestYear = years.length > 0 ? Math.max(...years.map(Number)).toString() : '2024';
@@ -125,6 +130,17 @@ const StockPortfolioTracker: React.FC = () => {
     useEffect(() => {
         const initializeData = async () => {
             const token = localStorage.getItem('token');
+            const userJson = localStorage.getItem('user');
+            let user: User | null = null;
+
+            if (userJson) {
+                try {
+                    user = JSON.parse(userJson);
+                    setCurrentUser(user);
+                } catch (error) {
+                    console.error('解析用户数据失败:', error);
+                }
+            }
 
             if (token) {
                 setIsLoggedIn(true);
@@ -190,7 +206,20 @@ const StockPortfolioTracker: React.FC = () => {
             });
             const data = await response.json();
             if (response.ok) {
+                // 保存令牌和用户信息
                 localStorage.setItem('token', data.token);
+
+                // 保存用户信息
+                if (data.user) {
+                    const user: User = {
+                        username: data.user.username,
+                        email: data.user.email,
+                        uuid: data.user.uuid,
+                    };
+                    localStorage.setItem('user', JSON.stringify(user));
+                    setCurrentUser(user);
+                }
+
                 setIsLoggedIn(true);
                 setIsLoginDialogOpen(false);
                 setLoginError('');
@@ -209,6 +238,56 @@ const StockPortfolioTracker: React.FC = () => {
             }
         } catch (error) {
             setLoginError('网络错误，请稍后再试');
+        }
+    };
+
+    // --- Register Function ---
+    const handleRegister = async () => {
+        try {
+            if (!username || !password) {
+                setRegisterError('用户名和密码为必填项');
+                return;
+            }
+
+            const response = await fetch(`${backendDomain}/api/register`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ username, password, email }),
+            });
+            const data = await response.json();
+
+            if (response.ok) {
+                // 保存用户信息
+                if (data.user) {
+                    const user: User = {
+                        username: data.user.username,
+                        email: data.user.email,
+                        uuid: data.user.uuid,
+                    };
+                    // 注意：我们不在注册时保存用户信息到本地存储，因为用户需要先登录
+                }
+
+                setIsRegisterDialogOpen(false);
+                setRegisterError('');
+                setUsername('');
+                setPassword('');
+                setEmail('');
+                setAlertInfo({
+                    isOpen: true,
+                    title: '注册成功',
+                    description: '请使用您的新账号登录',
+                    onConfirm: () => {
+                        setAlertInfo(null);
+                        setIsLoginDialogOpen(true);
+                    },
+                });
+            } else {
+                setRegisterError(data.message || '注册失败');
+            }
+        } catch (error) {
+            setRegisterError('网络错误，请稍后再试');
         }
     };
 
@@ -303,7 +382,9 @@ const StockPortfolioTracker: React.FC = () => {
     // --- Logout Function ---
     const handleLogout = () => {
         localStorage.removeItem('token');
+        localStorage.removeItem('user');
         setIsLoggedIn(false);
+        setCurrentUser(null);
         setYearData(stockInitialData);
         setYears(Object.keys(stockInitialData));
         setSelectedYear(Object.keys(stockInitialData)[Object.keys(stockInitialData).length - 1]);
@@ -1246,7 +1327,10 @@ const StockPortfolioTracker: React.FC = () => {
                             <Button onClick={handleLogout}>登出</Button>
                         </>
                     ) : (
-                        <Button onClick={() => setIsLoginDialogOpen(true)}>登录</Button>
+                        <>
+                            <Button onClick={() => setIsLoginDialogOpen(true)}>登录</Button>
+                            <Button onClick={() => setIsRegisterDialogOpen(true)} variant="outline">注册</Button>
+                        </>
                     )}
                 </div>
             </div>
@@ -1274,6 +1358,48 @@ const StockPortfolioTracker: React.FC = () => {
                     </div>
                     <DialogFooter>
                         <Button onClick={handleLogin}>登录</Button>
+                        <Button variant="outline" onClick={() => {
+                            setIsLoginDialogOpen(false);
+                            setIsRegisterDialogOpen(true);
+                        }}>注册新账号</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Register Dialog */}
+            <Dialog open={isRegisterDialogOpen} onOpenChange={setIsRegisterDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>注册新账号</DialogTitle>
+                        <DialogDescription>请填写以下信息创建新账号</DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                        <Input
+                            type="text"
+                            placeholder="用户名"
+                            value={username}
+                            onChange={(e) => setUsername(e.target.value)}
+                        />
+                        <Input
+                            type="password"
+                            placeholder="密码"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                        />
+                        <Input
+                            type="email"
+                            placeholder="电子邮箱（可选）"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                        />
+                        {registerError && <p className="text-red-500">{registerError}</p>}
+                    </div>
+                    <DialogFooter>
+                        <Button onClick={handleRegister}>注册</Button>
+                        <Button variant="outline" onClick={() => {
+                            setIsRegisterDialogOpen(false);
+                            setIsLoginDialogOpen(true);
+                        }}>返回登录</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

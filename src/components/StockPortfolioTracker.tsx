@@ -1418,6 +1418,24 @@ const StockPortfolioTracker: React.FC = () => {
         });
     };
 
+    // 处理YearFilter组件的选择变化
+    const handleYearFilterSelectionChange = (selected: string[]) => {
+        console.log('YearFilter onChange:', selected);
+        if (selected.includes('all')) {
+            // 如果选中了“全部年份”，显示所有年份
+            setYearFilter('all');
+            setFilteredYears(years);
+        } else if (selected.length === 0) {
+            // 如果没有选择任何年份，默认显示所有年份
+            setYearFilter('all');
+            setFilteredYears(years);
+        } else {
+            // 显示选中的年份
+            setYearFilter('custom');
+            setFilteredYears(selected.sort((a, b) => parseInt(b) - parseInt(a)));
+        }
+    };
+
     const tableData = useCallback(() => {
         const stockSet = new Set<string>();
         Object.values(yearData).forEach((yearDataItem) => {
@@ -2419,17 +2437,7 @@ const StockPortfolioTracker: React.FC = () => {
                                     ...years.map(year => ({ label: year, value: year }))
                                 ]}
                                 selected={filteredYears.length === years.length ? ['all'] : filteredYears}
-                                onChange={(selected) => {
-                                    console.log('YearFilter onChange:', selected);
-                                    if (selected.includes('all')) {
-                                        handleYearFilterChange('all');
-                                    } else if (selected.length === 0) {
-                                        // 如果没有选择任何年份，默认显示所有年份
-                                        handleYearFilterChange('all');
-                                    } else {
-                                        setFilteredYears(selected.sort((a, b) => parseInt(b) - parseInt(a)));
-                                    }
-                                }}
+                                onChange={handleYearFilterSelectionChange}
                                 placeholder="选择年份"
                             />
                         </div>

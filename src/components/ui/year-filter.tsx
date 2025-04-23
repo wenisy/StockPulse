@@ -37,23 +37,26 @@ export function YearFilter({
   const handleSelect = React.useCallback((option: string) => {
     const isSelected = selected.includes(option);
     if (isSelected) {
+      // 如果已经选中，则取消选中
       onChange(selected.filter((s) => s !== option));
     } else {
-      onChange([...selected, option]);
+      // 如果选择了特定年份，确保不包含'all'
+      const newSelected = [...selected.filter(s => s !== 'all'), option];
+      onChange(newSelected);
     }
     // 不要在选择后立即关闭弹出框，允许多选
   }, [selected, onChange]);
 
   const handleSelectAll = React.useCallback(() => {
-    // 如果已经全选了，则清空选择
-    if (selected.includes('all') || (options.length > 1 && selected.length === options.length - 1)) {
+    // 如果已经选中了'all'，则清空选择
+    if (selected.includes('all')) {
       onChange([]);
     } else {
-      // 否则选择全部（除了 "all" 选项外的所有选项）
-      onChange(options.filter(opt => opt.value !== 'all').map(opt => opt.value));
+      // 否则选择'all'
+      onChange(['all']);
     }
     // 不要在选择后立即关闭弹出框
-  }, [selected, onChange, options]);
+  }, [selected, onChange]);
 
   return (
     <div className={cn("relative w-full", className)} {...props}>

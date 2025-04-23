@@ -1185,7 +1185,18 @@ const StockPortfolioTracker: React.FC = () => {
     const table = tableData();
 
     const handleLegendClick = (data: { value: string }) => {
-        const key = data.value === '总计' ? 'total' : data.value;
+        let key = data.value;
+
+        // 处理总计特殊情况
+        if (data.value === '总计') {
+            key = 'total';
+        }
+        // 处理年份标签情况，例如 "2022年占比"
+        else if (data.value.endsWith('年占比')) {
+            // 从标签中提取年份
+            key = data.value.replace('年占比', '');
+        }
+
         setHiddenSeries((prev) => ({ ...prev, [key]: !prev[key] }));
     };
 

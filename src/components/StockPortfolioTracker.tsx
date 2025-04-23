@@ -8,7 +8,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import { MultiSelect, Option } from '@/components/ui/multi-select';
+import { YearFilter } from '@/components/ui/year-filter';
 import { Input } from '@/components/ui/input';
 import {
     Select,
@@ -2366,7 +2366,7 @@ const StockPortfolioTracker: React.FC = () => {
                     <div className="flex items-center gap-2">
                         <span className="text-sm text-gray-600">年份筛选：</span>
                         <div className="w-64">
-                            <MultiSelect
+                            <YearFilter
                                 options={[
                                     { label: '全部年份', value: 'all' },
                                     ...years.map(year => ({ label: year, value: year }))

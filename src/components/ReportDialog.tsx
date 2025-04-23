@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend, BarChart, CartesianGrid, XAxis, YAxis, Bar } from 'recharts';
-import { YearData } from '@/types/stock';
+import { YearData, User } from '@/types/stock';
 
 interface ReportDialogProps {
     isOpen: boolean;
@@ -16,6 +16,7 @@ interface ReportDialogProps {
     currency: string;
     totalPortfolioValue: number;
     cumulativeInvested: number;
+    currentUser?: User | null;
 }
 
 const ReportDialog: React.FC<ReportDialogProps> = ({
@@ -28,6 +29,7 @@ const ReportDialog: React.FC<ReportDialogProps> = ({
     currency,
     totalPortfolioValue,
     cumulativeInvested,
+    currentUser,
 }) => {
     if (!selectedYear || !yearData[selectedYear]) return null;
 
@@ -73,7 +75,9 @@ const ReportDialog: React.FC<ReportDialogProps> = ({
             <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle>投资报表</DialogTitle>
-                    <div className="text-lg font-semibold mt-2">{selectedYear}年详细报表</div>
+                    <div className="text-lg font-semibold mt-2">
+                        {currentUser ? `${currentUser.nickname || currentUser.username}的` : ''}{selectedYear}年详细报表
+                    </div>
                 </DialogHeader>
                 <Tabs defaultValue="summary" className="w-full">
                     <TabsList>

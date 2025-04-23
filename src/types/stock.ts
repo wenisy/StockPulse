@@ -5,6 +5,7 @@ export interface RequestHeaders extends Record<string, string | undefined> {
 
 export interface User {
     username: string;
+    nickname?: string;
     email?: string;
     uuid: string;
     createdAt?: string;

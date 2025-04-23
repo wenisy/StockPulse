@@ -107,13 +107,18 @@ const StockPortfolioTracker: React.FC = () => {
 
     const [isLoginDialogOpen, setIsLoginDialogOpen] = useState(false);
     const [isRegisterDialogOpen, setIsRegisterDialogOpen] = useState(false);
+    const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false);
     const [username, setUsername] = useState('');
+    const [nickname, setNickname] = useState('');
     const [password, setPassword] = useState('');
+    const [newPassword, setNewPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
     const [email, setEmail] = useState('');
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [currentUser, setCurrentUser] = useState<User | null>(null);
     const [loginError, setLoginError] = useState('');
     const [registerError, setRegisterError] = useState('');
+    const [profileError, setProfileError] = useState('');
     const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
 
     const latestYear = years.length > 0 ? Math.max(...years.map(Number)).toString() : '2024';
@@ -215,6 +220,7 @@ const StockPortfolioTracker: React.FC = () => {
                 if (data.user) {
                     const user: User = {
                         username: data.user.username,
+                        nickname: data.user.nickname,
                         email: data.user.email,
                         uuid: data.user.uuid,
                     };
@@ -256,7 +262,7 @@ const StockPortfolioTracker: React.FC = () => {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ username, password, email }),
+                body: JSON.stringify({ username, password, email, nickname }),
             });
             const data = await response.json();
 
@@ -267,6 +273,7 @@ const StockPortfolioTracker: React.FC = () => {
 
                     const user: User = {
                         username: data.user.username,
+                        nickname: data.user.nickname,
                         email: data.user.email,
                         uuid: data.user.uuid,
                     };
@@ -405,6 +412,68 @@ const StockPortfolioTracker: React.FC = () => {
             });
         } finally {
             setIsSaveDialogOpen(false);
+        }
+    };
+
+    // --- Update Profile Function ---
+    const handleUpdateProfile = async () => {
+        try {
+            // 验证密码
+            if (newPassword && newPassword !== confirmPassword) {
+                setProfileError('新密码和确认密码不匹配');
+                return;
+            }
+
+            const token = localStorage.getItem('token');
+            if (!token) {
+                setProfileError('您需要登录才能更新个人资料');
+                return;
+            }
+
+            const updateData: any = {};
+            if (nickname) updateData.nickname = nickname;
+            if (email) updateData.email = email;
+            if (newPassword) updateData.newPassword = newPassword;
+
+            const response = await fetch(`${backendDomain}/api/updateProfile`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': token
+                },
+                body: JSON.stringify(updateData),
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                // 更新本地用户信息
+                if (currentUser) {
+                    const updatedUser: User = {
+                        ...currentUser,
+                        nickname: nickname || currentUser.nickname,
+                        email: email || currentUser.email,
+                    };
+                    localStorage.setItem('user', JSON.stringify(updatedUser));
+                    setCurrentUser(updatedUser);
+                }
+
+                setIsProfileDialogOpen(false);
+                setProfileError('');
+                setNewPassword('');
+                setConfirmPassword('');
+
+                setAlertInfo({
+                    isOpen: true,
+                    title: '更新成功',
+                    description: '您的个人资料已成功更新',
+                    onConfirm: () => setAlertInfo(null),
+                });
+            } else {
+                setProfileError(data.message || '更新失败');
+            }
+        } catch (error) {
+            setProfileError('网络错误，请稍后再试');
         }
     };
 
@@ -1371,7 +1440,7 @@ const StockPortfolioTracker: React.FC = () => {
                     <h1 className="text-2xl font-bold">股票投资组合追踪工具</h1>
                     {isLoggedIn && currentUser && (
                         <div className="text-sm text-gray-600">
-                            欢迎, <span className="font-semibold">{currentUser.username}</span>
+                            欢迎, <span className="font-semibold">{currentUser.nickname || currentUser.username}</span>
                         </div>
                     )}
                 </div>
@@ -1379,6 +1448,15 @@ const StockPortfolioTracker: React.FC = () => {
                     {isLoggedIn ? (
                         <>
                             <Button onClick={handleSaveData}>保存数据</Button>
+                            <Button onClick={() => {
+                                // 初始化个人资料对话框的值
+                                setNickname(currentUser?.nickname || '');
+                                setEmail(currentUser?.email || '');
+                                setNewPassword('');
+                                setConfirmPassword('');
+                                setProfileError('');
+                                setIsProfileDialogOpen(true);
+                            }} variant="outline">个人资料</Button>
                             <Button onClick={handleLogout}>登出</Button>
                         </>
                     ) : (
@@ -1442,6 +1520,12 @@ const StockPortfolioTracker: React.FC = () => {
                             onChange={(e) => setPassword(e.target.value)}
                         />
                         <Input
+                            type="text"
+                            placeholder="昵称（可选）"
+                            value={nickname}
+                            onChange={(e) => setNickname(e.target.value)}
+                        />
+                        <Input
                             type="email"
                             placeholder="电子邮箱（可选）"
                             value={email}
@@ -1455,6 +1539,80 @@ const StockPortfolioTracker: React.FC = () => {
                             setIsRegisterDialogOpen(false);
                             setIsLoginDialogOpen(true);
                         }}>返回登录</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Profile Dialog */}
+            <Dialog open={isProfileDialogOpen} onOpenChange={setIsProfileDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>个人资料</DialogTitle>
+                        <DialogDescription>编辑您的个人信息</DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                        <div>
+                            <label className="text-sm font-medium">用户名</label>
+                            <Input
+                                type="text"
+                                value={currentUser?.username || ''}
+                                disabled
+                                className="mt-1"
+                            />
+                        </div>
+                        <div>
+                            <label className="text-sm font-medium">昵称</label>
+                            <Input
+                                type="text"
+                                placeholder="设置昵称"
+                                value={nickname}
+                                onChange={(e) => setNickname(e.target.value)}
+                                className="mt-1"
+                            />
+                        </div>
+                        <div>
+                            <label className="text-sm font-medium">电子邮箱</label>
+                            <Input
+                                type="email"
+                                placeholder="设置电子邮箱"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                className="mt-1"
+                            />
+                        </div>
+                        <div>
+                            <label className="text-sm font-medium">新密码</label>
+                            <Input
+                                type="password"
+                                placeholder="留空表示不修改"
+                                value={newPassword}
+                                onChange={(e) => setNewPassword(e.target.value)}
+                                className="mt-1"
+                            />
+                        </div>
+                        <div>
+                            <label className="text-sm font-medium">确认密码</label>
+                            <Input
+                                type="password"
+                                placeholder="再次输入新密码"
+                                value={confirmPassword}
+                                onChange={(e) => setConfirmPassword(e.target.value)}
+                                className="mt-1"
+                            />
+                        </div>
+                        {profileError && <p className="text-red-500">{profileError}</p>}
+                    </div>
+                    <DialogFooter>
+                        <Button onClick={handleUpdateProfile}>保存更改</Button>
+                        <Button variant="outline" onClick={() => {
+                            setIsProfileDialogOpen(false);
+                            setProfileError('');
+                            setNewPassword('');
+                            setConfirmPassword('');
+                            // 重置昵称和邮箱为当前用户的值
+                            setNickname(currentUser?.nickname || '');
+                            setEmail(currentUser?.email || '');
+                        }}>取消</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

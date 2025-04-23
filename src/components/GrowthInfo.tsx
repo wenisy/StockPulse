@@ -26,10 +26,14 @@ const GrowthInfo: React.FC<GrowthInfoProps> = ({
     currency,
 }) => {
     const calculateYearGrowth = useCallback((currentYear: string) => {
-        const yearIndex = years.indexOf(currentYear);
-        if (yearIndex <= 0) return null;
+        // 年份数组已经按照降序排列（最新的在前）
+        // 所以需要找到比当前年份小的年份中最大的那一个
+        const currentYearInt = parseInt(currentYear);
+        const previousYears = years.filter(y => parseInt(y) < currentYearInt);
+        if (previousYears.length === 0) return null;
 
-        const previousYear = years[yearIndex - 1];
+        // 按照降序排列，所以第一个就是最大的
+        const previousYear = previousYears[0];
         const calculateTotalValue = (year: string) => {
             if (!yearData[year]?.stocks) return 0;
             const stockValue = yearData[year].stocks.reduce((acc, stock) => acc + stock.shares * stock.price, 0);
@@ -57,9 +61,11 @@ const GrowthInfo: React.FC<GrowthInfoProps> = ({
         };
     }, [years, yearData]);
 
-    const yearIndex = years.indexOf(year);
+    // 检查是否是最早的年份
+    const currentYearInt = parseInt(year);
+    const earlierYears = years.filter(y => parseInt(y) < currentYearInt);
 
-    if (yearIndex === 0) {
+    if (earlierYears.length === 0) {
         const initialInvestment = yearData[year]?.cashTransactions
             .reduce((sum, tx) => sum + (tx.type === 'deposit' ? tx.amount : tx.type === 'withdraw' ? -tx.amount : 0), 0) || 0;
 

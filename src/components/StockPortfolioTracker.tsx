@@ -306,30 +306,7 @@ const StockPortfolioTracker: React.FC = () => {
         }
     };
 
-    // 自动保存函数 - 带防抖功能
-    const autoSaveData = useCallback(() => {
-        if (!isLoggedIn) return;
 
-        // 如果已经有一个保存定时器在运行，先清除它
-        if (saveTimeoutRef.current) {
-            clearTimeout(saveTimeoutRef.current);
-        }
-
-        // 设置新的定时器，延迟2秒后执行保存
-        saveTimeoutRef.current = setTimeout(() => {
-            // 检查是否有需要保存的数据
-            const hasChanges = Object.keys(incrementalChanges.stocks).length > 0 ||
-                              Object.keys(incrementalChanges.cashTransactions).length > 0 ||
-                              Object.keys(incrementalChanges.stockTransactions).length > 0 ||
-                              Object.keys(incrementalChanges.yearlySummaries).length > 0;
-
-            if (hasChanges) {
-                saveDataToBackend();
-            }
-
-            saveTimeoutRef.current = null;
-        }, 2000);
-    }, [isLoggedIn, incrementalChanges]);
 
     // 实际保存数据到后端的函数
     const saveDataToBackend = async () => {
@@ -717,18 +694,13 @@ const StockPortfolioTracker: React.FC = () => {
 
             // 记录新增年份的增量变化
             setIncrementalChanges(prev => {
-                const newChanges = {
+                return {
                     ...prev,
                     yearlySummaries: {
                         ...prev.yearlySummaries,
                         [trimmedYear]: { cashBalance: cashToCarryOver }
                     }
                 };
-
-                // 触发自动保存
-                setTimeout(() => autoSaveData(), 0);
-
-                return newChanges;
             });
         }
     };
@@ -762,7 +734,7 @@ const StockPortfolioTracker: React.FC = () => {
 
         // 记录增量变化
         setIncrementalChanges((prev) => {
-            const newChanges = {
+            return {
                 ...prev,
                 cashTransactions: {
                     ...prev.cashTransactions,
@@ -773,11 +745,6 @@ const StockPortfolioTracker: React.FC = () => {
                     [selectedYear]: { cashBalance: (yearData[selectedYear]?.cashBalance || 0) + cashTransaction.amount }
                 }
             };
-
-            // 触发自动保存
-            setTimeout(() => autoSaveData(), 0);
-
-            return newChanges;
         });
 
         setCashTransactionAmount('');
@@ -980,7 +947,7 @@ const StockPortfolioTracker: React.FC = () => {
 
         // 记录增量变化
         setIncrementalChanges((prev) => {
-            const newChanges = {
+            return {
                 ...prev,
                 stocks: {
                     ...prev.stocks,
@@ -999,11 +966,6 @@ const StockPortfolioTracker: React.FC = () => {
                     [year]: { cashBalance: updatedYearData[year].cashBalance }
                 }
             };
-
-            // 触发自动保存
-            setTimeout(() => autoSaveData(), 0);
-
-            return newChanges;
         });
     };
 
@@ -1088,7 +1050,7 @@ const StockPortfolioTracker: React.FC = () => {
 
                     // 记录增量变化
                     setIncrementalChanges((prev) => {
-                        const newChanges = {
+                        return {
                             ...prev,
                             stocks: {
                                 ...prev.stocks,
@@ -1107,11 +1069,6 @@ const StockPortfolioTracker: React.FC = () => {
                                 [year]: { cashBalance: updatedYearData[year].cashBalance }
                             }
                         };
-
-                        // 触发自动保存
-                        setTimeout(() => autoSaveData(), 0);
-
-                        return newChanges;
                     });
                 } else if (updatedYearData[year].stocks) {
                     updatedYearData[year].stocks = updatedYearData[year].stocks.filter((s) => s.name !== stockName);
@@ -1168,15 +1125,10 @@ const StockPortfolioTracker: React.FC = () => {
                         updatedStocks[year] = updatedStocks[year].filter((stock) => stock.name !== stockName);
                     });
 
-                    const newChanges = {
+                    return {
                         ...prev,
                         stocks: updatedStocks
                     };
-
-                    // 触发自动保存
-                    setTimeout(() => autoSaveData(), 0);
-
-                    return newChanges;
                 });
 
                 // 关闭对话框
@@ -1323,6 +1275,34 @@ const StockPortfolioTracker: React.FC = () => {
             localStorage.setItem('stockPortfolioSelectedYear', selectedYear);
         }
     }, [yearData, years, selectedYear, isLoggedIn]);
+
+    // 监听 incrementalChanges 变化，触发自动保存
+    useEffect(() => {
+        // 检查是否有需要保存的数据
+        const hasChanges = Object.keys(incrementalChanges.stocks).length > 0 ||
+                          Object.keys(incrementalChanges.cashTransactions).length > 0 ||
+                          Object.keys(incrementalChanges.stockTransactions).length > 0 ||
+                          Object.keys(incrementalChanges.yearlySummaries).length > 0;
+
+        if (hasChanges && isLoggedIn) {
+            // 使用防抖机制
+            if (saveTimeoutRef.current) {
+                clearTimeout(saveTimeoutRef.current);
+            }
+
+            saveTimeoutRef.current = setTimeout(() => {
+                saveDataToBackend();
+                saveTimeoutRef.current = null;
+            }, 2000);
+        }
+
+        // 组件卸载时清除定时器
+        return () => {
+            if (saveTimeoutRef.current) {
+                clearTimeout(saveTimeoutRef.current);
+            }
+        };
+    }, [incrementalChanges, isLoggedIn]);
 
     useEffect(() => {
         if (typeof window !== 'undefined' && !isLoggedIn) {

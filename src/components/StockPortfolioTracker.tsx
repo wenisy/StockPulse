@@ -28,7 +28,6 @@ import {
     StockSymbol,
     StockTransaction,
     StockValueMap,
-    TableCell,
     User,
     YearData
 } from '@/types/stock';
@@ -90,9 +89,6 @@ const StockPortfolioTracker: React.FC = () => {
     const [cashTransactionType, setCashTransactionType] = useState<'deposit' | 'withdraw'>('deposit');
     const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
     const [selectedReportYear, setSelectedReportYear] = useState<string | null>(null);
-    const [isCopyDialogOpen, setIsCopyDialogOpen] = useState(false);
-    const [isPasteDialogOpen, setIsPasteDialogOpen] = useState(false);
-    const [pasteData, setPasteData] = useState('');
     const [stockSymbols, setStockSymbols] = useState<StockSymbol[]>([]);
     const [priceData, setPriceData] = useState<PriceData>({});
     const [isLoading, setIsLoading] = useState(false);
@@ -1249,33 +1245,7 @@ const StockPortfolioTracker: React.FC = () => {
         return cumulativeInvested;
     };
 
-    const handleCopyData = () => setIsCopyDialogOpen(true);
-    const handlePasteData = () => setIsPasteDialogOpen(true);
 
-    const confirmPasteData = () => {
-        try {
-            const pastedData = JSON.parse(pasteData);
-            setYearData(pastedData);
-            setYears(Object.keys(pastedData));
-            setSelectedYear(Object.keys(pastedData)[Object.keys(pastedData).length - 1]);
-            setAlertInfo({
-                isOpen: true,
-                title: '粘贴成功',
-                description: '数据已成功粘贴并更新',
-                onConfirm: () => setAlertInfo(null)
-            });
-            setIsPasteDialogOpen(false);
-            setPasteData('');
-        } catch (e) {
-            setAlertInfo({
-                isOpen: true,
-                title: '粘贴失败',
-                description: '粘贴的数据格式不正确',
-                onCancel: () => setAlertInfo(null),
-                cancelText: '关闭'
-            });
-        }
-    };
 
 
 
@@ -1329,6 +1299,9 @@ const StockPortfolioTracker: React.FC = () => {
                 </div>
                 <div className="flex items-center space-x-2">
                     {isLoggedIn && <Button onClick={handleSaveData}>保存数据</Button>}
+                    <Button onClick={() => refreshPrices(true)} disabled={isLoading} className="flex items-center gap-2">
+                        <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} /> 刷新价格
+                    </Button>
                     <UserProfileManager
                         isLoggedIn={isLoggedIn}
                         currentUser={currentUser}
@@ -1430,19 +1403,9 @@ const StockPortfolioTracker: React.FC = () => {
                     <Button onClick={confirmAddNewStock} className="mt-2">添加股票</Button>
                 </div>
 
-                <div>
-                    <h2 className="text-lg font-semibold mb-2">数据操作</h2>
-                    <div className="flex gap-4">
-                        <Button onClick={handleCopyData}>复制数据</Button>
-                        <Button onClick={handlePasteData}>粘贴数据</Button>
-                        <Button onClick={() => refreshPrices(true)} disabled={isLoading} className="flex items-center gap-2">
-                            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} /> 刷新价格
-                        </Button>
-                    </div>
-                    {priceData && Object.keys(priceData).length > 0 && (
-                        <p className="text-xs mt-2 text-gray-500">最后更新时间: {Object.values(priceData)[0]?.lastUpdated || '未知'}</p>
-                    )}
-                </div>
+                {priceData && Object.keys(priceData).length > 0 && (
+                    <p className="text-xs text-gray-500">最后更新时间: {Object.values(priceData)[0]?.lastUpdated || '未知'}</p>
+                )}
 
                 <div>
                     <h2 className="text-lg font-semibold mb-2">选择货币</h2>
@@ -1587,40 +1550,7 @@ const StockPortfolioTracker: React.FC = () => {
                 </DialogContent>
             </Dialog>
 
-            <Dialog open={isCopyDialogOpen} onOpenChange={setIsCopyDialogOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>复制数据</DialogTitle>
-                        <DialogDescription>
-                            <p>请点击下方文本框，使用 Command + A 全选内容，或直接点击"复制到剪贴板"按钮。</p>
-                            <textarea className="w-full h-64 p-2 mt-2 border rounded resize-none"
-                                value={JSON.stringify(yearData, null, 2)} readOnly />
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="flex justify-end space-x-2">
-                        <Button
-                            onClick={() => navigator.clipboard.writeText(JSON.stringify(yearData, null, 2))}>复制到剪贴板</Button>
-                        <Button onClick={() => setIsCopyDialogOpen(false)}>关闭</Button>
-                    </div>
-                </DialogContent>
-            </Dialog>
 
-            <Dialog open={isPasteDialogOpen} onOpenChange={setIsPasteDialogOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>粘贴数据</DialogTitle>
-                        <DialogDescription>
-                            <textarea className="w-full h-32 p-2 border rounded" value={pasteData}
-                                onChange={(e) => setPasteData(e.target.value)}
-                                placeholder="请将数据粘贴到此处..." />
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="flex justify-end space-x-2">
-                        <Button onClick={confirmPasteData}>确认</Button>
-                        <Button onClick={() => setIsPasteDialogOpen(false)}>取消</Button>
-                    </div>
-                </DialogContent>
-            </Dialog>
         </div>
     );
 };

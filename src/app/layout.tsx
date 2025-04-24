@@ -13,8 +13,13 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Stock Pulse",
-  description: "A tool monitor Stock Portfolio",
+  title: "股票智管家",
+  description: "您的智能股票投资组合管理助手，轻松追踪投资收益与资产配置",
+  icons: {
+    icon: [
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+    ],
+  },
 };
 
 export default function RootLayout({

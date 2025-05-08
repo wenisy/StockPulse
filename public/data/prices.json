@@ -1,17 +1,17 @@
 {
   "HKD": {
-    "price": 0.12882613,
+    "price": 0.12880291,
     "name": "HKD-USD",
     "lastUpdated": "2025-05-08"
   },
   "CNY": {
-    "price": 0.13841788,
+    "price": 0.13816735,
     "name": "CNY-USD",
     "lastUpdated": "2025-05-08"
   },
   "0700.HK": {
-    "price": 63.76893435,
-    "originalPrice": 495.0,
+    "price": 62.727017169999996,
+    "originalPrice": 487.0,
     "currency": "HKD",
     "name": "Tencent",
     "lastUpdated": "2025-05-08"

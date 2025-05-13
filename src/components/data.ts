@@ -192,12 +192,12 @@ export const stockInitialData:{ [year: string]: any } = {
         "symbol": "TSLA"
       },
       {
-        "name": "Apple",
-        "shares": 50,
+        "name": "Vistra Energy",
+        "shares": 10,
         "price": 150,
         "costPrice": 140,
         "id": "3c4d5e6f-7g8h-9i0j-1k2l-3m4n5o6p7q8r",
-        "symbol": "AAPL"
+        "symbol": "VST"
       }
     ],
     "cashTransactions": [

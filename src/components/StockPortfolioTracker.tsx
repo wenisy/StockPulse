@@ -1488,7 +1488,7 @@ const StockPortfolioTracker: React.FC = () => {
                                 setNewStockSymbol(selectedStock.symbol || '');
                             }
                         }}>
-                            <SelectTrigger>
+                            <SelectTrigger className="w-full">
                                 <SelectValue placeholder="选择股票名称" />
                             </SelectTrigger>
                             <SelectContent>
@@ -1504,7 +1504,7 @@ const StockPortfolioTracker: React.FC = () => {
                                 setNewStockName(selectedStock.name);
                             }
                         }}>
-                            <SelectTrigger>
+                            <SelectTrigger className="w-full">
                                 <SelectValue placeholder="选择股票代码" />
                             </SelectTrigger>
                             <SelectContent>

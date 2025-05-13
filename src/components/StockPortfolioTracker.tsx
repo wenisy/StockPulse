@@ -445,7 +445,7 @@ const StockPortfolioTracker: React.FC = () => {
     const refreshPrices = async (isManual = false) => {
         setIsLoading(true);
         try {
-            const latestYear = years.length > 0 ? Math.max(...years.map(Number)).toString() : "2025";
+            const latestYear = new Date().getFullYear().toString();
             const latestStocks = yearData[latestYear]?.stocks || [];
             const symbols = latestStocks.map(stock => stock.symbol).filter(Boolean);
 
@@ -1481,14 +1481,38 @@ const StockPortfolioTracker: React.FC = () => {
                 <div>
                     <h2 className="text-lg font-semibold mb-2">添加/更新股票 ({selectedYear}年)</h2>
                     <div className="grid grid-cols-1 md:grid-cols-6 gap-2">
-                        <Input type="text" placeholder="股票名称" value={newStockName}
-                            onChange={(e) => setNewStockName(e.target.value)} list="stockNameList" />
-                        <datalist id="stockNameList">{stockSymbols.map((item) => <option key={item.symbol}
-                            value={item.name} />)}</datalist>
-                        <Input type="text" placeholder="股票代码 (如 BABA)" value={newStockSymbol}
-                            onChange={(e) => setNewStockSymbol(e.target.value)} list="stockSymbolList" />
-                        <datalist id="stockSymbolList">{stockSymbols.map((item) => <option key={item.symbol}
-                            value={item.symbol} />)}</datalist>
+                        <Select onValueChange={(value) => {
+                            setNewStockName(value);
+                            const selectedStock = yearData[latestYear]?.stocks.find(stock => stock.name === value);
+                            if (selectedStock) {
+                                setNewStockSymbol(selectedStock.symbol || '');
+                            }
+                        }}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="选择股票名称" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {yearData[latestYear]?.stocks.map(stock => (
+                                    <SelectItem key={stock.name} value={stock.name}>{stock.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        <Select onValueChange={(value) => {
+                            setNewStockSymbol(value);
+                            const selectedStock = yearData[latestYear]?.stocks.find(stock => stock.symbol === value);
+                            if (selectedStock) {
+                                setNewStockName(selectedStock.name);
+                            }
+                        }}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="选择股票代码" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {yearData[latestYear]?.stocks.map(stock => (
+                                    <SelectItem key={stock.symbol} value={stock.symbol || ''}>{stock.symbol}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                         <Select onValueChange={(value) => setTransactionType(value as 'buy' | 'sell')}
                             value={transactionType}>
                             <SelectTrigger className="w-full"><SelectValue placeholder="交易类型" /></SelectTrigger>

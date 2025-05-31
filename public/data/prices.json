@@ -1,49 +1,49 @@
 {
   "HKD": {
-    "price": 0.1275494,
+    "price": 0.12754613,
     "name": "HKD-USD",
-    "lastUpdated": "2025-05-30"
+    "lastUpdated": "2025-05-31"
   },
   "CNY": {
     "price": 0.13891591,
     "name": "CNY-USD",
-    "lastUpdated": "2025-05-30"
+    "lastUpdated": "2025-05-31"
   },
   "0700.HK": {
-    "price": 63.545111080000005,
+    "price": 63.543481966,
     "originalPrice": 498.2,
     "currency": "HKD",
     "name": "Tencent",
-    "lastUpdated": "2025-05-30"
+    "lastUpdated": "2025-05-31"
   },
   "TSLA": {
     "price": 346.46,
     "name": "Tesla",
-    "lastUpdated": "2025-05-30"
+    "lastUpdated": "2025-05-31"
   },
   "VST": {
     "price": 160.57,
     "name": "Vistra Energy",
-    "lastUpdated": "2025-05-30"
+    "lastUpdated": "2025-05-31"
   },
   "PLTR": {
     "price": 131.78,
     "name": "Palantir",
-    "lastUpdated": "2025-05-30"
+    "lastUpdated": "2025-05-31"
   },
   "RKLB": {
     "price": 26.79,
     "name": "Rocket Lab",
-    "lastUpdated": "2025-05-30"
+    "lastUpdated": "2025-05-31"
   },
   "GOOGL": {
     "price": 171.74,
     "name": "Google",
-    "lastUpdated": "2025-05-30"
+    "lastUpdated": "2025-05-31"
   },
   "VOO": {
     "price": 541.76,
     "name": "Vanguard S&P 500 ETF",
-    "lastUpdated": "2025-05-30"
+    "lastUpdated": "2025-05-31"
   }
 }

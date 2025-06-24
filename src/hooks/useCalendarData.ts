@@ -3,14 +3,8 @@ import { CalendarData } from '@/types/stock';
 
 // 获取后端域名的工具函数
 const getBackendDomain = () => {
-    if (typeof window !== 'undefined') {
-        const hostname = window.location.hostname;
-        if (hostname === 'localhost' || hostname === '127.0.0.1') {
-            return 'http://localhost:3000';
-        }
-        return `https://${hostname.replace('stock-frontend', 'stock-backend')}`;
-    }
-    return '';
+    // 直接使用和其他组件相同的后端域名
+    return "//stock-backend-tau.vercel.app";
 };
 
 interface UseCalendarDataReturn {

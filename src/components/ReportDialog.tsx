@@ -73,7 +73,7 @@ const ReportDialog: React.FC<ReportDialogProps> = ({
 
     return (
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-7xl max-h-[90vh] overflow-y-auto w-[95vw]">
+            <DialogContent className="max-w-[95vw] max-h-[90vh] overflow-y-auto w-[95vw] min-w-[800px]" style={{width: '95vw', maxWidth: '95vw'}}>
                 <DialogHeader>
                     <DialogTitle>投资报表</DialogTitle>
                     <div className="text-lg font-semibold mt-2">

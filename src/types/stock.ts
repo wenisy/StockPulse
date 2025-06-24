@@ -138,3 +138,61 @@ export interface ChartValue {
 export interface StockValueMap {
     [key: string]: number;
 }
+
+// 新增：历史价格数据接口
+export interface HistoricalPrice {
+    id?: string;
+    symbol: string;
+    date: string; // YYYY-MM-DD 格式
+    price: number;
+    currency?: string;
+    userUuid?: string;
+    createdAt?: string;
+}
+
+// 新增：每日持仓快照接口
+export interface DailyPortfolioSnapshot {
+    id?: string;
+    date: string; // YYYY-MM-DD 格式
+    stocks: DailyStockSnapshot[];
+    totalValue: number;
+    totalCostBasis: number;
+    totalGain: number;
+    totalGainPercent: number;
+    cashBalance: number;
+    userUuid?: string;
+    createdAt?: string;
+}
+
+// 新增：每日股票快照接口
+export interface DailyStockSnapshot {
+    name: string;
+    symbol: string;
+    shares: number;
+    price: number;
+    costPrice: number;
+    value: number;
+    costBasis: number;
+    unrealizedGain: number;
+    unrealizedGainPercent: number;
+}
+
+// 新增：日历数据接口
+export interface CalendarData {
+    date: string;
+    totalGain: number;
+    totalGainPercent: number;
+    hasData: boolean;
+    hasTransaction: boolean;
+    stocks: CalendarStockData[];
+}
+
+// 新增：日历股票数据接口
+export interface CalendarStockData {
+    name: string;
+    symbol: string;
+    gain: number;
+    gainPercent: number;
+    value: number;
+    shares: number;
+}

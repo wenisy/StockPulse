@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend, BarChart, CartesianGrid, XAxis, YAxis, Bar } from 'recharts';
 import { YearData, User } from '@/types/stock';
+import ProfitLossCalendar from './ProfitLossCalendar';
 
 interface ReportDialogProps {
     isOpen: boolean;
@@ -84,6 +85,7 @@ const ReportDialog: React.FC<ReportDialogProps> = ({
                         <TabsTrigger value="summary">概览</TabsTrigger>
                         <TabsTrigger value="portfolio">投资组合分布</TabsTrigger>
                         <TabsTrigger value="performance">盈亏表现</TabsTrigger>
+                        <TabsTrigger value="calendar">每日盈亏日历</TabsTrigger>
                         <TabsTrigger value="top">最佳排名</TabsTrigger>
                         <TabsTrigger value="cash">现金历史</TabsTrigger>
                         <TabsTrigger value="trades">买卖历史</TabsTrigger>
@@ -141,6 +143,13 @@ const ReportDialog: React.FC<ReportDialogProps> = ({
                                 </Bar>
                             </BarChart>
                         </ResponsiveContainer>
+                    </TabsContent>
+                    <TabsContent value="calendar">
+                        <ProfitLossCalendar
+                            selectedYear={selectedYear || new Date().getFullYear().toString()}
+                            formatLargeNumber={formatLargeNumber}
+                            currency={currency}
+                        />
                     </TabsContent>
                     <TabsContent value="top">
                         <div>

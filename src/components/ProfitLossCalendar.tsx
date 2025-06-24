@@ -4,7 +4,7 @@ import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown, DollarSign, Calend
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { CalendarData, CalendarStockData } from '@/types/stock';
+import { CalendarData } from '@/types/stock';
 import { cn } from '@/lib/utils';
 import { useCalendarData } from '@/hooks/useCalendarData';
 

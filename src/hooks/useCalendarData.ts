@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { CalendarData } from '@/types/stock';
 
 // 获取后端域名的工具函数
@@ -31,7 +31,7 @@ export const useCalendarData = (): UseCalendarDataReturn => {
     const backendDomain = getBackendDomain();
 
     // 获取月度日历数据
-    const fetchCalendarData = async (year: number, month: number) => {
+    const fetchCalendarData = useCallback(async (year: number, month: number) => {
         setIsLoading(true);
         setError(null);
         
@@ -63,7 +63,7 @@ export const useCalendarData = (): UseCalendarDataReturn => {
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [backendDomain]); // 添加依赖项
 
     // 获取年度汇总数据
     const fetchYearlyCalendarSummary = async (year: number) => {
@@ -95,7 +95,7 @@ export const useCalendarData = (): UseCalendarDataReturn => {
     };
 
     // 手动生成每日快照
-    const generateDailySnapshot = async (date?: string) => {
+    const generateDailySnapshot = useCallback(async (date?: string) => {
         try {
             const token = localStorage.getItem('token');
             if (!token) {
@@ -126,10 +126,10 @@ export const useCalendarData = (): UseCalendarDataReturn => {
             console.error('生成快照失败:', error);
             throw error;
         }
-    };
+    }, [backendDomain]);
 
     // 智能生成每日快照
-    const generateSmartSnapshot = async (date?: string, forceGenerate: boolean = false) => {
+    const generateSmartSnapshot = useCallback(async (date?: string, forceGenerate: boolean = false) => {
         try {
             const token = localStorage.getItem('token');
             if (!token) {
@@ -164,7 +164,7 @@ export const useCalendarData = (): UseCalendarDataReturn => {
             console.error('智能快照生成失败:', error);
             throw error;
         }
-    };
+    }, [backendDomain]);
 
     return {
         calendarData,

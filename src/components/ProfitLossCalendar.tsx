@@ -40,7 +40,7 @@ const ProfitLossCalendar: React.FC<ProfitLossCalendarProps> = ({
     // 当年份或月份变化时获取数据
     useEffect(() => {
         fetchCalendarData(currentYear, currentMonth);
-    }, [currentYear, currentMonth, fetchCalendarData]);
+    }, [currentYear, currentMonth, fetchCalendarData]); // 现在 fetchCalendarData 是稳定的
 
     // 当选中年份变化时更新当前年份
     useEffect(() => {
@@ -159,7 +159,7 @@ const ProfitLossCalendar: React.FC<ProfitLossCalendarProps> = ({
                     <TooltipTrigger asChild>
                         <div
                             className={cn(
-                                "relative h-16 p-2 border rounded-lg cursor-pointer transition-all duration-200 hover:shadow-md",
+                                "relative h-20 p-2 border rounded-lg cursor-pointer transition-all duration-200 hover:shadow-md",
                                 getProfitLossColor(dayData?.totalGainPercent || 0, hasData)
                             )}
                         >
@@ -248,7 +248,7 @@ const ProfitLossCalendar: React.FC<ProfitLossCalendarProps> = ({
 
         // 添加空白格子（月份开始前的空白）
         for (let i = 0; i < firstDay; i++) {
-            days.push(<div key={`empty-${i}`} className="h-16"></div>);
+            days.push(<div key={`empty-${i}`} className="h-20"></div>);
         }
 
         // 添加月份的每一天

@@ -489,7 +489,6 @@ const ProfitLossCalendar: React.FC<ProfitLossCalendarProps> = ({
 
             {/* 手动操作区域 */}
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <h4 className="text-sm font-semibold text-blue-800 mb-3">🧪 测试功能</h4>
                 <div className="space-y-3">
                     <div className="flex items-center gap-2">
                         <label className="text-sm text-blue-700 min-w-[60px]">生成日期:</label>

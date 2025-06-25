@@ -274,6 +274,11 @@ const ProfitLossCalendar: React.FC<ProfitLossCalendarProps> = ({
         setCurrentYear(newYear);
     };
 
+    // 处理日历日期点击
+    const handleDateClick = (dateStr: string) => {
+        setGenerateDate(dateStr);
+    };
+
     // 渲染日历格子
     const renderCalendarDay = (day: number) => {
         const dateStr = `${currentYear}-${currentMonth.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
@@ -290,6 +295,7 @@ const ProfitLossCalendar: React.FC<ProfitLossCalendarProps> = ({
                                 "relative h-20 p-2 border rounded-lg cursor-pointer transition-all duration-200 hover:shadow-md",
                                 getProfitLossColor(dayData?.totalGainPercent || 0, hasData)
                             )}
+                            onClick={() => handleDateClick(dateStr)}
                         >
                             {/* 日期数字 */}
                             <div className="text-sm font-medium">{day}</div>

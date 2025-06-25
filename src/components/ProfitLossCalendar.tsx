@@ -128,9 +128,9 @@ const ProfitLossCalendar: React.FC<ProfitLossCalendarProps> = ({
 
 
 
-    // 为整个月份智能生成快照
-    const handleMonthlySmartGenerate = async () => {
-        if (!confirm(`确定要为 ${currentYear}年${currentMonth}月 的所有日期智能生成快照吗？\n\n这将：\n- 为每个交易日生成快照\n- 跳过已存在且无变化的快照\n- 可能需要几分钟时间`)) {
+    // 为整个月份生成快照
+    const handleMonthlyGenerate = async () => {
+        if (!confirm(`确定要为 ${currentYear}年${currentMonth}月 的所有日期生成快照吗？\n\n这将：\n- 为每个日期生成快照\n- 覆盖已存在的快照\n- 可能需要几分钟时间`)) {
             return;
         }
 
@@ -145,18 +145,21 @@ const ProfitLossCalendar: React.FC<ProfitLossCalendarProps> = ({
                 // 只为过去的日期生成快照（不包括未来日期）
                 if (new Date(date) <= new Date()) {
                     try {
-                        const result = await generateSmartSnapshot(date, false); // 智能生成，避免重复
+                        await generateDailySnapshot(date);
                         results.push({
                             date,
-                            success: result.success,
-                            message: result.success ? (result.isUpdate ? '更新' : '创建') : result.reason,
-                            reason: result.reason
+                            success: true,
+                            message: '生成成功'
                         });
 
                         // 添加延迟避免API限制
-                        await new Promise(resolve => setTimeout(resolve, 300));
+                        await new Promise(resolve => setTimeout(resolve, 500));
                     } catch (error) {
-                        results.push({ date, success: false, message: 'API错误', reason: 'error' });
+                        results.push({
+                            date,
+                            success: false,
+                            message: error instanceof Error ? error.message : 'API错误'
+                        });
                     }
                 }
             }
@@ -165,20 +168,18 @@ const ProfitLossCalendar: React.FC<ProfitLossCalendarProps> = ({
             await fetchCalendarData(currentYear, currentMonth);
 
             const successful = results.filter(r => r.success).length;
-            const skipped = results.filter(r => !r.success && (r.reason === 'no_significant_change' || r.reason === 'non_trading_day')).length;
-            const failed = results.filter(r => !r.success && r.reason === 'error').length;
+            const failed = results.filter(r => !r.success).length;
             const total = results.length;
 
-            let summary = `✅ 月度智能生成完成！\n\n`;
+            let summary = `✅ 月度生成完成！\n\n`;
             summary += `📊 统计:\n`;
             summary += `- 总天数: ${total}\n`;
             summary += `- 成功生成: ${successful}\n`;
-            summary += `- 智能跳过: ${skipped}\n`;
             summary += `- 失败: ${failed}\n\n`;
 
             if (results.length <= 10) {
                 summary += `详情:\n${results.map(r => {
-                    const icon = r.success ? '✅' : (r.reason === 'error' ? '❌' : '⏭️');
+                    const icon = r.success ? '✅' : '❌';
                     return `${r.date}: ${icon} ${r.message}`;
                 }).join('\n')}`;
             }
@@ -186,7 +187,7 @@ const ProfitLossCalendar: React.FC<ProfitLossCalendarProps> = ({
             alert(summary);
 
         } catch (error) {
-            alert(`❌ 月度智能生成失败: ${error instanceof Error ? error.message : '未知错误'}`);
+            alert(`❌ 月度生成失败: ${error instanceof Error ? error.message : '未知错误'}`);
         } finally {
             setIsMonthlyGenerating(false);
         }
@@ -467,7 +468,7 @@ const ProfitLossCalendar: React.FC<ProfitLossCalendarProps> = ({
 
 
                         <Button
-                            onClick={handleMonthlySmartGenerate}
+                            onClick={handleMonthlyGenerate}
                             disabled={isMonthlyGenerating || isLoading}
                             size="sm"
                             variant="outline"

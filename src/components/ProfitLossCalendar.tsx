@@ -27,6 +27,7 @@ const ProfitLossCalendar: React.FC<ProfitLossCalendarProps> = ({
 
     // 手动操作状态
     const [isGenerating, setIsGenerating] = useState(false);
+    const [isMonthlyGenerating, setIsMonthlyGenerating] = useState(false);
     const [generateDate, setGenerateDate] = useState(new Date().toISOString().split('T')[0]);
     const [availableYears, setAvailableYears] = useState<string[]>([]);
 
@@ -133,7 +134,7 @@ const ProfitLossCalendar: React.FC<ProfitLossCalendarProps> = ({
             return;
         }
 
-        setIsSmartGenerating(true);
+        setIsMonthlyGenerating(true);
         try {
             const daysInMonth = getDaysInMonth(currentYear, currentMonth);
             const results = [];
@@ -187,7 +188,7 @@ const ProfitLossCalendar: React.FC<ProfitLossCalendarProps> = ({
         } catch (error) {
             alert(`❌ 月度智能生成失败: ${error instanceof Error ? error.message : '未知错误'}`);
         } finally {
-            setIsSmartGenerating(false);
+            setIsMonthlyGenerating(false);
         }
     };
 
@@ -467,12 +468,12 @@ const ProfitLossCalendar: React.FC<ProfitLossCalendarProps> = ({
 
                         <Button
                             onClick={handleMonthlySmartGenerate}
-                            disabled={isSmartGenerating || isLoading}
+                            disabled={isMonthlyGenerating || isLoading}
                             size="sm"
                             variant="outline"
                             className="border-purple-300 text-purple-700 hover:bg-purple-50"
                         >
-                            {isSmartGenerating ? (
+                            {isMonthlyGenerating ? (
                                 <>
                                     <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
                                     月度生成中...

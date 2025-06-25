@@ -328,12 +328,18 @@ const ProfitLossCalendar: React.FC<ProfitLossCalendarProps> = ({
                                 <>
                                     <div className="flex items-center gap-2">
                                         <DollarSign className="w-4 h-4" />
-                                        <span>总盈亏: {formatLargeNumber(dayData.totalGain, currency)}</span>
+                                        <span>当日盈亏: {formatLargeNumber(dayData.totalGain, currency)}</span>
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <TrendingUp className="w-4 h-4" />
-                                        <span>盈亏率: {dayData.totalGainPercent.toFixed(2)}%</span>
+                                        <span>当日收益率: {dayData.totalGainPercent.toFixed(2)}%</span>
                                     </div>
+                                    {dayData.cumulativeGain !== undefined && (
+                                        <div className="text-gray-600 text-sm border-t pt-2 mt-2">
+                                            <div>累计盈亏: {formatLargeNumber(dayData.cumulativeGain, currency)}</div>
+                                            <div>累计收益率: {dayData.cumulativeGainPercent?.toFixed(2)}%</div>
+                                        </div>
+                                    )}
                                     {hasTransaction && (
                                         <div className="text-blue-600 text-sm">📈 当日有交易</div>
                                     )}
@@ -342,16 +348,24 @@ const ProfitLossCalendar: React.FC<ProfitLossCalendarProps> = ({
                                             <div className="text-sm font-medium mb-1">股票详情:</div>
                                             <div className="space-y-1 max-h-32 overflow-y-auto">
                                                 {dayData.stocks.map((stock, index) => (
-                                                    <div key={index} className="text-xs flex justify-between">
-                                                        <span className="truncate mr-2">{stock.name}</span>
-                                                        <span className={cn(
-                                                            "font-medium",
-                                                            stock.gainPercent > 0 ? "text-green-600" : 
-                                                            stock.gainPercent < 0 ? "text-red-600" : "text-gray-600"
-                                                        )}>
-                                                            {stock.gainPercent > 0 ? '+' : ''}
-                                                            {stock.gainPercent.toFixed(2)}%
-                                                        </span>
+                                                    <div key={index} className="text-xs">
+                                                        <div className="flex justify-between">
+                                                            <span className="truncate mr-2">{stock.name}</span>
+                                                            <span className={cn(
+                                                                "font-medium",
+                                                                stock.gainPercent > 0 ? "text-green-600" :
+                                                                stock.gainPercent < 0 ? "text-red-600" : "text-gray-600"
+                                                            )}>
+                                                                {stock.gainPercent > 0 ? '+' : ''}
+                                                                {stock.gainPercent.toFixed(2)}%
+                                                            </span>
+                                                        </div>
+                                                        {stock.cumulativeGainPercent !== undefined && (
+                                                            <div className="text-gray-500 text-xs ml-2">
+                                                                累计: {stock.cumulativeGainPercent > 0 ? '+' : ''}
+                                                                {stock.cumulativeGainPercent.toFixed(2)}%
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 ))}
                                             </div>

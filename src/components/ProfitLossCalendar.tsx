@@ -437,9 +437,30 @@ const ProfitLossCalendar: React.FC<ProfitLossCalendarProps> = ({
                 </Button>
 
                 <div className="text-center">
-                    <h4 className="text-xl font-semibold">
-                        {currentYear}年 {months[currentMonth - 1]}
-                    </h4>
+                    <div className="flex items-center justify-center gap-2 mb-2">
+                        <h4 className="text-xl font-semibold">
+                            {currentYear}年
+                        </h4>
+                        <Select
+                            value={currentMonth.toString()}
+                            onValueChange={(value) => {
+                                const newMonth = parseInt(value);
+                                setCurrentMonth(newMonth);
+                                fetchCalendarData(currentYear, newMonth);
+                            }}
+                        >
+                            <SelectTrigger className="w-20 h-8">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {months.map((month, index) => (
+                                    <SelectItem key={index + 1} value={(index + 1).toString()}>
+                                        {month}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
                     {monthlySummary && (
                         <div className="text-sm mt-1 space-y-1">
                             <div className={`font-medium ${monthlySummary.totalGain >= 0 ? 'text-green-600' : 'text-red-600'}`}>

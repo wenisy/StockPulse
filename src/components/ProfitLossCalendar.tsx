@@ -23,11 +23,10 @@ const ProfitLossCalendar: React.FC<ProfitLossCalendarProps> = ({
     const [currentYear, setCurrentYear] = useState(parseInt(selectedYear));
 
     // 使用自定义 hook
-    const { calendarData, isLoading, error, fetchCalendarData, generateDailySnapshot, generateSmartSnapshot, fetchYearlyCalendarSummary } = useCalendarData();
+    const { calendarData, isLoading, error, fetchCalendarData, generateDailySnapshot } = useCalendarData();
 
     // 手动操作状态
     const [isGenerating, setIsGenerating] = useState(false);
-    const [isSmartGenerating, setIsSmartGenerating] = useState(false);
     const [generateDate, setGenerateDate] = useState(new Date().toISOString().split('T')[0]);
     const [availableYears, setAvailableYears] = useState<string[]>([]);
 
@@ -126,44 +125,7 @@ const ProfitLossCalendar: React.FC<ProfitLossCalendarProps> = ({
         }
     };
 
-    // 智能生成快照
-    const handleSmartSnapshot = async (forceGenerate: boolean = false) => {
-        setIsSmartGenerating(true);
-        try {
-            const result = await generateSmartSnapshot(generateDate, forceGenerate);
 
-            if (result.success) {
-                // 生成成功后刷新当前月份的数据
-                await fetchCalendarData(currentYear, currentMonth);
-
-                let message = `✅ ${generateDate} 的快照${result.isUpdate ? '更新' : '创建'}成功！`;
-                if (result.changeAmount) {
-                    message += `\n💰 盈亏变化: $${result.changeAmount.toFixed(2)}`;
-                }
-                if (result.updateCount > 1) {
-                    message += `\n🔄 第${result.updateCount}次更新`;
-                }
-                alert(message);
-            } else {
-                let message = '';
-                switch (result.reason) {
-                    case 'non_trading_day':
-                        message = `ℹ️ ${generateDate} 是非交易日，已跳过快照生成`;
-                        break;
-                    case 'no_significant_change':
-                        message = `ℹ️ ${generateDate} 数据无显著变化，已跳过快照生成\n💡 如需强制生成，请使用"强制生成"按钮`;
-                        break;
-                    default:
-                        message = `ℹ️ ${result.message}`;
-                }
-                alert(message);
-            }
-        } catch (error) {
-            alert(`❌ 智能快照生成失败: ${error instanceof Error ? error.message : '未知错误'}`);
-        } finally {
-            setIsSmartGenerating(false);
-        }
-    };
 
     // 为整个月份智能生成快照
     const handleMonthlySmartGenerate = async () => {
@@ -501,44 +463,7 @@ const ProfitLossCalendar: React.FC<ProfitLossCalendarProps> = ({
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2">
-                        <Button
-                            onClick={() => handleSmartSnapshot(false)}
-                            disabled={isSmartGenerating || isLoading}
-                            size="sm"
-                            className="bg-green-600 hover:bg-green-700"
-                        >
-                            {isSmartGenerating ? (
-                                <>
-                                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                                    智能生成中...
-                                </>
-                            ) : (
-                                <>
-                                    <Zap className="w-4 h-4 mr-2" />
-                                    智能生成
-                                </>
-                            )}
-                        </Button>
 
-                        <Button
-                            onClick={() => handleSmartSnapshot(true)}
-                            disabled={isSmartGenerating || isLoading}
-                            size="sm"
-                            variant="outline"
-                            className="border-orange-300 text-orange-700 hover:bg-orange-50"
-                        >
-                            {isSmartGenerating ? (
-                                <>
-                                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                                    强制生成中...
-                                </>
-                            ) : (
-                                <>
-                                    <AlertTriangle className="w-4 h-4 mr-2" />
-                                    强制生成
-                                </>
-                            )}
-                        </Button>
 
                         <Button
                             onClick={handleMonthlySmartGenerate}
@@ -592,9 +517,8 @@ const ProfitLossCalendar: React.FC<ProfitLossCalendarProps> = ({
                 </div>
 
                 <div className="text-xs text-blue-600 mt-3 space-y-1">
-                    <p>💡 <strong>智能生成</strong>: 自动检查交易日和数据变化，跳过无意义的快照</p>
-                    <p>⚠️ <strong>强制生成</strong>: 忽略交易日和数据变化检查，强制生成快照</p>
-                    <p>🔧 <strong>简单生成</strong>: 基础快照生成，不做智能判断</p>
+                    <p>🔧 <strong>简单生成</strong>: 基于实际持仓和历史价格生成快照</p>
+                    <p>📅 <strong>点击日历日期</strong>: 自动更新生成日期字段</p>
                 </div>
             </div>
 

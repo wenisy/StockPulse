@@ -350,18 +350,27 @@ const ProfitLossCalendar: React.FC<ProfitLossCalendarProps> = ({
                                             <div className="space-y-1 max-h-32 overflow-y-auto">
                                                 {dayData.stocks.map((stock, index) => (
                                                     <div key={index} className="text-xs">
-                                                        <div className="flex justify-between">
-                                                            <span className="truncate mr-2">{stock.name}</span>
-                                                            <span className={cn(
-                                                                "font-medium",
-                                                                stock.gainPercent > 0 ? "text-green-600" :
-                                                                stock.gainPercent < 0 ? "text-red-600" : "text-gray-600"
-                                                            )}>
-                                                                {stock.gainPercent > 0 ? '+' : ''}
-                                                                {stock.gainPercent.toFixed(2)}%
-                                                            </span>
+                                                        <div className="flex justify-between items-start">
+                                                            <span className="truncate mr-2 flex-1">{stock.name}</span>
+                                                            <div className="text-right">
+                                                                <div className={cn(
+                                                                    "font-medium",
+                                                                    stock.gainPercent > 0 ? "text-green-600" :
+                                                                    stock.gainPercent < 0 ? "text-red-600" : "text-gray-600"
+                                                                )}>
+                                                                    {stock.gainPercent > 0 ? '+' : ''}
+                                                                    {stock.gainPercent.toFixed(2)}%
+                                                                </div>
+                                                                <div className={cn(
+                                                                    "text-xs",
+                                                                    stock.gain > 0 ? "text-green-500" :
+                                                                    stock.gain < 0 ? "text-red-500" : "text-gray-500"
+                                                                )}>
+                                                                    {stock.gain > 0 ? '+' : ''}
+                                                                    {formatLargeNumber(stock.gain, currency)}
+                                                                </div>
+                                                            </div>
                                                         </div>
-
                                                     </div>
                                                 ))}
                                             </div>

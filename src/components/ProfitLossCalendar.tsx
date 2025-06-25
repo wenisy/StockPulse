@@ -23,7 +23,7 @@ const ProfitLossCalendar: React.FC<ProfitLossCalendarProps> = ({
     const [currentYear, setCurrentYear] = useState(parseInt(selectedYear));
 
     // 使用自定义 hook
-    const { calendarData, isLoading, error, fetchCalendarData, generateDailySnapshot } = useCalendarData();
+    const { calendarData, monthlySummary, isLoading, error, fetchCalendarData, generateDailySnapshot } = useCalendarData();
 
     // 手动操作状态
     const [isGenerating, setIsGenerating] = useState(false);
@@ -436,9 +436,25 @@ const ProfitLossCalendar: React.FC<ProfitLossCalendarProps> = ({
                     <ChevronLeft className="w-4 h-4" />
                 </Button>
 
-                <h4 className="text-xl font-semibold">
-                    {currentYear}年 {months[currentMonth - 1]}
-                </h4>
+                <div className="text-center">
+                    <h4 className="text-xl font-semibold">
+                        {currentYear}年 {months[currentMonth - 1]}
+                    </h4>
+                    {monthlySummary && (
+                        <div className="text-sm mt-1 space-y-1">
+                            <div className={`font-medium ${monthlySummary.totalGain >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                月度收益: {formatLargeNumber(monthlySummary.totalGain, currency)}
+                                ({monthlySummary.totalGain >= 0 ? '+' : ''}{monthlySummary.totalGainPercent.toFixed(2)}%)
+                            </div>
+                            <div className="text-gray-600 text-xs">
+                                交易日: {monthlySummary.tradingDaysCount}天 |
+                                盈利: {monthlySummary.profitDays}天 |
+                                亏损: {monthlySummary.lossDays}天 |
+                                胜率: {monthlySummary.winRate.toFixed(1)}%
+                            </div>
+                        </div>
+                    )}
+                </div>
 
                 <Button
                     variant="outline"

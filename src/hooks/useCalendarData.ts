@@ -7,18 +7,27 @@ const getBackendDomain = () => {
     return "//stock-backend-tau.vercel.app";
 };
 
+interface MonthlySummary {
+    totalGain: number;
+    totalGainPercent: number;
+    tradingDaysCount: number;
+    profitDays: number;
+    lossDays: number;
+    winRate: number;
+}
+
 interface UseCalendarDataReturn {
     calendarData: CalendarData[];
+    monthlySummary: MonthlySummary | null;
     isLoading: boolean;
     error: string | null;
     fetchCalendarData: (year: number, month: number) => Promise<void>;
-    fetchYearlyCalendarSummary: (year: number) => Promise<any>;
     generateDailySnapshot: (date?: string) => Promise<void>;
-    generateSmartSnapshot: (date?: string, forceGenerate?: boolean) => Promise<any>;
 }
 
 export const useCalendarData = (): UseCalendarDataReturn => {
     const [calendarData, setCalendarData] = useState<CalendarData[]>([]);
+    const [monthlySummary, setMonthlySummary] = useState<MonthlySummary | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -50,43 +59,18 @@ export const useCalendarData = (): UseCalendarDataReturn => {
 
             const result = await response.json();
             setCalendarData(result.data || []);
+            setMonthlySummary(result.monthlySummary || null);
         } catch (error) {
             console.error('获取日历数据失败:', error);
             setError(error instanceof Error ? error.message : '获取数据失败');
             setCalendarData([]);
+            setMonthlySummary(null);
         } finally {
             setIsLoading(false);
         }
     }, [backendDomain]); // 添加依赖项
 
-    // 获取年度汇总数据
-    const fetchYearlyCalendarSummary = async (year: number) => {
-        try {
-            const token = localStorage.getItem('token');
-            if (!token) {
-                throw new Error('未找到认证令牌');
-            }
 
-            const response = await fetch(
-                `${backendDomain}/api/calendarData?year=${year}&type=summary`,
-                {
-                    headers: {
-                        'Authorization': token,
-                    },
-                }
-            );
-
-            if (!response.ok) {
-                throw new Error(`获取年度汇总失败: ${response.statusText}`);
-            }
-
-            const result = await response.json();
-            return result.data || [];
-        } catch (error) {
-            console.error('获取年度汇总失败:', error);
-            throw error;
-        }
-    };
 
     // 手动生成每日快照
     const generateDailySnapshot = useCallback(async (date?: string) => {
@@ -122,51 +106,14 @@ export const useCalendarData = (): UseCalendarDataReturn => {
         }
     }, [backendDomain]);
 
-    // 智能生成每日快照
-    const generateSmartSnapshot = useCallback(async (date?: string, forceGenerate: boolean = false) => {
-        try {
-            const token = localStorage.getItem('token');
-            if (!token) {
-                throw new Error('未找到认证令牌');
-            }
 
-            const targetDate = date || new Date().toISOString().split('T')[0];
-
-            const response = await fetch(
-                `${backendDomain}/api/smartSnapshot`,
-                {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': token,
-                    },
-                    body: JSON.stringify({
-                        date: targetDate,
-                        forceGenerate
-                    })
-                }
-            );
-
-            if (!response.ok) {
-                throw new Error(`智能快照生成失败: ${response.statusText}`);
-            }
-
-            const result = await response.json();
-            console.log('智能快照结果:', result);
-            return result;
-        } catch (error) {
-            console.error('智能快照生成失败:', error);
-            throw error;
-        }
-    }, [backendDomain]);
 
     return {
         calendarData,
+        monthlySummary,
         isLoading,
         error,
         fetchCalendarData,
-        fetchYearlyCalendarSummary,
-        generateDailySnapshot,
-        generateSmartSnapshot
+        generateDailySnapshot
     };
 };

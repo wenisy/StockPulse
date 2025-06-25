@@ -23,12 +23,13 @@ const ProfitLossCalendar: React.FC<ProfitLossCalendarProps> = ({
     const [currentYear, setCurrentYear] = useState(parseInt(selectedYear));
 
     // 使用自定义 hook
-    const { calendarData, isLoading, error, fetchCalendarData, generateDailySnapshot, generateSmartSnapshot } = useCalendarData();
+    const { calendarData, isLoading, error, fetchCalendarData, generateDailySnapshot, generateSmartSnapshot, fetchYearlyCalendarSummary } = useCalendarData();
 
     // 手动操作状态
     const [isGenerating, setIsGenerating] = useState(false);
     const [isSmartGenerating, setIsSmartGenerating] = useState(false);
     const [generateDate, setGenerateDate] = useState(new Date().toISOString().split('T')[0]);
+    const [availableYears, setAvailableYears] = useState<string[]>([]);
 
     const months = [
         '一月', '二月', '三月', '四月', '五月', '六月',
@@ -36,6 +37,41 @@ const ProfitLossCalendar: React.FC<ProfitLossCalendarProps> = ({
     ];
 
     const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
+
+    // 获取可用年份
+    const fetchAvailableYears = useCallback(async () => {
+        try {
+            const years = [];
+            const currentYear = new Date().getFullYear();
+
+            // 检查从2020年到当前年份+1年的数据
+            for (let year = 2020; year <= currentYear + 1; year++) {
+                try {
+                    const summaryData = await fetchYearlyCalendarSummary(year);
+                    if (summaryData && summaryData.length > 0) {
+                        years.push(year.toString());
+                    }
+                } catch (error) {
+                    // 忽略没有数据的年份
+                }
+            }
+
+            if (years.length > 0) {
+                setAvailableYears(years);
+            } else {
+                // 如果没有找到数据，至少包含当前年份
+                setAvailableYears([currentYear.toString()]);
+            }
+        } catch (error) {
+            console.error('获取可用年份失败:', error);
+            setAvailableYears([new Date().getFullYear().toString()]);
+        }
+    }, [fetchYearlyCalendarSummary]);
+
+    // 初始化时获取可用年份
+    useEffect(() => {
+        fetchAvailableYears();
+    }, [fetchAvailableYears]);
 
     // 当年份或月份变化时获取数据
     useEffect(() => {
@@ -96,6 +132,70 @@ const ProfitLossCalendar: React.FC<ProfitLossCalendarProps> = ({
             }
         } catch (error) {
             alert(`❌ 智能快照生成失败: ${error instanceof Error ? error.message : '未知错误'}`);
+        } finally {
+            setIsSmartGenerating(false);
+        }
+    };
+
+    // 为整个月份智能生成快照
+    const handleMonthlySmartGenerate = async () => {
+        if (!confirm(`确定要为 ${currentYear}年${currentMonth}月 的所有日期智能生成快照吗？\n\n这将：\n- 为每个交易日生成快照\n- 跳过已存在且无变化的快照\n- 可能需要几分钟时间`)) {
+            return;
+        }
+
+        setIsSmartGenerating(true);
+        try {
+            const daysInMonth = getDaysInMonth(currentYear, currentMonth);
+            const results = [];
+
+            for (let day = 1; day <= daysInMonth; day++) {
+                const date = `${currentYear}-${currentMonth.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+
+                // 只为过去的日期生成快照（不包括未来日期）
+                if (new Date(date) <= new Date()) {
+                    try {
+                        const result = await generateSmartSnapshot(date, false); // 智能生成，避免重复
+                        results.push({
+                            date,
+                            success: result.success,
+                            message: result.success ? (result.isUpdate ? '更新' : '创建') : result.reason,
+                            reason: result.reason
+                        });
+
+                        // 添加延迟避免API限制
+                        await new Promise(resolve => setTimeout(resolve, 300));
+                    } catch (error) {
+                        results.push({ date, success: false, message: 'API错误', reason: 'error' });
+                    }
+                }
+            }
+
+            // 生成完成后刷新数据
+            await fetchCalendarData(currentYear, currentMonth);
+
+            const successful = results.filter(r => r.success).length;
+            const skipped = results.filter(r => !r.success && (r.reason === 'no_significant_change' || r.reason === 'non_trading_day')).length;
+            const failed = results.filter(r => !r.success && r.reason === 'error').length;
+            const total = results.length;
+
+            let summary = `✅ 月度智能生成完成！\n\n`;
+            summary += `📊 统计:\n`;
+            summary += `- 总天数: ${total}\n`;
+            summary += `- 成功生成: ${successful}\n`;
+            summary += `- 智能跳过: ${skipped}\n`;
+            summary += `- 失败: ${failed}\n\n`;
+
+            if (results.length <= 10) {
+                summary += `详情:\n${results.map(r => {
+                    const icon = r.success ? '✅' : (r.reason === 'error' ? '❌' : '⏭️');
+                    return `${r.date}: ${icon} ${r.message}`;
+                }).join('\n')}`;
+            }
+
+            alert(summary);
+
+        } catch (error) {
+            alert(`❌ 月度智能生成失败: ${error instanceof Error ? error.message : '未知错误'}`);
         } finally {
             setIsSmartGenerating(false);
         }
@@ -285,22 +385,19 @@ const ProfitLossCalendar: React.FC<ProfitLossCalendarProps> = ({
                 </div>
 
                 {/* 年份选择器 */}
-                <Select 
-                    value={currentYear.toString()} 
+                <Select
+                    value={currentYear.toString()}
                     onValueChange={(value) => setCurrentYear(parseInt(value))}
                 >
                     <SelectTrigger className="w-24">
                         <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                        {Array.from({ length: 10 }, (_, i) => {
-                            const year = new Date().getFullYear() - 5 + i;
-                            return (
-                                <SelectItem key={year} value={year.toString()}>
-                                    {year}
-                                </SelectItem>
-                            );
-                        })}
+                        {availableYears.map(year => (
+                            <SelectItem key={year} value={year}>
+                                {year}
+                            </SelectItem>
+                        ))}
                     </SelectContent>
                 </Select>
             </div>
@@ -380,6 +477,26 @@ const ProfitLossCalendar: React.FC<ProfitLossCalendarProps> = ({
                                 <>
                                     <AlertTriangle className="w-4 h-4 mr-2" />
                                     强制生成
+                                </>
+                            )}
+                        </Button>
+
+                        <Button
+                            onClick={handleMonthlySmartGenerate}
+                            disabled={isSmartGenerating || isLoading}
+                            size="sm"
+                            variant="outline"
+                            className="border-purple-300 text-purple-700 hover:bg-purple-50"
+                        >
+                            {isSmartGenerating ? (
+                                <>
+                                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                                    月度生成中...
+                                </>
+                            ) : (
+                                <>
+                                    <Calendar className="w-4 h-4 mr-2" />
+                                    月度智能生成
                                 </>
                             )}
                         </Button>

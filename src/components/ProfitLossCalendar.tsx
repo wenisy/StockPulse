@@ -334,12 +334,7 @@ const ProfitLossCalendar: React.FC<ProfitLossCalendarProps> = ({
                                         <TrendingUp className="w-4 h-4" />
                                         <span>当日收益率: {dayData.totalGainPercent.toFixed(2)}%</span>
                                     </div>
-                                    {dayData.cumulativeGain !== undefined && (
-                                        <div className="text-gray-600 text-sm border-t pt-2 mt-2">
-                                            <div>累计盈亏: {formatLargeNumber(dayData.cumulativeGain, currency)}</div>
-                                            <div>累计收益率: {dayData.cumulativeGainPercent?.toFixed(2)}%</div>
-                                        </div>
-                                    )}
+
                                     {hasTransaction && (
                                         <div className="text-blue-600 text-sm">📈 当日有交易</div>
                                     )}
@@ -360,12 +355,7 @@ const ProfitLossCalendar: React.FC<ProfitLossCalendarProps> = ({
                                                                 {stock.gainPercent.toFixed(2)}%
                                                             </span>
                                                         </div>
-                                                        {stock.cumulativeGainPercent !== undefined && (
-                                                            <div className="text-gray-500 text-xs ml-2">
-                                                                累计: {stock.cumulativeGainPercent > 0 ? '+' : ''}
-                                                                {stock.cumulativeGainPercent.toFixed(2)}%
-                                                            </div>
-                                                        )}
+
                                                     </div>
                                                 ))}
                                             </div>

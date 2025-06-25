@@ -309,7 +309,7 @@ const ProfitLossCalendar: React.FC<ProfitLossCalendarProps> = ({
                                     {dayData.stocks && dayData.stocks.length > 0 && (
                                         <div className="border-t pt-2 mt-2">
                                             <div className="text-sm font-medium mb-1">股票详情:</div>
-                                            <div className="space-y-1 max-h-32 overflow-y-auto">
+                                            <div className="space-y-1 max-h-48 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-200">
                                                 {dayData.stocks.map((stock, index) => (
                                                     <div key={index} className="text-xs">
                                                         <div className="flex justify-between items-start">

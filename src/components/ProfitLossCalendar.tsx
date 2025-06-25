@@ -38,40 +38,68 @@ const ProfitLossCalendar: React.FC<ProfitLossCalendarProps> = ({
 
     const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
 
-    // 获取可用年份
+    // 获取可用年份 - 改为从用户的交易数据中获取
     const fetchAvailableYears = useCallback(async () => {
         try {
-            const years = [];
-            const currentYear = new Date().getFullYear();
-
-            // 检查从2020年到当前年份+1年的数据
-            for (let year = 2020; year <= currentYear + 1; year++) {
-                try {
-                    const summaryData = await fetchYearlyCalendarSummary(year);
-                    if (summaryData && summaryData.length > 0) {
-                        years.push(year.toString());
-                    }
-                } catch (error) {
-                    // 忽略没有数据的年份
-                }
+            const token = localStorage.getItem('token');
+            if (!token) {
+                setAvailableYears([new Date().getFullYear().toString()]);
+                return;
             }
 
-            if (years.length > 0) {
-                setAvailableYears(years);
+            // 从后端获取用户的所有数据来确定有数据的年份
+            const backendDomain = "//stock-backend-tau.vercel.app";
+            const response = await fetch(`${backendDomain}/api/data`, {
+                headers: {
+                    'Authorization': token,
+                },
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                const years = new Set<string>();
+
+                // 从股票数据中提取年份
+                Object.keys(data.stocks || {}).forEach(year => {
+                    if (data.stocks[year] && data.stocks[year].length > 0) {
+                        years.add(year);
+                    }
+                });
+
+                // 从交易数据中提取年份
+                Object.keys(data.stockTransactions || {}).forEach(year => {
+                    if (data.stockTransactions[year] && data.stockTransactions[year].length > 0) {
+                        years.add(year);
+                    }
+                });
+
+                // 从现金交易中提取年份
+                Object.keys(data.cashTransactions || {}).forEach(year => {
+                    if (data.cashTransactions[year] && data.cashTransactions[year].length > 0) {
+                        years.add(year);
+                    }
+                });
+
+                const sortedYears = Array.from(years).sort();
+                console.log('找到的可用年份:', sortedYears);
+                if (sortedYears.length > 0) {
+                    setAvailableYears(sortedYears);
+                } else {
+                    setAvailableYears([new Date().getFullYear().toString()]);
+                }
             } else {
-                // 如果没有找到数据，至少包含当前年份
-                setAvailableYears([currentYear.toString()]);
+                setAvailableYears([new Date().getFullYear().toString()]);
             }
         } catch (error) {
             console.error('获取可用年份失败:', error);
             setAvailableYears([new Date().getFullYear().toString()]);
         }
-    }, [fetchYearlyCalendarSummary]);
+    }, []); // 移除依赖，避免无限循环
 
     // 初始化时获取可用年份
     useEffect(() => {
         fetchAvailableYears();
-    }, [fetchAvailableYears]);
+    }, []); // 只在组件挂载时执行一次
 
     // 当年份或月份变化时获取数据
     useEffect(() => {
@@ -393,13 +421,25 @@ const ProfitLossCalendar: React.FC<ProfitLossCalendarProps> = ({
                         <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                        {availableYears.map(year => (
-                            <SelectItem key={year} value={year}>
-                                {year}
+                        {availableYears.length > 0 ? (
+                            availableYears.map(year => (
+                                <SelectItem key={year} value={year}>
+                                    {year}
+                                </SelectItem>
+                            ))
+                        ) : (
+                            <SelectItem value={new Date().getFullYear().toString()}>
+                                {new Date().getFullYear()}
                             </SelectItem>
-                        ))}
+                        )}
                     </SelectContent>
                 </Select>
+                {/* 调试信息 */}
+                {process.env.NODE_ENV === 'development' && (
+                    <div className="text-xs text-gray-500">
+                        可用年份: {availableYears.join(', ') || '加载中...'}
+                    </div>
+                )}
             </div>
 
             {/* 月份导航 */}

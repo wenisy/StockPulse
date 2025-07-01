@@ -17,6 +17,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { Combobox } from '@/components/ui/combobox';
 
 import { cn } from '@/lib/utils';
 import {
@@ -1481,38 +1482,40 @@ const StockPortfolioTracker: React.FC = () => {
                 <div>
                     <h2 className="text-lg font-semibold mb-2">添加/更新股票 ({selectedYear}年)</h2>
                     <div className="grid grid-cols-1 md:grid-cols-6 gap-2">
-                        <Select onValueChange={(value) => {
-                            setNewStockName(value);
-                            const selectedStock = yearData[latestYear]?.stocks.find(stock => stock.name === value);
-                            if (selectedStock) {
-                                setNewStockSymbol(selectedStock.symbol || '');
-                            }
-                        }} value={newStockName}>
-                            <SelectTrigger className="w-full">
-                                <SelectValue placeholder="选择股票名称" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {yearData[latestYear]?.stocks.map(stock => (
-                                    <SelectItem key={stock.name} value={stock.name}>{stock.name}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                        <Select onValueChange={(value) => {
-                            setNewStockSymbol(value);
-                            const selectedStock = yearData[latestYear]?.stocks.find(stock => stock.symbol === value);
-                            if (selectedStock) {
-                                setNewStockName(selectedStock.name);
-                            }
-                        }} value={newStockSymbol}>
-                            <SelectTrigger className="w-full">
-                                <SelectValue placeholder="选择股票代码" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {yearData[latestYear]?.stocks.map(stock => (
-                                    <SelectItem key={stock.symbol} value={stock.symbol || ''}>{stock.symbol}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                        <Combobox
+                            options={yearData[latestYear]?.stocks.map(stock => ({
+                                label: stock.name,
+                                value: stock.name
+                            })) || []}
+                            value={newStockName}
+                            onChange={(value) => {
+                                setNewStockName(value);
+                                const selectedStock = yearData[latestYear]?.stocks.find(stock => stock.name === value);
+                                if (selectedStock) {
+                                    setNewStockSymbol(selectedStock.symbol || '');
+                                }
+                            }}
+                            placeholder="选择或输入股票名称"
+                            allowCustomInput={true}
+                            customInputPlaceholder="输入新股票名称..."
+                        />
+                        <Combobox
+                            options={yearData[latestYear]?.stocks.map(stock => ({
+                                label: stock.symbol || '',
+                                value: stock.symbol || ''
+                            })).filter(option => option.value) || []}
+                            value={newStockSymbol}
+                            onChange={(value) => {
+                                setNewStockSymbol(value);
+                                const selectedStock = yearData[latestYear]?.stocks.find(stock => stock.symbol === value);
+                                if (selectedStock) {
+                                    setNewStockName(selectedStock.name);
+                                }
+                            }}
+                            placeholder="选择或输入股票代码"
+                            allowCustomInput={true}
+                            customInputPlaceholder="输入新股票代码..."
+                        />
                         <Select onValueChange={(value) => setTransactionType(value as 'buy' | 'sell')}
                             value={transactionType}>
                             <SelectTrigger className="w-full"><SelectValue placeholder="交易类型" /></SelectTrigger>

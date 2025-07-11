@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown, DollarSign, Calend
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { CalendarData } from '@/types/stock';
 import { cn } from '@/lib/utils';
 import { useCalendarData } from '@/hooks/useCalendarData';
@@ -29,6 +30,12 @@ const ProfitLossCalendar: React.FC<ProfitLossCalendarProps> = ({
     const [isGenerating, setIsGenerating] = useState(false);
     const [isMonthlyGenerating, setIsMonthlyGenerating] = useState(false);
     const [generateDate, setGenerateDate] = useState(new Date().toISOString().split('T')[0]);
+    const [alertInfo, setAlertInfo] = useState<{
+        isOpen: boolean;
+        title: string;
+        description: string;
+        onConfirm?: () => void;
+    } | null>(null);
     const [availableYears, setAvailableYears] = useState<string[]>([]);
 
     const months = [
@@ -118,9 +125,19 @@ const ProfitLossCalendar: React.FC<ProfitLossCalendarProps> = ({
             await generateDailySnapshot(generateDate);
             // 生成成功后刷新当前月份的数据
             await fetchCalendarData(currentYear, currentMonth);
-            alert(`✅ ${generateDate} 的快照生成成功！`);
+            setAlertInfo({
+                isOpen: true,
+                title: "✅ 快照生成成功",
+                description: `${generateDate} 的快照已生成`,
+                onConfirm: () => setAlertInfo(null),
+            });
         } catch (error) {
-            alert(`❌ 快照生成失败: ${error instanceof Error ? error.message : '未知错误'}`);
+            setAlertInfo({
+                isOpen: true,
+                title: "❌ 快照生成失败",
+                description: error instanceof Error ? error.message : '未知错误',
+                onConfirm: () => setAlertInfo(null),
+            });
         } finally {
             setIsGenerating(false);
         }
@@ -128,22 +145,29 @@ const ProfitLossCalendar: React.FC<ProfitLossCalendarProps> = ({
 
 
 
-    // 为整个月份生成快照
+    // 为整个月份生成快照（只到今天）
     const handleMonthlyGenerate = async () => {
-        if (!confirm(`确定要为 ${currentYear}年${currentMonth}月 的所有日期生成快照吗？\n\n这将：\n- 为每个日期生成快照\n- 覆盖已存在的快照\n- 可能需要几分钟时间`)) {
+        const today = new Date();
+        const todayStr = today.toISOString().split('T')[0];
+        const currentMonthStr = `${currentYear}-${currentMonth.toString().padStart(2, '0')}`;
+
+        // 如果不是当前月份，生成整个月；如果是当前月份，只生成到今天
+        const isCurrentMonth = todayStr.startsWith(currentMonthStr);
+        const endDay = isCurrentMonth ? today.getDate() : getDaysInMonth(currentYear, currentMonth);
+
+        if (!confirm(`确定要为 ${currentYear}年${currentMonth}月 ${isCurrentMonth ? `(1日-${endDay}日)` : '的所有日期'} 生成快照吗？\n\n这将：\n- 为每个交易日生成快照\n- 覆盖已存在的快照\n- 可能需要几分钟时间`)) {
             return;
         }
 
         setIsMonthlyGenerating(true);
         try {
-            const daysInMonth = getDaysInMonth(currentYear, currentMonth);
             const results = [];
 
-            for (let day = 1; day <= daysInMonth; day++) {
+            for (let day = 1; day <= endDay; day++) {
                 const date = `${currentYear}-${currentMonth.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
 
-                // 只为过去的日期生成快照（不包括未来日期）
-                if (new Date(date) <= new Date()) {
+                // 确保不生成未来日期的快照
+                if (new Date(date) <= today) {
                     try {
                         await generateDailySnapshot(date);
                         results.push({
@@ -184,10 +208,20 @@ const ProfitLossCalendar: React.FC<ProfitLossCalendarProps> = ({
                 }).join('\n')}`;
             }
 
-            alert(summary);
+            setAlertInfo({
+                isOpen: true,
+                title: "✅ 月度生成完成！",
+                description: `成功生成: ${successful}个，失败: ${failed}个`,
+                onConfirm: () => setAlertInfo(null),
+            });
 
         } catch (error) {
-            alert(`❌ 月度生成失败: ${error instanceof Error ? error.message : '未知错误'}`);
+            setAlertInfo({
+                isOpen: true,
+                title: "❌ 月度生成失败",
+                description: error instanceof Error ? error.message : '未知错误',
+                onConfirm: () => setAlertInfo(null),
+            });
         } finally {
             setIsMonthlyGenerating(false);
         }
@@ -592,6 +626,25 @@ const ProfitLossCalendar: React.FC<ProfitLossCalendarProps> = ({
                     </div>
                 </div>
             )}
+
+            {/* 提示对话框 */}
+            <Dialog open={alertInfo?.isOpen} onOpenChange={(open) => {
+                if (!open) setAlertInfo(null);
+            }}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>{alertInfo?.title}</DialogTitle>
+                        <DialogDescription>
+                            {alertInfo?.description}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="flex justify-end">
+                        <Button onClick={alertInfo?.onConfirm}>
+                            确定
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 };

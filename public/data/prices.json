@@ -1,49 +1,49 @@
 {
   "HKD": {
-    "price": 0.12742506,
+    "price": 0.12741937,
     "name": "HKD-USD",
-    "lastUpdated": "2025-07-16"
+    "lastUpdated": "2025-07-17"
   },
   "CNY": {
-    "price": 0.13930486,
+    "price": 0.13922341,
     "name": "CNY-USD",
-    "lastUpdated": "2025-07-16"
+    "lastUpdated": "2025-07-17"
   },
   "0700.HK": {
-    "price": 65.81504349000001,
-    "originalPrice": 516.5,
+    "price": 65.87581429000001,
+    "originalPrice": 517.0,
     "currency": "HKD",
     "name": "Tencent",
-    "lastUpdated": "2025-07-16"
+    "lastUpdated": "2025-07-17"
   },
   "TSLA": {
-    "price": 321.67,
+    "price": 319.41,
     "name": "Tesla",
-    "lastUpdated": "2025-07-16"
+    "lastUpdated": "2025-07-17"
   },
   "VST": {
-    "price": 184.13,
+    "price": 182.0,
     "name": "Vistra Energy",
-    "lastUpdated": "2025-07-16"
+    "lastUpdated": "2025-07-17"
   },
   "PLTR": {
-    "price": 150.91,
+    "price": 153.99,
     "name": "Palantir",
-    "lastUpdated": "2025-07-16"
+    "lastUpdated": "2025-07-17"
   },
   "RKLB": {
-    "price": 47.69,
+    "price": 51.33,
     "name": "Rocket Lab",
-    "lastUpdated": "2025-07-16"
+    "lastUpdated": "2025-07-17"
   },
   "GOOGL": {
-    "price": 182.97,
+    "price": 183.58,
     "name": "Google",
-    "lastUpdated": "2025-07-16"
+    "lastUpdated": "2025-07-17"
   },
   "VOO": {
-    "price": 573.74,
+    "price": 577.18,
     "name": "Vanguard S&P 500 ETF",
-    "lastUpdated": "2025-07-16"
+    "lastUpdated": "2025-07-17"
   }
 }

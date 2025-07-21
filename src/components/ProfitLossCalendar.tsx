@@ -20,13 +20,14 @@ const ProfitLossCalendar: React.FC<ProfitLossCalendarProps> = ({
     formatLargeNumber,
     currency
 }) => {
-    // 使用美东时间初始化当前月份
-    const getUSEasternDateObj = () => {
-        const now = new Date();
-        return new Date(now.toLocaleString("en-US", {timeZone: "America/New_York"}));
-    };
+    // 美东时间状态
+    const [usEasternTime, setUsEasternTime] = useState<{
+        date: string;
+        dateTime: string;
+        weekday: string;
+    } | null>(null);
 
-    const [currentMonth, setCurrentMonth] = useState(getUSEasternDateObj().getMonth() + 1);
+    const [currentMonth, setCurrentMonth] = useState(new Date().getMonth() + 1);
     const [currentYear, setCurrentYear] = useState(parseInt(selectedYear));
 
     // 使用自定义 hook
@@ -44,6 +45,40 @@ const ProfitLossCalendar: React.FC<ProfitLossCalendarProps> = ({
     };
 
     const [generateDate, setGenerateDate] = useState(getUSEasternDate());
+
+    // 获取可靠的美东时间
+    const fetchUSEasternTime = async () => {
+        try {
+            const backendDomain = "https://stock-backend-tau.vercel.app";
+            const response = await fetch(`${backendDomain}/api/getUSEasternTime`);
+            if (response.ok) {
+                const data = await response.json();
+                setUsEasternTime({
+                    date: data.usEastern.date,
+                    dateTime: data.usEastern.dateTime,
+                    weekday: data.usEastern.weekday
+                });
+
+                // 更新当前月份为美东时间的月份
+                const easternDate = new Date(data.usEastern.date);
+                setCurrentMonth(easternDate.getMonth() + 1);
+                setCurrentYear(easternDate.getFullYear());
+
+                // 更新默认生成日期
+                setGenerateDate(data.usEastern.date);
+            }
+        } catch (error) {
+            console.error('获取美东时间失败:', error);
+        }
+    };
+
+    // 组件加载时获取美东时间
+    useEffect(() => {
+        fetchUSEasternTime();
+        // 每分钟更新一次
+        const interval = setInterval(fetchUSEasternTime, 60000);
+        return () => clearInterval(interval);
+    }, []);
 
     const [availableYears, setAvailableYears] = useState<string[]>([]);
 
@@ -467,18 +502,11 @@ const ProfitLossCalendar: React.FC<ProfitLossCalendarProps> = ({
             {/* 美东时间显示 */}
             <div className="text-center py-2 bg-blue-50 rounded-lg border border-blue-200">
                 <div className="text-sm text-blue-700">
-                    🌍 当前美东时间: {getUSEasternDateObj().toLocaleString("zh-CN", {
-                        timeZone: "America/New_York",
-                        year: 'numeric',
-                        month: '2-digit',
-                        day: '2-digit',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        weekday: 'short'
-                    })}
+                    🌍 当前美东时间: {usEasternTime ? usEasternTime.dateTime : '获取中...'}
                 </div>
                 <div className="text-xs text-blue-600 mt-1">
                     📊 所有股票数据基于美东时间，避免时区混乱
+                    {usEasternTime && ` (独立于客户端时区计算)`}
                 </div>
             </div>
 

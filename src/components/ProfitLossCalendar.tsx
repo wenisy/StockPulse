@@ -4,7 +4,7 @@ import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown, DollarSign, Calend
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { useToast } from '@/components/ui/toast';
 import { CalendarData } from '@/types/stock';
 import { cn } from '@/lib/utils';
 import { useCalendarData } from '@/hooks/useCalendarData';
@@ -25,17 +25,13 @@ const ProfitLossCalendar: React.FC<ProfitLossCalendarProps> = ({
 
     // 使用自定义 hook
     const { calendarData, monthlySummary, isLoading, error, fetchCalendarData, generateDailySnapshot } = useCalendarData();
+    const { addToast } = useToast();
 
     // 手动操作状态
     const [isGenerating, setIsGenerating] = useState(false);
     const [isMonthlyGenerating, setIsMonthlyGenerating] = useState(false);
     const [generateDate, setGenerateDate] = useState(new Date().toISOString().split('T')[0]);
-    const [alertInfo, setAlertInfo] = useState<{
-        isOpen: boolean;
-        title: string;
-        description: string;
-        onConfirm?: () => void;
-    } | null>(null);
+
     const [availableYears, setAvailableYears] = useState<string[]>([]);
 
     const months = [
@@ -125,18 +121,18 @@ const ProfitLossCalendar: React.FC<ProfitLossCalendarProps> = ({
             await generateDailySnapshot(generateDate);
             // 生成成功后刷新当前月份的数据
             await fetchCalendarData(currentYear, currentMonth);
-            setAlertInfo({
-                isOpen: true,
-                title: "✅ 快照生成成功",
+            addToast({
+                title: "快照生成成功",
                 description: `${generateDate} 的快照已生成`,
-                onConfirm: () => setAlertInfo(null),
+                variant: "success",
+                duration: 3000,
             });
         } catch (error) {
-            setAlertInfo({
-                isOpen: true,
-                title: "❌ 快照生成失败",
+            addToast({
+                title: "快照生成失败",
                 description: error instanceof Error ? error.message : '未知错误',
-                onConfirm: () => setAlertInfo(null),
+                variant: "error",
+                duration: 5000,
             });
         } finally {
             setIsGenerating(false);
@@ -145,29 +141,62 @@ const ProfitLossCalendar: React.FC<ProfitLossCalendarProps> = ({
 
 
 
-    // 为整个月份生成快照（只到今天）
+    // 为整个月份生成快照（智能检测缺失日期）
     const handleMonthlyGenerate = async () => {
-        const today = new Date();
-        const todayStr = today.toISOString().split('T')[0];
-        const currentMonthStr = `${currentYear}-${currentMonth.toString().padStart(2, '0')}`;
-
-        // 如果不是当前月份，生成整个月；如果是当前月份，只生成到今天
-        const isCurrentMonth = todayStr.startsWith(currentMonthStr);
-        const endDay = isCurrentMonth ? today.getDate() : getDaysInMonth(currentYear, currentMonth);
-
-        if (!confirm(`确定要为 ${currentYear}年${currentMonth}月 ${isCurrentMonth ? `(1日-${endDay}日)` : '的所有日期'} 生成快照吗？\n\n这将：\n- 为每个交易日生成快照\n- 覆盖已存在的快照\n- 可能需要几分钟时间`)) {
-            return;
-        }
-
         setIsMonthlyGenerating(true);
+
         try {
+            // 1. 获取缺失的快照日期
+            const token = localStorage.getItem('token');
+            if (!token) {
+                addToast({
+                    title: "生成失败",
+                    description: "请先登录",
+                    variant: "error",
+                    duration: 3000,
+                });
+                return;
+            }
+
+            const backendDomain = "https://stock-backend-tau.vercel.app";
+            const response = await fetch(`${backendDomain}/api/getExistingSnapshots?year=${currentYear}&month=${currentMonth.toString().padStart(2, '0')}`, {
+                headers: {
+                    'Authorization': token,
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('获取快照信息失败');
+            }
+
+            const snapshotInfo = await response.json();
+            const { existingDates, missingDates, existingCount, missingCount } = snapshotInfo;
+
+            // 2. 如果没有缺失的日期，提示用户
+            if (missingCount === 0) {
+                addToast({
+                    title: "无需生成",
+                    description: `${currentYear}年${currentMonth}月的所有快照都已存在 (${existingCount}个)`,
+                    variant: "warning",
+                    duration: 4000,
+                });
+                return;
+            }
+
+            // 3. 确认生成
+            const confirmMessage = `发现 ${currentYear}年${currentMonth}月 有 ${missingCount} 个日期缺少快照：\n\n` +
+                `已有快照: ${existingCount}个\n` +
+                `缺失日期: ${missingDates.slice(0, 5).join(', ')}${missingCount > 5 ? ` 等${missingCount}个` : ''}\n\n` +
+                `确定要生成这些缺失的快照吗？`;
+
+            if (!confirm(confirmMessage)) {
+                return;
+            }
+
+            // 4. 生成缺失的快照
             const results = [];
 
-            for (let day = 1; day <= endDay; day++) {
-                const date = `${currentYear}-${currentMonth.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
-
-                // 确保不生成未来日期的快照
-                if (new Date(date) <= today) {
+            for (const date of missingDates) {
                     try {
                         await generateDailySnapshot(date);
                         results.push({
@@ -185,42 +214,27 @@ const ProfitLossCalendar: React.FC<ProfitLossCalendarProps> = ({
                             message: error instanceof Error ? error.message : 'API错误'
                         });
                     }
-                }
             }
 
-            // 生成完成后刷新数据
+            // 5. 生成完成后刷新数据
             await fetchCalendarData(currentYear, currentMonth);
 
             const successful = results.filter(r => r.success).length;
             const failed = results.filter(r => !r.success).length;
-            const total = results.length;
 
-            let summary = `✅ 月度生成完成！\n\n`;
-            summary += `📊 统计:\n`;
-            summary += `- 总天数: ${total}\n`;
-            summary += `- 成功生成: ${successful}\n`;
-            summary += `- 失败: ${failed}\n\n`;
-
-            if (results.length <= 10) {
-                summary += `详情:\n${results.map(r => {
-                    const icon = r.success ? '✅' : '❌';
-                    return `${r.date}: ${icon} ${r.message}`;
-                }).join('\n')}`;
-            }
-
-            setAlertInfo({
-                isOpen: true,
-                title: "✅ 月度生成完成！",
+            addToast({
+                title: "月度生成完成！",
                 description: `成功生成: ${successful}个，失败: ${failed}个`,
-                onConfirm: () => setAlertInfo(null),
+                variant: "success",
+                duration: 5000,
             });
 
         } catch (error) {
-            setAlertInfo({
-                isOpen: true,
-                title: "❌ 月度生成失败",
+            addToast({
+                title: "月度生成失败",
                 description: error instanceof Error ? error.message : '未知错误',
-                onConfirm: () => setAlertInfo(null),
+                variant: "error",
+                duration: 5000,
             });
         } finally {
             setIsMonthlyGenerating(false);
@@ -626,25 +640,6 @@ const ProfitLossCalendar: React.FC<ProfitLossCalendarProps> = ({
                     </div>
                 </div>
             )}
-
-            {/* 提示对话框 */}
-            <Dialog open={alertInfo?.isOpen} onOpenChange={(open) => {
-                if (!open) setAlertInfo(null);
-            }}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>{alertInfo?.title}</DialogTitle>
-                        <DialogDescription>
-                            {alertInfo?.description}
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="flex justify-end">
-                        <Button onClick={alertInfo?.onConfirm}>
-                            确定
-                        </Button>
-                    </div>
-                </DialogContent>
-            </Dialog>
         </div>
     );
 };

@@ -30,7 +30,14 @@ const ProfitLossCalendar: React.FC<ProfitLossCalendarProps> = ({
     // 手动操作状态
     const [isGenerating, setIsGenerating] = useState(false);
     const [isMonthlyGenerating, setIsMonthlyGenerating] = useState(false);
-    const [generateDate, setGenerateDate] = useState(new Date().toISOString().split('T')[0]);
+    // 使用美东时间作为默认日期
+    const getUSEasternDate = () => {
+        const now = new Date();
+        const usEastern = new Date(now.toLocaleString("en-US", {timeZone: "America/New_York"}));
+        return usEastern.toISOString().split('T')[0];
+    };
+
+    const [generateDate, setGenerateDate] = useState(getUSEasternDate());
 
     const [availableYears, setAvailableYears] = useState<string[]>([]);
 
@@ -141,62 +148,39 @@ const ProfitLossCalendar: React.FC<ProfitLossCalendarProps> = ({
 
 
 
-    // 为整个月份生成快照（智能检测缺失日期）
+    // 为整个月份生成快照（从1号开始重新生成，基于美东时间）
     const handleMonthlyGenerate = async () => {
+        const usEasternDate = getUSEasternDate();
+        const currentMonthStr = `${currentYear}-${currentMonth.toString().padStart(2, '0')}`;
+
+        // 如果不是当前月份，生成整个月；如果是当前月份，只生成到美东时间的今天
+        const isCurrentMonth = usEasternDate.startsWith(currentMonthStr);
+        const endDay = isCurrentMonth ?
+            new Date(usEasternDate).getDate() :
+            getDaysInMonth(currentYear, currentMonth);
+
+        const confirmMessage = `确定要为 ${currentYear}年${currentMonth}月 ${isCurrentMonth ? `(1日-${endDay}日，基于美东时间)` : '的所有日期'} 重新生成快照吗？\n\n` +
+            `⚠️ 注意：\n` +
+            `- 这将覆盖已存在的快照数据\n` +
+            `- 使用美东时间避免时区混乱\n` +
+            `- 可能需要几分钟时间\n` +
+            `- 建议在美股收盘后执行`;
+
+        if (!confirm(confirmMessage)) {
+            return;
+        }
+
         setIsMonthlyGenerating(true);
 
         try {
-            // 1. 获取缺失的快照日期
-            const token = localStorage.getItem('token');
-            if (!token) {
-                addToast({
-                    title: "生成失败",
-                    description: "请先登录",
-                    variant: "error",
-                    duration: 3000,
-                });
-                return;
-            }
-
-            const backendDomain = "https://stock-backend-tau.vercel.app";
-            const response = await fetch(`${backendDomain}/api/getExistingSnapshots?year=${currentYear}&month=${currentMonth.toString().padStart(2, '0')}`, {
-                headers: {
-                    'Authorization': token,
-                }
-            });
-
-            if (!response.ok) {
-                throw new Error('获取快照信息失败');
-            }
-
-            const snapshotInfo = await response.json();
-            const { existingDates, missingDates, existingCount, missingCount } = snapshotInfo;
-
-            // 2. 如果没有缺失的日期，提示用户
-            if (missingCount === 0) {
-                addToast({
-                    title: "无需生成",
-                    description: `${currentYear}年${currentMonth}月的所有快照都已存在 (${existingCount}个)`,
-                    variant: "warning",
-                    duration: 4000,
-                });
-                return;
-            }
-
-            // 3. 确认生成
-            const confirmMessage = `发现 ${currentYear}年${currentMonth}月 有 ${missingCount} 个日期缺少快照：\n\n` +
-                `已有快照: ${existingCount}个\n` +
-                `缺失日期: ${missingDates.slice(0, 5).join(', ')}${missingCount > 5 ? ` 等${missingCount}个` : ''}\n\n` +
-                `确定要生成这些缺失的快照吗？`;
-
-            if (!confirm(confirmMessage)) {
-                return;
-            }
-
-            // 4. 生成缺失的快照
             const results = [];
 
-            for (const date of missingDates) {
+            // 从1号开始生成到指定结束日期
+            for (let day = 1; day <= endDay; day++) {
+                const date = `${currentYear}-${currentMonth.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+
+                // 确保不生成未来日期的快照（基于美东时间）
+                if (new Date(date) <= new Date(usEasternDate)) {
                     try {
                         await generateDailySnapshot(date);
                         results.push({
@@ -214,6 +198,7 @@ const ProfitLossCalendar: React.FC<ProfitLossCalendarProps> = ({
                             message: error instanceof Error ? error.message : 'API错误'
                         });
                     }
+                }
             }
 
             // 5. 生成完成后刷新数据
@@ -540,12 +525,17 @@ const ProfitLossCalendar: React.FC<ProfitLossCalendarProps> = ({
                 <div className="space-y-3">
                     <div className="flex items-center gap-2">
                         <label className="text-sm text-blue-700 min-w-[60px]">生成日期:</label>
-                        <input
-                            type="date"
-                            value={generateDate}
-                            onChange={(e) => setGenerateDate(e.target.value)}
-                            className="px-2 py-1 border border-blue-300 rounded text-sm"
-                        />
+                        <div className="flex flex-col gap-1">
+                            <input
+                                type="date"
+                                value={generateDate}
+                                onChange={(e) => setGenerateDate(e.target.value)}
+                                className="px-2 py-1 border border-blue-300 rounded text-sm"
+                            />
+                            <span className="text-xs text-blue-600">
+                                📍 基于美东时间 (避免时区混乱)
+                            </span>
+                        </div>
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2">

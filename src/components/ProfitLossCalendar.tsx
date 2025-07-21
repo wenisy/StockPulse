@@ -20,7 +20,13 @@ const ProfitLossCalendar: React.FC<ProfitLossCalendarProps> = ({
     formatLargeNumber,
     currency
 }) => {
-    const [currentMonth, setCurrentMonth] = useState(new Date().getMonth() + 1);
+    // 使用美东时间初始化当前月份
+    const getUSEasternDateObj = () => {
+        const now = new Date();
+        return new Date(now.toLocaleString("en-US", {timeZone: "America/New_York"}));
+    };
+
+    const [currentMonth, setCurrentMonth] = useState(getUSEasternDateObj().getMonth() + 1);
     const [currentYear, setCurrentYear] = useState(parseInt(selectedYear));
 
     // 使用自定义 hook
@@ -456,6 +462,24 @@ const ProfitLossCalendar: React.FC<ProfitLossCalendarProps> = ({
                         可用年份: {availableYears.join(', ') || '加载中...'}
                     </div>
                 )}
+            </div>
+
+            {/* 美东时间显示 */}
+            <div className="text-center py-2 bg-blue-50 rounded-lg border border-blue-200">
+                <div className="text-sm text-blue-700">
+                    🌍 当前美东时间: {getUSEasternDateObj().toLocaleString("zh-CN", {
+                        timeZone: "America/New_York",
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        weekday: 'short'
+                    })}
+                </div>
+                <div className="text-xs text-blue-600 mt-1">
+                    📊 所有股票数据基于美东时间，避免时区混乱
+                </div>
             </div>
 
             {/* 月份导航 */}

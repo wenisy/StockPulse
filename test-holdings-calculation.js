@@ -8,53 +8,61 @@
 // 模拟Yahoo Finance API
 async function mockGetRealTimeStockPrices(symbols) {
     const mockPrices = {
-        'VOO': {
-            price: 559.44,
-            previousClose: 553.36,
-            changePercent: 1.10,
-            change: 6.08,
+        'SPY': {
+            price: 523.78,
+            previousClose: 518.45,
+            changePercent: 1.03,
+            change: 5.33,
             currency: 'USD',
-            name: 'Vanguard S&P 500 ETF'
+            name: 'SPDR S&P 500 ETF Trust'
         },
-        'TSLA': {
-            price: 340.47,
-            previousClose: 348.68,
-            changePercent: -2.35,
-            change: -8.21,
+        'META': {
+            price: 324.56,
+            previousClose: 318.92,
+            changePercent: 1.77,
+            change: 5.64,
             currency: 'USD',
-            name: 'Tesla Inc'
+            name: 'Meta Platforms Inc'
         },
-        'RKLB': {
-            price: 12.85,
-            previousClose: 9.92,
-            changePercent: 29.54,
-            change: 2.93,
+        'AMZN': {
+            price: 167.89,
+            previousClose: 165.23,
+            changePercent: 1.61,
+            change: 2.66,
             currency: 'USD',
-            name: 'Rocket Lab USA Inc'
+            name: 'Amazon.com Inc'
         },
-        'PLTR': {
-            price: 28.45,
-            previousClose: 22.25,
-            changePercent: 27.87,
-            change: 6.20,
+        'NVDA': {
+            price: 585.73,
+            previousClose: 572.18,
+            changePercent: 2.37,
+            change: 13.55,
             currency: 'USD',
-            name: 'Palantir Technologies Inc'
+            name: 'NVIDIA Corporation'
         },
-        'GOOGL': {
-            price: 175.32,
-            previousClose: 211.48,
-            changePercent: -17.10,
-            change: -36.16,
+        'MSFT': {
+            price: 382.15,
+            previousClose: 378.44,
+            changePercent: 0.98,
+            change: 3.71,
             currency: 'USD',
-            name: 'Alphabet Inc'
+            name: 'Microsoft Corporation'
         },
-        '0700.HK': {
-            price: 420.80,
-            previousClose: 274.00,
-            changePercent: 53.58,
-            change: 146.80,
-            currency: 'HKD',
-            name: 'Tencent Holdings Ltd'
+        'AAPL': {
+            price: 195.42,
+            previousClose: 192.87,
+            changePercent: 1.32,
+            change: 2.55,
+            currency: 'USD',
+            name: 'Apple Inc'
+        },
+        'NFLX': {
+            price: 485.23,
+            previousClose: 478.91,
+            changePercent: 1.32,
+            change: 6.32,
+            currency: 'USD',
+            name: 'Netflix Inc'
         }
     };
     
@@ -73,77 +81,77 @@ const mockStocksData = [
     {
         properties: {
             Year: { select: { name: "2025" } },
-            Name: { title: [{ text: { content: "Vanguard S&P 500 ETF" } }] },
-            Symbol: { rich_text: [{ text: { content: "VOO" } }] },
-            Shares: { number: 11 },
-            'Cost Price': { number: 300.00 }
+            Name: { title: [{ text: { content: "SPDR S&P 500 ETF Trust" } }] },
+            Symbol: { rich_text: [{ text: { content: "SPY" } }] },
+            Shares: { number: 15 },
+            'Cost Price': { number: 480.00 }
         }
     },
     {
         properties: {
             Year: { select: { name: "2025" } },
-            Name: { title: [{ text: { content: "Tesla" } }] },
-            Symbol: { rich_text: [{ text: { content: "TSLA" } }] },
-            Shares: { number: 10 },
-            'Cost Price': { number: 200.00 }
+            Name: { title: [{ text: { content: "Meta Platforms Inc." } }] },
+            Symbol: { rich_text: [{ text: { content: "META" } }] },
+            Shares: { number: 25 },
+            'Cost Price': { number: 280.00 }
         }
     },
     {
         properties: {
             Year: { select: { name: "2025" } },
-            Name: { title: [{ text: { content: "Rocket Lab" } }] },
-            Symbol: { rich_text: [{ text: { content: "RKLB" } }] },
-            Shares: { number: 50 },
-            'Cost Price': { number: 8.00 }
+            Name: { title: [{ text: { content: "Amazon.com Inc." } }] },
+            Symbol: { rich_text: [{ text: { content: "AMZN" } }] },
+            Shares: { number: 40 },
+            'Cost Price': { number: 145.00 }
         }
     },
     {
         properties: {
             Year: { select: { name: "2025" } },
-            Name: { title: [{ text: { content: "Palantir" } }] },
-            Symbol: { rich_text: [{ text: { content: "PLTR" } }] },
-            Shares: { number: 5 },
-            'Cost Price': { number: 20.00 }
-        }
-    },
-    {
-        properties: {
-            Year: { select: { name: "2025" } },
-            Name: { title: [{ text: { content: "Google" } }] },
-            Symbol: { rich_text: [{ text: { content: "GOOGL" } }] },
-            Shares: { number: 2 },
-            'Cost Price': { number: 250.00 }
-        }
-    },
-    {
-        properties: {
-            Year: { select: { name: "2025" } },
-            Name: { title: [{ text: { content: "Tencent" } }] },
-            Symbol: { rich_text: [{ text: { content: "0700.HK" } }] },
+            Name: { title: [{ text: { content: "NVIDIA Corporation" } }] },
+            Symbol: { rich_text: [{ text: { content: "NVDA" } }] },
             Shares: { number: 20 },
-            'Cost Price': { number: 300.00 }
+            'Cost Price': { number: 450.00 }
+        }
+    },
+    {
+        properties: {
+            Year: { select: { name: "2025" } },
+            Name: { title: [{ text: { content: "Microsoft Corporation" } }] },
+            Symbol: { rich_text: [{ text: { content: "MSFT" } }] },
+            Shares: { number: 12 },
+            'Cost Price': { number: 340.00 }
+        }
+    },
+    {
+        properties: {
+            Year: { select: { name: "2025" } },
+            Name: { title: [{ text: { content: "Apple Inc." } }] },
+            Symbol: { rich_text: [{ text: { content: "AAPL" } }] },
+            Shares: { number: 30 },
+            'Cost Price': { number: 180.00 }
         }
     }
 ];
 
-// 模拟交易数据 - 2025-06-25当日有一笔卖出VST的交易
+// 模拟交易数据 - 2025-06-25当日有一笔卖出NFLX的交易
 const mockTransactionsData = [
     {
         properties: {
             Date: { date: { start: "2025-06-25" } },
-            Stock: { rich_text: [{ text: { content: "Vistra Energy" } }] },
+            Stock: { rich_text: [{ text: { content: "Netflix Inc." } }] },
             Type: { select: { name: "sell" } },
-            Shares: { number: 10 },
-            'Price Per Share': { number: 184.18 }
+            Shares: { number: 5 },
+            'Price Per Share': { number: 485.23 }
         }
     },
     {
         properties: {
             Date: { date: { start: "2025-06-24" } },
-            Stock: { rich_text: [{ text: { content: "Vistra Energy" } }] },
+            Stock: { rich_text: [{ text: { content: "Netflix Inc." } }] },
             Type: { select: { name: "sell" } },
-            Shares: { number: 10 },
-            'Price Per Share': { number: 184.18 }
+            Shares: { number: 5 },
+            'Price Per Share': { number: 485.23 }
         }
     }
 ];

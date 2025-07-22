@@ -9,41 +9,39 @@
     "name": "CNY-USD",
     "lastUpdated": "2025-07-21"
   },
-  "0700.HK": {
-    "price": 66.43904263499999,
-    "originalPrice": 521.5,
-    "currency": "HKD",
-    "name": "Tencent",
+  "AAPL": {
+    "price": 195.42,
+    "name": "Apple Inc.",
     "lastUpdated": "2025-07-21"
   },
-  "TSLA": {
-    "price": 328.49,
-    "name": "Tesla",
+  "MSFT": {
+    "price": 382.15,
+    "name": "Microsoft Corporation",
     "lastUpdated": "2025-07-21"
   },
-  "VST": {
-    "price": 188.23,
-    "name": "Vistra Energy",
+  "NVDA": {
+    "price": 585.73,
+    "name": "NVIDIA Corporation",
     "lastUpdated": "2025-07-21"
   },
-  "PLTR": {
-    "price": 151.79,
-    "name": "Palantir",
+  "AMZN": {
+    "price": 167.89,
+    "name": "Amazon.com Inc.",
     "lastUpdated": "2025-07-21"
   },
-  "RKLB": {
-    "price": 47.19,
-    "name": "Rocket Lab",
+  "META": {
+    "price": 324.56,
+    "name": "Meta Platforms Inc.",
     "lastUpdated": "2025-07-21"
   },
-  "GOOGL": {
-    "price": 190.1,
-    "name": "Google",
+  "NFLX": {
+    "price": 485.23,
+    "name": "Netflix Inc.",
     "lastUpdated": "2025-07-21"
   },
-  "VOO": {
-    "price": 577.95,
-    "name": "Vanguard S&P 500 ETF",
+  "SPY": {
+    "price": 523.78,
+    "name": "SPDR S&P 500 ETF Trust",
     "lastUpdated": "2025-07-21"
   }
 }

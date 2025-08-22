@@ -1,47 +1,47 @@
 {
   "HKD": {
-    "price": 0.12797871,
+    "price": 0.12798034,
     "name": "HKD-USD",
-    "lastUpdated": "2025-08-21"
+    "lastUpdated": "2025-08-22"
   },
   "CNY": {
-    "price": 0.13928352,
+    "price": 0.13957514,
     "name": "CNY-USD",
-    "lastUpdated": "2025-08-21"
+    "lastUpdated": "2025-08-22"
   },
   "AAPL": {
-    "price": 224.9,
+    "price": 227.76,
     "name": "Apple Inc.",
-    "lastUpdated": "2025-08-21"
+    "lastUpdated": "2025-08-22"
   },
   "MSFT": {
-    "price": 504.24,
+    "price": 507.23,
     "name": "Microsoft Corporation",
-    "lastUpdated": "2025-08-21"
+    "lastUpdated": "2025-08-22"
   },
   "NVDA": {
-    "price": 174.98,
+    "price": 177.99,
     "name": "NVIDIA Corporation",
-    "lastUpdated": "2025-08-21"
+    "lastUpdated": "2025-08-22"
   },
   "AMZN": {
-    "price": 221.95,
+    "price": 228.84,
     "name": "Amazon.com Inc.",
-    "lastUpdated": "2025-08-21"
+    "lastUpdated": "2025-08-22"
   },
   "META": {
-    "price": 739.1,
+    "price": 754.79,
     "name": "Meta Platforms Inc.",
-    "lastUpdated": "2025-08-21"
+    "lastUpdated": "2025-08-22"
   },
   "NFLX": {
-    "price": 1206.21,
+    "price": 1204.65,
     "name": "Netflix Inc.",
-    "lastUpdated": "2025-08-21"
+    "lastUpdated": "2025-08-22"
   },
   "SPY": {
-    "price": 635.55,
+    "price": 645.31,
     "name": "SPDR S&P 500 ETF Trust",
-    "lastUpdated": "2025-08-21"
+    "lastUpdated": "2025-08-22"
   }
 }

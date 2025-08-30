@@ -41,11 +41,14 @@ const ReportDialog: React.FC<ReportDialogProps> = ({
     const preparePieChartData = () => {
         const stocks = yearDataItem.stocks.filter(stock => !hiddenStocks[stock.name]);
         const totalValue = stocks.reduce((acc, stock) => acc + stock.shares * stock.price, 0) + (yearDataItem.cashBalance || 0);
-        return stocks.map(stock => ({
+        const data = stocks.map(stock => ({
             name: stock.name,
-            value: (stock.shares * stock.price / totalValue) * 100,
+            value: stock.shares * stock.price,
         }));
+        return { data, totalValue };
     };
+
+    const { data: pieData, totalValue: pieTotalValue } = preparePieChartData();
 
     const prepareBarChartData = () => {
         const stocks = yearDataItem.stocks.filter(stock => !hiddenStocks[stock.name]);
@@ -112,19 +115,19 @@ const ReportDialog: React.FC<ReportDialogProps> = ({
                         <ResponsiveContainer width="100%" height={300}>
                             <PieChart>
                                 <Pie
-                                    data={preparePieChartData()}
+                                    data={pieData}
                                     dataKey="value"
                                     nameKey="name"
                                     cx="50%"
                                     cy="50%"
                                     outerRadius={100}
-                                    label={({ name, percent }) => `${name} (${(percent * 100).toFixed(2)}%)`}
+                                    label={({ name, value }) => `${name} (${((value / pieTotalValue) * 100).toFixed(2)}%)`}
                                 >
-                                    {preparePieChartData().map((entry, index) => (
+                                    {pieData.map((entry, index) => (
                                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                     ))}
                                 </Pie>
-                                <Tooltip formatter={(value: number | string) => `${Number(value).toFixed(2)}%`} />
+                                <Tooltip formatter={(value: number) => `${((value / pieTotalValue) * 100).toFixed(2)}%`} />
                                 <Legend />
                             </PieChart>
                         </ResponsiveContainer>

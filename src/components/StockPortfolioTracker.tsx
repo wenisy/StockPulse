@@ -32,7 +32,7 @@ import {
   User,
   YearData,
 } from "@/types/stock";
-import { RefreshCw, Save } from "lucide-react";
+import { RefreshCw, MoreHorizontal } from "lucide-react";
 import React, { useCallback, useEffect, useState, useRef } from "react";
 import RetirementCalculator from "./RetirementCalculator";
 import { useUserSettings } from "@/hooks/useUserSettings";
@@ -185,8 +185,7 @@ const StockPortfolioTracker: React.FC = () => {
 
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
+  const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // 使用自定义Hook管理退休目标计算器相关状态
@@ -342,19 +341,10 @@ const StockPortfolioTracker: React.FC = () => {
     }
   };
 
-  // --- Save Data to Backend ---
-  const handleSaveData = () => {
-    if (isLoggedIn) {
-      setIsSaveDialogOpen(true);
-    }
-  };
-
-  // 实际保存数据到后端的函数
+  // 实际保存数据到后端的函数（自动保存）
   const saveDataToBackend = async () => {
     const token = localStorage.getItem("token");
     if (!token) return;
-
-    setIsSaving(true);
 
     try {
       const response = await fetch(`${backendDomain}/api/updateNotion`, {
@@ -393,57 +383,6 @@ const StockPortfolioTracker: React.FC = () => {
         description: "网络错误，请稍后再试",
         onConfirm: () => setAlertInfo(null),
       });
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  // 手动保存确认
-  const confirmSaveData = async () => {
-    const token = localStorage.getItem("token");
-    if (!token) return;
-
-    try {
-      const response = await fetch(`${backendDomain}/api/updateNotion`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: token,
-        },
-        body: JSON.stringify(incrementalChanges),
-      });
-      const result = await response.json();
-      if (response.ok) {
-        setAlertInfo({
-          isOpen: true,
-          title: "保存成功",
-          description: "增量数据已成功保存到Notion数据库",
-          onConfirm: () => setAlertInfo(null),
-        });
-        // 清空增量变化
-        setIncrementalChanges({
-          stocks: {},
-          cashTransactions: {},
-          stockTransactions: {},
-          yearlySummaries: {},
-        });
-      } else {
-        setAlertInfo({
-          isOpen: true,
-          title: "保存失败",
-          description: result.message || "保存数据时发生错误",
-          onConfirm: () => setAlertInfo(null),
-        });
-      }
-    } catch (error) {
-      setAlertInfo({
-        isOpen: true,
-        title: "保存失败",
-        description: "网络错误，请稍后再试",
-        onConfirm: () => setAlertInfo(null),
-      });
-    } finally {
-      setIsSaveDialogOpen(false);
     }
   };
 
@@ -1460,6 +1399,23 @@ const StockPortfolioTracker: React.FC = () => {
     }
   }, [isLoggedIn]);
 
+  // 点击外部关闭更多菜单
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (isMoreMenuOpen) {
+        const target = event.target as Element;
+        if (!target.closest('.more-menu-container')) {
+          setIsMoreMenuOpen(false);
+        }
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isMoreMenuOpen]);
+
   const handleReportClick = (year: string) => {
     setSelectedReportYear(year);
     setIsReportDialogOpen(true);
@@ -1545,69 +1501,88 @@ const StockPortfolioTracker: React.FC = () => {
           )}
         </div>
         <div className="flex items-center space-x-2">
-          {isLoggedIn && (
-            <div className="flex items-center gap-2">
-              <Button
-                onClick={handleSaveData}
-                className="flex items-center gap-2"
-              >
-                <Save className="h-4 w-4" /> 保存数据
-              </Button>
-              {isSaving && (
-                <span className="text-xs text-gray-500 flex items-center">
-                  <RefreshCw className="h-3 w-3 animate-spin mr-1" />{" "}
-                  正在保存...
-                </span>
-              )}
-            </div>
-          )}
-          <Button
-            onClick={() => refreshPrices(true)}
-            disabled={isLoading}
-            className="flex items-center gap-2"
-          >
-            <RefreshCw
-              className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`}
-            />{" "}
-            刷新价格
-          </Button>
-          <UserProfileManager
-            isLoggedIn={isLoggedIn}
-            currentUser={currentUser}
-            setCurrentUser={setCurrentUser}
-            setIsLoggedIn={setIsLoggedIn}
-            setAlertInfo={setAlertInfo}
-            onDataFetch={fetchJsonData}
-            onRefreshPrices={refreshPrices}
-            currency={currency}
-            latestYear={latestYear}
-            totalValues={totalValues}
-            formatLargeNumber={(value, curr) =>
-              formatLargeNumber(value, curr || currency)
-            }
-            getLatestYearGrowthRate={getLatestYearGrowthRate}
-          />
+          {/* 大屏幕显示所有按钮 */}
+          <div className="hidden md:flex items-center space-x-2">
+            <Button
+              onClick={() => refreshPrices(true)}
+              disabled={isLoading}
+              className="flex items-center gap-2"
+            >
+              <RefreshCw
+                className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`}
+              />{" "}
+              刷新价格
+            </Button>
+            <UserProfileManager
+              isLoggedIn={isLoggedIn}
+              currentUser={currentUser}
+              setCurrentUser={setCurrentUser}
+              setIsLoggedIn={setIsLoggedIn}
+              setAlertInfo={setAlertInfo}
+              onDataFetch={fetchJsonData}
+              onRefreshPrices={refreshPrices}
+              currency={currency}
+              latestYear={latestYear}
+              totalValues={totalValues}
+              formatLargeNumber={(value, curr) =>
+                formatLargeNumber(value, curr || currency)
+              }
+              getLatestYearGrowthRate={getLatestYearGrowthRate}
+            />
+          </div>
+
+          {/* 小屏幕显示更多菜单按钮 */}
+          <div className="md:hidden relative more-menu-container">
+            <Button
+              onClick={() => setIsMoreMenuOpen(!isMoreMenuOpen)}
+              className="flex items-center gap-2"
+              variant="outline"
+            >
+              <MoreHorizontal className="h-4 w-4" />
+              更多
+            </Button>
+
+            {/* 下拉菜单 */}
+            {isMoreMenuOpen && (
+              <div className="absolute right-0 top-full mt-2 w-48 bg-white border border-gray-200 rounded-md shadow-lg z-50">
+                <div className="py-1">
+                  <button
+                    onClick={() => {
+                      refreshPrices(true);
+                      setIsMoreMenuOpen(false);
+                    }}
+                    disabled={isLoading}
+                    className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 disabled:opacity-50"
+                  >
+                    <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
+                    刷新价格
+                  </button>
+                  <div className="border-t border-gray-200 my-1"></div>
+                  <div className="px-4 py-2">
+                    <UserProfileManager
+                      isLoggedIn={isLoggedIn}
+                      currentUser={currentUser}
+                      setCurrentUser={setCurrentUser}
+                      setIsLoggedIn={setIsLoggedIn}
+                      setAlertInfo={setAlertInfo}
+                      onDataFetch={fetchJsonData}
+                      onRefreshPrices={refreshPrices}
+                      currency={currency}
+                      latestYear={latestYear}
+                      totalValues={totalValues}
+                      formatLargeNumber={(value, curr) =>
+                        formatLargeNumber(value, curr || currency)
+                      }
+                      getLatestYearGrowthRate={getLatestYearGrowthRate}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Save Data Dialog */}
-      <Dialog open={isSaveDialogOpen} onOpenChange={setIsSaveDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>确认保存数据</DialogTitle>
-            <DialogDescription>
-              <p>以下是您将要保存的增量数据预览：</p>
-              <pre className="whitespace-pre-wrap max-h-96 overflow-y-auto">
-                {JSON.stringify(incrementalChanges, null, 2)}
-              </pre>
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button onClick={confirmSaveData}>确定</Button>
-            <Button onClick={() => setIsSaveDialogOpen(false)}>取消</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
       <div className="p-4 border rounded-lg bg-gray-50 space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>

@@ -93,6 +93,17 @@ const UserProfileManager = forwardRef<UserProfileManagerHandle, UserProfileManag
         loadUserSettings
     } = useUserSettings(currentUser, isLoggedIn, setCurrentUser);
 
+    // 登录弹窗聚焦控制：仅在首次打开登录弹窗时自动聚焦用户名
+    const usernameInputRef = React.useRef<HTMLInputElement | null>(null);
+    const passwordInputRef = React.useRef<HTMLInputElement | null>(null);
+    const hasAutoFocusedLoginOnceRef = React.useRef(false);
+    useEffect(() => {
+        if (isLoginDialogOpen && !hasAutoFocusedLoginOnceRef.current) {
+            usernameInputRef.current?.focus();
+            hasAutoFocusedLoginOnceRef.current = true;
+        }
+    }, [isLoginDialogOpen]);
+
     // 暴露给父组件的控制方法（用于在菜单中触发弹窗）
     useImperativeHandle(ref, () => ({
         openLoginDialog: () => setIsLoginDialogOpen(true),
@@ -415,27 +426,21 @@ const UserProfileManager = forwardRef<UserProfileManagerHandle, UserProfileManag
                     </DialogHeader>
                     <div className="space-y-4">
                         <Input
-                            ref={(el) => {
-                                if (el && isLoginDialogOpen) {
-                                    // 延迟focus以确保对话框完全打开
-                                    setTimeout(() => el.focus(), 100);
-                                }
-                            }}
+                            ref={usernameInputRef}
                             type="text"
                             placeholder="用户名"
                             value={username}
                             onChange={(e) => setUsername(e.target.value)}
                             onKeyDown={(e) => {
                                 if (e.key === 'Enter') {
-                                    // 如果用户名已填写，跳转到密码框
                                     if (username) {
-                                        const passwordInput = e.currentTarget.parentElement?.querySelector('input[type="password"]') as HTMLInputElement;
-                                        passwordInput?.focus();
+                                        passwordInputRef.current?.focus();
                                     }
                                 }
                             }}
                         />
                         <Input
+                            ref={passwordInputRef}
                             type="password"
                             placeholder="密码"
                             value={password}

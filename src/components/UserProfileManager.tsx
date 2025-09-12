@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -39,7 +39,14 @@ interface UserProfileManagerProps {
     onCloseParentMenu?: () => void; // 新增：关闭父级菜单的回调
 }
 
-const UserProfileManager: React.FC<UserProfileManagerProps> = ({
+export interface UserProfileManagerHandle {
+    openLoginDialog: () => void;
+    openRegisterDialog: () => void;
+    openProfileDialog: () => void;
+    logout: () => void;
+}
+
+const UserProfileManager = forwardRef<UserProfileManagerHandle, UserProfileManagerProps>(({
     isLoggedIn,
     currentUser,
     setCurrentUser,
@@ -53,12 +60,12 @@ const UserProfileManager: React.FC<UserProfileManagerProps> = ({
     formatLargeNumber,
     getLatestYearGrowthRate,
     onCloseParentMenu
-}) => {
+}, ref) => {
     // 对话框状态
     const [isLoginDialogOpen, setIsLoginDialogOpen] = useState(false);
     const [isRegisterDialogOpen, setIsRegisterDialogOpen] = useState(false);
     const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false);
-    
+
     // 表单字段
     const [username, setUsername] = useState('');
     const [nickname, setNickname] = useState('');
@@ -67,7 +74,7 @@ const UserProfileManager: React.FC<UserProfileManagerProps> = ({
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [email, setEmail] = useState('');
-    
+
     // 错误信息
     const [loginError, setLoginError] = useState('');
     const [registerError, setRegisterError] = useState('');
@@ -85,6 +92,14 @@ const UserProfileManager: React.FC<UserProfileManagerProps> = ({
         updateCalculationMode,
         loadUserSettings
     } = useUserSettings(currentUser, isLoggedIn, setCurrentUser);
+
+    // 暴露给父组件的控制方法（用于在菜单中触发弹窗）
+    useImperativeHandle(ref, () => ({
+        openLoginDialog: () => setIsLoginDialogOpen(true),
+        openRegisterDialog: () => setIsRegisterDialogOpen(true),
+        openProfileDialog: () => openProfileDialog(),
+        logout: () => handleLogout(),
+    }));
 
     const backendDomain = "//stock-backend-tau.vercel.app";
 
@@ -134,15 +149,15 @@ const UserProfileManager: React.FC<UserProfileManagerProps> = ({
                 setIsLoggedIn(true);
                 setIsLoginDialogOpen(false);
                 setLoginError('');
-                
+
                 if (onDataFetch) {
                     await onDataFetch(data.token);
                 }
-                
+
                 if (onRefreshPrices) {
                     await onRefreshPrices(false);
                 }
-                
+
                 setAlertInfo({
                     isOpen: true,
                     title: '登录成功',
@@ -216,7 +231,7 @@ const UserProfileManager: React.FC<UserProfileManagerProps> = ({
                     if (onDataFetch) {
                         await onDataFetch(data.token);
                     }
-                    
+
                     if (onRefreshPrices) {
                         await onRefreshPrices(false);
                     }
@@ -337,7 +352,7 @@ const UserProfileManager: React.FC<UserProfileManagerProps> = ({
         localStorage.removeItem('user');
         setIsLoggedIn(false);
         setCurrentUser(null);
-        
+
         // 通知父组件用户已登出
         setAlertInfo({
             isOpen: true,
@@ -624,6 +639,6 @@ const UserProfileManager: React.FC<UserProfileManagerProps> = ({
             </Dialog>
         </>
     );
-};
+});
 
 export default UserProfileManager;

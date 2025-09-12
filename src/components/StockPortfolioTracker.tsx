@@ -36,7 +36,7 @@ import { RefreshCw, MoreHorizontal } from "lucide-react";
 import React, { useCallback, useEffect, useState, useRef } from "react";
 import RetirementCalculator from "./RetirementCalculator";
 import { useUserSettings } from "@/hooks/useUserSettings";
-import UserProfileManager from "./UserProfileManager";
+import UserProfileManager, { UserProfileManagerHandle } from "./UserProfileManager";
 
 import { v4 as uuidv4 } from "uuid";
 import { stockInitialData } from "./data";
@@ -186,6 +186,7 @@ const StockPortfolioTracker: React.FC = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
+  const userProfileRef = useRef<UserProfileManagerHandle>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // 使用自定义Hook管理退休目标计算器相关状态
@@ -1514,6 +1515,7 @@ const StockPortfolioTracker: React.FC = () => {
               刷新价格
             </Button>
             <UserProfileManager
+              ref={userProfileRef}
               isLoggedIn={isLoggedIn}
               currentUser={currentUser}
               setCurrentUser={setCurrentUser}
@@ -1559,25 +1561,49 @@ const StockPortfolioTracker: React.FC = () => {
                     刷新价格
                   </button>
                   <div className="border-t border-gray-200 my-1"></div>
-                  <div className="px-4 py-2">
-                    <UserProfileManager
-                      isLoggedIn={isLoggedIn}
-                      currentUser={currentUser}
-                      setCurrentUser={setCurrentUser}
-                      setIsLoggedIn={setIsLoggedIn}
-                      setAlertInfo={setAlertInfo}
-                      onDataFetch={fetchJsonData}
-                      onRefreshPrices={refreshPrices}
-                      currency={currency}
-                      latestYear={latestYear}
-                      totalValues={totalValues}
-                      formatLargeNumber={(value, curr) =>
-                        formatLargeNumber(value, curr || currency)
-                      }
-                      getLatestYearGrowthRate={getLatestYearGrowthRate}
-                      onCloseParentMenu={() => setIsMoreMenuOpen(false)}
-                    />
-                  </div>
+                  {!isLoggedIn ? (
+                    <>
+                      <button
+                        onClick={() => {
+                          setIsMoreMenuOpen(false);
+                          setTimeout(() => userProfileRef.current?.openLoginDialog(), 0);
+                        }}
+                        className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      >
+                        登录
+                      </button>
+                      <button
+                        onClick={() => {
+                          setIsMoreMenuOpen(false);
+                          setTimeout(() => userProfileRef.current?.openRegisterDialog(), 0);
+                        }}
+                        className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      >
+                        注册
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => {
+                          setIsMoreMenuOpen(false);
+                          setTimeout(() => userProfileRef.current?.openProfileDialog(), 0);
+                        }}
+                        className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      >
+                        个人资料
+                      </button>
+                      <button
+                        onClick={() => {
+                          setIsMoreMenuOpen(false);
+                          userProfileRef.current?.logout();
+                        }}
+                        className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      >
+                        登出
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
             )}

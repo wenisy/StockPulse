@@ -80,8 +80,8 @@ const StockTable: React.FC<StockTableProps> = ({
       <div className="overflow-x-auto relative touch-pan-x" style={{ WebkitOverflowScrolling: 'touch' }}>
         <table className="min-w-full border-collapse border border-gray-300">
           <colgroup>
-            <col style={{ width: '50px' }} />
-            <col className="w-[120px] sm:w-[200px]" />
+            <col className="hidden sm:table-column" style={{ width: '50px' }} />
+            <col className="w-[80px] sm:w-[200px]" />
             {filteredYears.map((year) => (
               <col key={year} />
             ))}
@@ -89,11 +89,12 @@ const StockTable: React.FC<StockTableProps> = ({
           </colgroup>
           <thead>
             <tr>
-              <th className="sticky left-0 z-20 px-6 py-3 text-left text-xs font-medium uppercase tracking-wider bg-gray-100">
+              <th className="hidden sm:table-cell sticky left-0 z-20 px-6 py-3 text-left text-xs font-medium uppercase tracking-wider bg-gray-100">
                 {table.headers[0]}
               </th>
-              <th className="sticky left-[50px] z-20 px-6 py-3 text-left text-xs font-medium uppercase tracking-wider bg-gray-100">
-                {table.headers[1]}
+              <th className="sticky left-0 sm:left-[50px] z-20 px-2 sm:px-6 py-3 text-left text-xs font-medium uppercase tracking-wider bg-gray-100">
+                <span className="sm:hidden">代码</span>
+                <span className="hidden sm:inline">{table.headers[1]}</span>
               </th>
               {table.headers.slice(2, -1).map((header, index) => (
                 <th key={index}
@@ -116,7 +117,7 @@ const StockTable: React.FC<StockTableProps> = ({
                   rowIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50',
                   isHidden && 'opacity-50'
                 )}>
-                  <td className="sticky left-0 z-10 px-6 py-4 whitespace-nowrap text-center bg-inherit">
+                  <td className="hidden sm:table-cell sticky left-0 z-10 px-6 py-4 whitespace-nowrap text-center bg-inherit">
                     <Button
                       size="icon"
                       onClick={() => toggleStockVisibility(stockName)}
@@ -127,10 +128,10 @@ const StockTable: React.FC<StockTableProps> = ({
                       {isHidden ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </Button>
                   </td>
-                  <td className="sticky left-[50px] z-10 px-2 sm:px-6 py-4 bg-inherit max-w-[120px] sm:max-w-[200px]">
+                  <td className="sticky left-0 sm:left-[50px] z-10 px-2 sm:px-6 py-4 bg-inherit max-w-[80px] sm:max-w-[200px]">
                     {editingStockName === stockName ? (
                       <div className="space-y-2">
-                        <div><label className="text-sm">股票名称</label>
+                        <div className="hidden sm:block"><label className="text-sm">股票名称</label>
                           <Input type="text" value={stockName} disabled className="w-full text-xs sm:text-sm" />
                         </div>
                         <div><label className="text-sm">股票代码</label>
@@ -144,11 +145,11 @@ const StockTable: React.FC<StockTableProps> = ({
                       </div>
                     ) : (
                       <>
-                        <div className="font-medium text-xs sm:text-sm truncate" title={(row[1] as { name: string }).name}>
+                        <div className="hidden sm:block font-medium text-xs sm:text-sm truncate" title={(row[1] as { name: string }).name}>
                           {(row[1] as { name: string }).name}
                         </div>
                         {(row[1] as { symbol?: string }).symbol && (
-                          <div className="text-xs text-gray-500 truncate" title={(row[1] as { symbol?: string }).symbol}>
+                          <div className="text-xs sm:text-sm text-gray-900 sm:text-gray-500 truncate font-medium sm:font-normal" title={(row[1] as { symbol?: string }).symbol}>
                             {(row[1] as { symbol?: string }).symbol}
                           </div>
                         )}

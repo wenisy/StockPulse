@@ -374,11 +374,13 @@ const UserProfileManager: React.FC<UserProfileManagerProps> = ({
                     <>
                         <Button onClick={() => {
                             onCloseParentMenu?.(); // 先关闭父级菜单
-                            setIsLoginDialogOpen(true);
+                            // 延迟打开弹窗，确保下拉菜单完全关闭
+                            setTimeout(() => setIsLoginDialogOpen(true), 100);
                         }}>登录</Button>
                         <Button onClick={() => {
                             onCloseParentMenu?.(); // 先关闭父级菜单
-                            setIsRegisterDialogOpen(true);
+                            // 延迟打开弹窗，确保下拉菜单完全关闭
+                            setTimeout(() => setIsRegisterDialogOpen(true), 100);
                         }} variant="outline">注册</Button>
                     </>
                 )}

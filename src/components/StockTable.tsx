@@ -81,7 +81,7 @@ const StockTable: React.FC<StockTableProps> = ({
         <table className="min-w-full border-collapse border border-gray-300">
           <colgroup>
             <col style={{ width: '50px' }} />
-            <col style={{ width: '200px' }} />
+            <col className="w-[120px] sm:w-[200px]" />
             {filteredYears.map((year) => (
               <col key={year} />
             ))}
@@ -127,11 +127,11 @@ const StockTable: React.FC<StockTableProps> = ({
                       {isHidden ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </Button>
                   </td>
-                  <td className="sticky left-[50px] z-10 px-6 py-4 whitespace-nowrap bg-inherit">
+                  <td className="sticky left-[50px] z-10 px-2 sm:px-6 py-4 bg-inherit max-w-[120px] sm:max-w-[200px]">
                     {editingStockName === stockName ? (
                       <div className="space-y-2">
                         <div><label className="text-sm">股票名称</label>
-                          <Input type="text" value={stockName} disabled className="w-32" />
+                          <Input type="text" value={stockName} disabled className="w-full text-xs sm:text-sm" />
                         </div>
                         <div><label className="text-sm">股票代码</label>
                           <Input type="text"
@@ -139,16 +139,18 @@ const StockTable: React.FC<StockTableProps> = ({
                               symbol?: string
                             }).symbol || ''}
                             onChange={(e) => handleInputChange(selectedYear, 'symbol', e.target.value)}
-                            className="w-32" />
+                            className="w-full text-xs sm:text-sm" />
                         </div>
                       </div>
                     ) : (
                       <>
-                        <div className="font-medium">{(row[1] as { name: string }).name}</div>
+                        <div className="font-medium text-xs sm:text-sm truncate" title={(row[1] as { name: string }).name}>
+                          {(row[1] as { name: string }).name}
+                        </div>
                         {(row[1] as { symbol?: string }).symbol && (
-                          <div className="text-sm text-gray-500">{(row[1] as {
-                            symbol?: string
-                          }).symbol}</div>
+                          <div className="text-xs text-gray-500 truncate" title={(row[1] as { symbol?: string }).symbol}>
+                            {(row[1] as { symbol?: string }).symbol}
+                          </div>
                         )}
                       </>
                     )}

@@ -378,7 +378,12 @@ const UserProfileManager: React.FC<UserProfileManagerProps> = ({
 
             {/* Login Dialog */}
             <Dialog open={isLoginDialogOpen} onOpenChange={setIsLoginDialogOpen}>
-                <DialogContent className="w-[95vw] max-w-md" onPointerDownOutside={(e) => e.preventDefault()}>
+                <DialogContent
+                    className="w-[95vw] max-w-md"
+                    onPointerDownOutside={(e) => e.preventDefault()}
+                    onInteractOutside={(e) => e.preventDefault()}
+                    onEscapeKeyDown={(e) => e.preventDefault()}
+                >
                     <DialogHeader>
                         <DialogTitle>登录</DialogTitle>
                         <DialogDescription>请输入用户名和密码</DialogDescription>

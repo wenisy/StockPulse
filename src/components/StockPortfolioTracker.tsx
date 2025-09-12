@@ -1528,6 +1528,7 @@ const StockPortfolioTracker: React.FC = () => {
                 formatLargeNumber(value, curr || currency)
               }
               getLatestYearGrowthRate={getLatestYearGrowthRate}
+              onCloseParentMenu={() => {}} // 桌面端不需要关闭菜单，空函数即可
             />
           </div>
 
@@ -1574,6 +1575,7 @@ const StockPortfolioTracker: React.FC = () => {
                         formatLargeNumber(value, curr || currency)
                       }
                       getLatestYearGrowthRate={getLatestYearGrowthRate}
+                      onCloseParentMenu={() => setIsMoreMenuOpen(false)}
                     />
                   </div>
                 </div>

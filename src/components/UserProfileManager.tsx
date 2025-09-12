@@ -36,6 +36,7 @@ interface UserProfileManagerProps {
     totalValues: { [year: string]: number };
     formatLargeNumber: (value: number, currency?: string) => string;
     getLatestYearGrowthRate: () => string | null;
+    onCloseParentMenu?: () => void; // 新增：关闭父级菜单的回调
 }
 
 const UserProfileManager: React.FC<UserProfileManagerProps> = ({
@@ -50,7 +51,8 @@ const UserProfileManager: React.FC<UserProfileManagerProps> = ({
     latestYear,
     totalValues,
     formatLargeNumber,
-    getLatestYearGrowthRate
+    getLatestYearGrowthRate,
+    onCloseParentMenu
 }) => {
     // 对话框状态
     const [isLoginDialogOpen, setIsLoginDialogOpen] = useState(false);
@@ -370,8 +372,14 @@ const UserProfileManager: React.FC<UserProfileManagerProps> = ({
                     </>
                 ) : (
                     <>
-                        <Button onClick={() => setIsLoginDialogOpen(true)}>登录</Button>
-                        <Button onClick={() => setIsRegisterDialogOpen(true)} variant="outline">注册</Button>
+                        <Button onClick={() => {
+                            onCloseParentMenu?.(); // 先关闭父级菜单
+                            setIsLoginDialogOpen(true);
+                        }}>登录</Button>
+                        <Button onClick={() => {
+                            onCloseParentMenu?.(); // 先关闭父级菜单
+                            setIsRegisterDialogOpen(true);
+                        }} variant="outline">注册</Button>
                     </>
                 )}
             </div>

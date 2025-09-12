@@ -378,23 +378,43 @@ const UserProfileManager: React.FC<UserProfileManagerProps> = ({
 
             {/* Login Dialog */}
             <Dialog open={isLoginDialogOpen} onOpenChange={setIsLoginDialogOpen}>
-                <DialogContent>
+                <DialogContent className="w-[95vw] max-w-md" onPointerDownOutside={(e) => e.preventDefault()}>
                     <DialogHeader>
                         <DialogTitle>登录</DialogTitle>
                         <DialogDescription>请输入用户名和密码</DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4">
                         <Input
+                            ref={(el) => {
+                                if (el && isLoginDialogOpen) {
+                                    // 延迟focus以确保对话框完全打开
+                                    setTimeout(() => el.focus(), 100);
+                                }
+                            }}
                             type="text"
                             placeholder="用户名"
                             value={username}
                             onChange={(e) => setUsername(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                    // 如果用户名已填写，跳转到密码框
+                                    if (username) {
+                                        const passwordInput = e.currentTarget.parentElement?.querySelector('input[type="password"]') as HTMLInputElement;
+                                        passwordInput?.focus();
+                                    }
+                                }
+                            }}
                         />
                         <Input
                             type="password"
                             placeholder="密码"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' && username && password) {
+                                    handleLogin();
+                                }
+                            }}
                         />
                         {loginError && <p className="text-red-500">{loginError}</p>}
                     </div>

@@ -77,7 +77,7 @@ const StockTable: React.FC<StockTableProps> = ({
           </div>
         </div>
       </div>
-      <div className="overflow-x-auto relative">
+      <div className="overflow-x-auto relative touch-pan-x" style={{ WebkitOverflowScrolling: 'touch' }}>
         <table className="min-w-full border-collapse border border-gray-300">
           <colgroup>
             <col style={{ width: '50px' }} />

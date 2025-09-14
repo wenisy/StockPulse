@@ -1,47 +1,47 @@
 {
   "HKD": {
-    "price": 0.1285314,
+    "price": 0.12852974,
     "name": "HKD-USD",
-    "lastUpdated": "2025-09-13"
+    "lastUpdated": "2025-09-14"
   },
   "CNY": {
     "price": 0.1403765,
     "name": "CNY-USD",
-    "lastUpdated": "2025-09-13"
+    "lastUpdated": "2025-09-14"
   },
-  "AAPL": {
-    "price": 234.07,
-    "name": "Apple Inc.",
-    "lastUpdated": "2025-09-13"
+  "ORCL": {
+    "price": 292.18,
+    "name": "Oracle Corporation",
+    "lastUpdated": "2025-09-14"
   },
-  "MSFT": {
-    "price": 509.9,
-    "name": "Microsoft Corporation",
-    "lastUpdated": "2025-09-13"
+  "IBM": {
+    "price": 253.44,
+    "name": "International Business Machines Corporation",
+    "lastUpdated": "2025-09-14"
   },
-  "NVDA": {
-    "price": 177.82,
-    "name": "NVIDIA Corporation",
-    "lastUpdated": "2025-09-13"
+  "JPM": {
+    "price": 306.91,
+    "name": "JPMorgan Chase & Co.",
+    "lastUpdated": "2025-09-14"
   },
-  "AMZN": {
-    "price": 228.15,
-    "name": "Amazon.com Inc.",
-    "lastUpdated": "2025-09-13"
+  "JNJ": {
+    "price": 178.06,
+    "name": "Johnson & Johnson",
+    "lastUpdated": "2025-09-14"
   },
-  "META": {
-    "price": 755.59,
-    "name": "Meta Platforms Inc.",
-    "lastUpdated": "2025-09-13"
+  "WMT": {
+    "price": 103.49,
+    "name": "Walmart Inc.",
+    "lastUpdated": "2025-09-14"
   },
-  "NFLX": {
-    "price": 1188.44,
-    "name": "Netflix Inc.",
-    "lastUpdated": "2025-09-13"
+  "INTC": {
+    "price": 24.08,
+    "name": "Intel Corporation",
+    "lastUpdated": "2025-09-14"
   },
-  "SPY": {
-    "price": 657.41,
-    "name": "SPDR S&P 500 ETF Trust",
-    "lastUpdated": "2025-09-13"
+  "CSCO": {
+    "price": 66.53,
+    "name": "Cisco Systems Inc.",
+    "lastUpdated": "2025-09-14"
   }
 }

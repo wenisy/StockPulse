@@ -454,51 +454,6 @@ const ProfitLossCalendar: React.FC<ProfitLossCalendarProps> = ({
         return days;
     };
 
-    return (
-        <div className="space-y-4">
-            {/* 日历头部 */}
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                    <h3 className="text-lg font-semibold flex items-center gap-2">
-                        <Calendar className="w-5 h-5" />
-                        每日盈亏日历
-                    </h3>
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <div className="flex items-center gap-1">
-                            <div className="w-3 h-3 bg-green-100 border border-green-200 rounded"></div>
-                            <span>盈利</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                            <div className="w-3 h-3 bg-red-100 border border-red-200 rounded"></div>
-                            <span>亏损</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                            <span>有交易</span>
-                        </div>
-                    </div>
-                </div>
-
-                {/* 年份选择器 */}
-                <Select
-                    value={currentYear.toString()}
-                    onValueChange={(value) => setCurrentYear(parseInt(value))}
-                >
-                    <SelectTrigger className="w-24">
-                        <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {availableYears.length > 0 ? (
-                            availableYears.map(year => (
-                                <SelectItem key={year} value={year}>
-                                    {year}
-                                </SelectItem>
-                            ))
-                        ) : (
-                            <SelectItem value={new Date().getFullYear().toString()}>
-                                {new Date().getFullYear()}
-                            </SelectItem>
-                        )}
 
     // 年度（月度汇总）网格
     const renderYearlyGrid = () => {
@@ -547,6 +502,53 @@ const ProfitLossCalendar: React.FC<ProfitLossCalendarProps> = ({
             </div>
         );
     };
+
+    return (
+        <div className="space-y-4">
+            {/* 日历头部 */}
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                    <h3 className="text-lg font-semibold flex items-center gap-2">
+                        <Calendar className="w-5 h-5" />
+                        每日盈亏日历
+                    </h3>
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <div className="flex items-center gap-1">
+                            <div className="w-3 h-3 bg-green-100 border border-green-200 rounded"></div>
+                            <span>盈利</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                            <div className="w-3 h-3 bg-red-100 border border-red-200 rounded"></div>
+                            <span>亏损</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                            <span>有交易</span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* 年份选择器 */}
+                <Select
+                    value={currentYear.toString()}
+                    onValueChange={(value) => setCurrentYear(parseInt(value))}
+                >
+                    <SelectTrigger className="w-24">
+                        <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {availableYears.length > 0 ? (
+                            availableYears.map(year => (
+                                <SelectItem key={year} value={year}>
+                                    {year}
+                                </SelectItem>
+                            ))
+                        ) : (
+                            <SelectItem value={new Date().getFullYear().toString()}>
+                                {new Date().getFullYear()}
+                            </SelectItem>
+                        )}
+
 
                     </SelectContent>
                 </Select>

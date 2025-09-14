@@ -16,18 +16,25 @@ interface MonthlySummary {
     winRate: number;
 }
 
+export interface YearlyMonthSummary extends MonthlySummary {
+    month: string; // '01' ~ '12'
+}
+
 interface UseCalendarDataReturn {
     calendarData: CalendarData[];
     monthlySummary: MonthlySummary | null;
+    yearlySummary: YearlyMonthSummary[] | null;
     isLoading: boolean;
     error: string | null;
     fetchCalendarData: (year: number, month: number) => Promise<void>;
+    fetchYearlySummary: (year: number) => Promise<void>;
     generateDailySnapshot: (date?: string) => Promise<void>;
 }
 
 export const useCalendarData = (): UseCalendarDataReturn => {
     const [calendarData, setCalendarData] = useState<CalendarData[]>([]);
     const [monthlySummary, setMonthlySummary] = useState<MonthlySummary | null>(null);
+    const [yearlySummary, setYearlySummary] = useState<YearlyMonthSummary[] | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -37,7 +44,7 @@ export const useCalendarData = (): UseCalendarDataReturn => {
     const fetchCalendarData = useCallback(async (year: number, month: number) => {
         setIsLoading(true);
         setError(null);
-        
+
         try {
             const token = localStorage.getItem('token');
             if (!token) {
@@ -70,7 +77,36 @@ export const useCalendarData = (): UseCalendarDataReturn => {
         }
     }, [backendDomain]); // 添加依赖项
 
-
+    // 获取年度（月度汇总）数据
+    const fetchYearlySummary = useCallback(async (year: number) => {
+        setIsLoading(true);
+        setError(null);
+        try {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                throw new Error('未找到认证令牌');
+            }
+            const response = await fetch(
+                `${backendDomain}/api/calendarData?year=${year}&type=summary`,
+                {
+                    headers: {
+                        'Authorization': token,
+                    },
+                }
+            );
+            if (!response.ok) {
+                throw new Error(`获取年度汇总失败: ${response.statusText}`);
+            }
+            const result = await response.json();
+            setYearlySummary(result.data || null);
+        } catch (error) {
+            console.error('获取年度汇总失败:', error);
+            setError(error instanceof Error ? error.message : '获取年度汇总失败');
+            setYearlySummary(null);
+        } finally {
+            setIsLoading(false);
+        }
+    }, [backendDomain]);
 
     // 手动生成每日快照
     const generateDailySnapshot = useCallback(async (date?: string) => {
@@ -106,14 +142,14 @@ export const useCalendarData = (): UseCalendarDataReturn => {
         }
     }, [backendDomain]);
 
-
-
     return {
         calendarData,
         monthlySummary,
+        yearlySummary,
         isLoading,
         error,
         fetchCalendarData,
+        fetchYearlySummary,
         generateDailySnapshot
     };
 };

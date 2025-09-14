@@ -31,13 +31,16 @@ const ProfitLossCalendar: React.FC<ProfitLossCalendarProps> = ({
     const [currentYear, setCurrentYear] = useState(parseInt(selectedYear));
 
     // 使用自定义 hook
-    const { calendarData, monthlySummary, isLoading, error, fetchCalendarData, generateDailySnapshot } = useCalendarData();
+    const { calendarData, monthlySummary, yearlySummary, isLoading, error, fetchCalendarData, fetchYearlySummary, generateDailySnapshot } = useCalendarData();
     const { addToast } = useToast();
 
     // 手动操作状态
     const [isGenerating, setIsGenerating] = useState(false);
     const [isMonthlyGenerating, setIsMonthlyGenerating] = useState(false);
     // 使用美东时间作为默认日期
+    // 视图模式：按日(日历) / 按年（月度汇总）
+    const [viewMode, setViewMode] = useState<'monthly' | 'yearly'>('monthly');
+
     const getUSEasternDate = () => {
         const now = new Date();
         const usEastern = new Date(now.toLocaleString("en-US", {timeZone: "America/New_York"}));
@@ -158,6 +161,13 @@ const ProfitLossCalendar: React.FC<ProfitLossCalendarProps> = ({
     useEffect(() => {
         setCurrentYear(parseInt(selectedYear));
     }, [selectedYear]);
+
+    // 年度汇总数据加载：当切到年度视图或年份变化时加载
+    useEffect(() => {
+        if (viewMode === 'yearly') {
+            fetchYearlySummary(currentYear);
+        }
+    }, [viewMode, currentYear, fetchYearlySummary]);
 
     // 手动生成快照
     const handleGenerateSnapshot = async () => {
@@ -334,7 +344,7 @@ const ProfitLossCalendar: React.FC<ProfitLossCalendarProps> = ({
                         >
                             {/* 日期数字 */}
                             <div className="text-sm font-medium">{day}</div>
-                            
+
                             {/* 盈亏百分比 */}
                             {hasData && dayData && (
                                 <div className="text-xs font-bold mt-1">
@@ -430,6 +440,9 @@ const ProfitLossCalendar: React.FC<ProfitLossCalendarProps> = ({
 
         // 添加空白格子（月份开始前的空白）
         for (let i = 0; i < firstDay; i++) {
+
+    // 0000000 00
+
             days.push(<div key={`empty-${i}`} className="h-20"></div>);
         }
 
@@ -486,8 +499,74 @@ const ProfitLossCalendar: React.FC<ProfitLossCalendarProps> = ({
                                 {new Date().getFullYear()}
                             </SelectItem>
                         )}
+
+    // 年度（月度汇总）网格
+    const renderYearlyGrid = () => {
+        const monthsData = yearlySummary || Array.from({ length: 12 }, (_, i) => ({
+            month: (i + 1).toString().padStart(2, '0'),
+            totalGain: 0,
+            totalGainPercent: 0,
+            tradingDaysCount: 0,
+            profitDays: 0,
+            lossDays: 0,
+            winRate: 0,
+        }));
+
+        const monthLabel = (m: string) => months[parseInt(m) - 1];
+
+        return (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                {monthsData.map((m) => {
+                    const positive = (m.totalGain || 0) > 0;
+                    const negative = (m.totalGain || 0) < 0;
+                    return (
+                        <div
+                            key={m.month}
+                            className={cn(
+                                "p-3 rounded-lg border cursor-pointer transition-all",
+                                positive ? "bg-green-50 border-green-200 hover:bg-green-100" : negative ? "bg-red-50 border-red-200 hover:bg-red-100" : "bg-gray-50 border-gray-200 hover:bg-gray-100"
+                            )}
+                            onClick={() => { setCurrentMonth(parseInt(m.month)); setViewMode('monthly'); }}
+                            title="点击切换到该月的每日视图"
+                        >
+                            <div className="flex items-center justify-between mb-2">
+                                <div className="text-sm font-semibold">{currentYear}年{monthLabel(m.month)}</div>
+                                {positive ? <TrendingUp className="w-4 h-4 text-green-600" /> : negative ? <TrendingDown className="w-4 h-4 text-red-600" /> : <Calendar className="w-4 h-4 text-gray-500" />}
+                            </div>
+                            <div className={cn("text-base font-bold", positive ? "text-green-700" : negative ? "text-red-700" : "text-gray-700")}
+                            >
+                                {m.totalGain > 0 ? '+' : ''}{formatLargeNumber(m.totalGain, currency)}
+                                <span className="ml-1 text-sm">({m.totalGainPercent.toFixed(2)}%)</span>
+                            </div>
+                            <div className="mt-1 text-xs text-gray-600">
+                                交易日 {m.tradingDaysCount} 天 · 胜率 {m.winRate.toFixed(1)}%
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+        );
+    };
+
                     </SelectContent>
                 </Select>
+                <div className="flex items-center gap-2 ml-2">
+                    <Button
+                        variant={viewMode === 'monthly' ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setViewMode('monthly')}
+                    >
+                        按日
+                    </Button>
+                    <Button
+                        variant={viewMode === 'yearly' ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setViewMode('yearly')}
+                    >
+                        年度（月度汇总）
+                    </Button>
+                </div>
+
                 {/* 调试信息 */}
                 {process.env.NODE_ENV === 'development' && (
                     <div className="text-xs text-gray-500">
@@ -662,7 +741,7 @@ const ProfitLossCalendar: React.FC<ProfitLossCalendarProps> = ({
             )}
 
             {/* 日历网格 */}
-            {!isLoading && (
+            {!isLoading && viewMode === 'monthly' && (
                 <div className="bg-white rounded-lg border p-4">
                     {/* 星期标题 */}
                     <div className="grid grid-cols-7 gap-2 mb-2">
@@ -677,6 +756,11 @@ const ProfitLossCalendar: React.FC<ProfitLossCalendarProps> = ({
                     <div className="grid grid-cols-7 gap-2">
                         {renderCalendar()}
                     </div>
+                </div>
+            )}
+            {!isLoading && viewMode === 'yearly' && (
+                <div className="bg-white rounded-lg border p-4">
+                    {renderYearlyGrid()}
                 </div>
             )}
         </div>

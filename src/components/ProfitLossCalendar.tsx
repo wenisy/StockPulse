@@ -72,12 +72,9 @@ const ProfitLossCalendar: React.FC<ProfitLossCalendarProps> = ({
         }
     };
 
-    // 组件加载时获取美东时间
+    // 组件加载时获取美东时间（去除定时轮询，仅初始化一次）
     useEffect(() => {
         fetchUSEasternTime();
-        // 每分钟更新一次
-        const interval = setInterval(fetchUSEasternTime, 60000);
-        return () => clearInterval(interval);
     }, []);
 
     const [availableYears, setAvailableYears] = useState<string[]>([]);

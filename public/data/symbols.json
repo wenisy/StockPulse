@@ -1,32 +1,32 @@
 {
     "stocks": [
         {
-            "symbol": "AAPL",
-            "name": "Apple Inc."
+            "symbol": "ORCL",
+            "name": "Oracle Corporation"
         },
         {
-            "symbol": "MSFT",
-            "name": "Microsoft Corporation"
+            "symbol": "IBM",
+            "name": "International Business Machines Corporation"
         },
         {
-            "symbol": "NVDA",
-            "name": "NVIDIA Corporation"
+            "symbol": "JPM",
+            "name": "JPMorgan Chase & Co."
         },
         {
-            "symbol": "AMZN",
-            "name": "Amazon.com Inc."
+            "symbol": "JNJ",
+            "name": "Johnson & Johnson"
         },
         {
-            "symbol": "META",
-            "name": "Meta Platforms Inc."
+            "symbol": "WMT",
+            "name": "Walmart Inc."
         },
         {
-            "symbol": "NFLX",
-            "name": "Netflix Inc."
+            "symbol": "INTC",
+            "name": "Intel Corporation"
         },
         {
-            "symbol": "SPY",
-            "name": "SPDR S&P 500 ETF Trust"
+            "symbol": "CSCO",
+            "name": "Cisco Systems Inc."
         }
     ]
 }

@@ -4,10 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "NODE_OPTIONS='--max-old-space-size=8192' next build",
     "start": "next start",
     "lint": "next lint",
-    "export": "next build",
+    "export": "NODE_OPTIONS='--max-old-space-size=8192' next build",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage"

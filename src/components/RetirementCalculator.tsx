@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { TooltipProvider, Tooltip as UITooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
+import { TrendingUp } from 'lucide-react';
+import CompoundGrowthDialog from './CompoundGrowthDialog';
 
 interface RetirementCalculatorProps {
   retirementGoal: string;
@@ -39,6 +41,7 @@ const RetirementCalculator: React.FC<RetirementCalculatorProps> = ({
   formatLargeNumber,
   compact = false
 }) => {
+  const [showCompoundGrowthDialog, setShowCompoundGrowthDialog] = useState(false);
   // 计算达到目标所需年数
   const calculateYearsToGoal = (currentAmount: number, goalAmount: number, returnRate: number) => {
     if (returnRate <= 0) return Infinity;
@@ -68,7 +71,7 @@ const RetirementCalculator: React.FC<RetirementCalculatorProps> = ({
       const yearsNeeded = calculateYearsToGoal(currentAmount, goalAmount, returnRate);
 
       return (
-        <div className="space-y-2">
+        <div className="space-y-3">
           <p>当前总资产: <span className="font-semibold">{formatLargeNumber(currentAmount, currency)}</span></p>
           <p>目标金额: <span className="font-semibold">{formatLargeNumber(goalAmount, currency)}</span></p>
           <p>差距金额: <span className="font-semibold">{formatLargeNumber(goalAmount - currentAmount, currency)}</span></p>
@@ -78,7 +81,19 @@ const RetirementCalculator: React.FC<RetirementCalculatorProps> = ({
           ) : yearsNeeded <= 0 ? (
             <p className="text-green-500">已达到目标！</p>
           ) : (
-            <p>预计需要 <span className="font-semibold text-blue-600">{yearsNeeded.toFixed(1)}</span> 年可达到目标</p>
+            <div className="space-y-2">
+              <p>预计需要 <span className="font-semibold text-blue-600">{yearsNeeded.toFixed(1)}</span> 年可达到目标</p>
+              {yearsNeeded > 0 && yearsNeeded < 100 && (
+                <Button
+                  onClick={() => setShowCompoundGrowthDialog(true)}
+                  className="w-full bg-gradient-to-r from-blue-500 to-green-500 hover:from-blue-600 hover:to-green-600 text-white"
+                  size="sm"
+                >
+                  <TrendingUp className="w-4 h-4 mr-2" />
+                  查看复利增长图表 - 感受时间的力量！
+                </Button>
+              )}
+            </div>
           )}
         </div>
       );
@@ -197,6 +212,21 @@ const RetirementCalculator: React.FC<RetirementCalculatorProps> = ({
           {renderCalculationResult()}
         </div>
       )}
+
+      {/* 复利增长可视化对话框 */}
+      <CompoundGrowthDialog
+        isOpen={showCompoundGrowthDialog}
+        onClose={() => setShowCompoundGrowthDialog(false)}
+        currentAmount={currentAmount}
+        goalAmount={parseFloat(retirementGoal) || 0}
+        returnRate={parseFloat(annualReturn) || 0}
+        yearsNeeded={calculationMode === 'rate'
+          ? calculateYearsToGoal(currentAmount, parseFloat(retirementGoal) || 0, parseFloat(annualReturn) || 0)
+          : parseFloat(targetYears) || 0
+        }
+        currency={currency}
+        formatLargeNumber={formatLargeNumber}
+      />
     </div>
   );
 };

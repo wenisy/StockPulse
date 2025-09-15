@@ -64,7 +64,7 @@ const CompoundGrowthDialog: React.FC<CompoundGrowthDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="w-[95vw] max-w-[95vw] max-h-[90vh] overflow-y-auto sm:max-w-[40vw] sm:min-w-[800px]">
         <DialogHeader>
           <DialogTitle className="text-xl font-bold text-center">
             复利增长可视化 - 感受时间的力量！

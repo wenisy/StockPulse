@@ -1,12 +1,16 @@
 "use client";
 import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ReferenceLine } from 'recharts';
 
 interface CompoundGrowthData {
   year: number;
   totalValue: number;
   principal: number;
   interest: number;
+  isAfterGoal?: boolean; // 标记是否为目标达成后的年份
+  beforeGoalValue?: number; // 达成目标前的值
+  afterGoalValue?: number; // 达成目标后的值
 }
 
 interface CompoundGrowthDialogProps {
@@ -43,17 +47,39 @@ const CompoundGrowthDialog: React.FC<CompoundGrowthDialogProps> = ({
       return data;
     }
 
-    const years = Math.min(Math.ceil(yearsNeeded), 50); // 限制最大50年
+    // 计算达到目标的年数
+    const goalYear = Math.ceil(yearsNeeded);
+    // 在目标达成后再展示20年，激励继续存钱
+    const totalYears = goalYear + 20;
+    // 限制最大年数为70年
+    const maxYears = Math.min(totalYears, 70);
 
-    for (let year = 0; year <= years; year++) {
+    // 找到第一个达到目标的年份
+    let goalReachedYear = -1;
+    for (let year = 0; year <= maxYears; year++) {
+      const totalValue = currentAmount * Math.pow(1 + returnRate / 100, year);
+      if (totalValue >= goalAmount && goalReachedYear === -1) {
+        goalReachedYear = year;
+        break;
+      }
+    }
+
+    for (let year = 0; year <= maxYears; year++) {
       const totalValue = currentAmount * Math.pow(1 + returnRate / 100, year);
       const interest = totalValue - currentAmount;
+      const isAfterGoal = year > goalYear;
+      const hasReachedGoal = totalValue >= goalAmount;
 
       data.push({
         year,
         totalValue: Math.round(totalValue),
         principal: currentAmount,
-        interest: Math.round(interest)
+        interest: Math.round(interest),
+        isAfterGoal,
+        // 分别设置达成目标前后的值，用于不同颜色的线条
+        // 在目标达成的那一年，两条线都有值，确保连接
+        beforeGoalValue: year <= goalReachedYear ? Math.round(totalValue) : null,
+        afterGoalValue: year >= goalReachedYear ? Math.round(totalValue) : null
       });
     }
 
@@ -98,34 +124,75 @@ const CompoundGrowthDialog: React.FC<CompoundGrowthDialogProps> = ({
             </div>
           </div>
 
-          {/* 简化的可视化 - 使用CSS进度条 */}
+          {/* 复利增长折线图 */}
           <div className="bg-white p-4 rounded-lg border">
-            <h3 className="text-lg font-semibold mb-4 text-center">复利增长进度</h3>
-            <div className="space-y-3">
-              {chartData.slice(0, Math.min(10, chartData.length)).map((item, index) => {
-                const progress = (item.totalValue / goalAmount) * 100;
-                const isGoalReached = item.totalValue >= goalAmount;
+            <h3 className="text-lg font-semibold mb-4 text-center">复利增长进度 - 感受时间的力量！</h3>
+            <div className="h-96 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis
+                    dataKey="year"
+                    tickFormatter={(value) => `第${value}年`}
+                  />
+                  <YAxis
+                    tickFormatter={(value) => {
+                      if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
+                      if (value >= 1000) return `${(value / 1000).toFixed(1)}K`;
+                      return value.toFixed(0);
+                    }}
+                  />
+                  <Tooltip
+                    formatter={(value: number) => [
+                      formatLargeNumber(value, currency),
+                      '总价值'
+                    ]}
+                    labelFormatter={(label) => `第${label}年`}
+                  />
+                  <Legend />
 
-                return (
-                  <div key={item.year} className="flex items-center space-x-3">
-                    <div className="w-16 text-sm font-medium">第{item.year}年</div>
-                    <div className="flex-1 bg-gray-200 rounded-full h-6 relative">
-                      <div
-                        className={`h-6 rounded-full transition-all duration-300 ${
-                          isGoalReached ? 'bg-green-500' : 'bg-blue-500'
-                        }`}
-                        style={{ width: `${Math.min(progress, 100)}%` }}
-                      />
-                      <div className="absolute inset-0 flex items-center justify-center text-xs font-medium text-white">
-                        {formatLargeNumber(item.totalValue, currency)}
-                      </div>
-                    </div>
-                    <div className="w-20 text-sm text-right">
-                      {progress.toFixed(1)}%
-                    </div>
-                  </div>
-                );
-              })}
+                  {/* 目标线 */}
+                  <ReferenceLine
+                    y={goalAmount}
+                    stroke="#ff6b6b"
+                    strokeDasharray="5 5"
+                    label={{ value: `目标: ${formatLargeNumber(goalAmount, currency)}`, position: "topRight" }}
+                  />
+
+                  {/* 达成目标前的增长线 */}
+                  <Line
+                    type="monotone"
+                    dataKey="beforeGoalValue"
+                    stroke="#3b82f6"
+                    strokeWidth={3}
+                    dot={{ fill: '#3b82f6', strokeWidth: 2, r: 4 }}
+                    name="达成目标前"
+                    connectNulls={false}
+                  />
+
+                  {/* 达成目标后的延伸线 */}
+                  <Line
+                    type="monotone"
+                    dataKey="afterGoalValue"
+                    stroke="#10b981"
+                    strokeWidth={3}
+                    dot={{ fill: '#10b981', strokeWidth: 2, r: 4 }}
+                    name="继续增长的力量"
+                    connectNulls={false}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+
+            {/* 激励文字 */}
+            <div className="mt-4 p-3 bg-gradient-to-r from-green-50 to-blue-50 rounded-lg">
+              <p className="text-sm text-center text-gray-700">
+                <span className="text-blue-600 font-semibold">蓝色线</span>：达成目标的路径 |
+                <span className="text-green-600 font-semibold ml-2">绿色线</span>：继续存钱的无限可能！
+              </p>
+              <p className="text-xs text-center text-gray-600 mt-1">
+                坚持投资，让复利成为你最好的朋友 💪
+              </p>
             </div>
           </div>
 

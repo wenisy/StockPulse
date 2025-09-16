@@ -107,6 +107,7 @@ const StockPortfolioTracker: React.FC = () => {
   const [cashTransactionType, setCashTransactionType] = useState<
     "deposit" | "withdraw"
   >("deposit");
+  const [isCashTransactionLoading, setIsCashTransactionLoading] = useState(false);
   const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
   const [selectedReportYear, setSelectedReportYear] = useState<string | null>(
     null
@@ -706,58 +707,102 @@ const StockPortfolioTracker: React.FC = () => {
     }
   };
 
-  const addCashTransaction = () => {
-    if (!cashTransactionAmount || !selectedYear) return;
+  const addCashTransaction = async () => {
+    if (!cashTransactionAmount || !selectedYear || isCashTransactionLoading) return;
     const amount = parseFloat(cashTransactionAmount);
     if (isNaN(amount)) return;
 
-    const cashTransaction: CashTransaction = {
-      amount: cashTransactionType === "deposit" ? amount : -amount,
-      type: cashTransactionType,
-      date: new Date().toISOString().split("T")[0],
-      userUuid: currentUser?.uuid,
-    };
+    // 设置加载状态，防止重复点击
+    setIsCashTransactionLoading(true);
 
-    setYearData((prevYearData) => {
-      const updatedYearData = { ...prevYearData };
-      if (!updatedYearData[selectedYear]) {
-        updatedYearData[selectedYear] = {
-          stocks: [],
-          cashTransactions: [],
-          stockTransactions: [],
-          cashBalance: 0,
-        };
-      }
-      updatedYearData[selectedYear].cashTransactions.push(cashTransaction);
-      updatedYearData[selectedYear].cashBalance =
-        (updatedYearData[selectedYear].cashBalance || 0) +
-        cashTransaction.amount;
-      return updatedYearData;
-    });
-
-    // 记录增量变化
-    setIncrementalChanges((prev) => {
-      return {
-        ...prev,
-        cashTransactions: {
-          ...prev.cashTransactions,
-          [selectedYear]: [
-            ...(prev.cashTransactions[selectedYear] || []),
-            cashTransaction,
-          ],
-        },
-        yearlySummaries: {
-          ...prev.yearlySummaries,
-          [selectedYear]: {
-            cashBalance:
-              (yearData[selectedYear]?.cashBalance || 0) +
-              cashTransaction.amount,
-          },
-        },
+    try {
+      const cashTransaction: CashTransaction = {
+        amount: cashTransactionType === "deposit" ? amount : -amount,
+        type: cashTransactionType,
+        date: new Date().toISOString().split("T")[0],
+        userUuid: currentUser?.uuid,
       };
-    });
 
-    setCashTransactionAmount("");
+      setYearData((prevYearData) => {
+        const updatedYearData = { ...prevYearData };
+        if (!updatedYearData[selectedYear]) {
+          updatedYearData[selectedYear] = {
+            stocks: [],
+            cashTransactions: [],
+            stockTransactions: [],
+            cashBalance: 0,
+          };
+        }
+        updatedYearData[selectedYear].cashTransactions.push(cashTransaction);
+        updatedYearData[selectedYear].cashBalance =
+          (updatedYearData[selectedYear].cashBalance || 0) +
+          cashTransaction.amount;
+        return updatedYearData;
+      });
+
+      // 记录增量变化 - 添加去重检查
+      setIncrementalChanges((prev) => {
+        const existingTransactions = prev.cashTransactions[selectedYear] || [];
+
+        // 检查是否已存在相同的交易（基于金额、类型、日期）
+        const isDuplicate = existingTransactions.some(tx =>
+          tx.amount === cashTransaction.amount &&
+          tx.type === cashTransaction.type &&
+          tx.date === cashTransaction.date &&
+          Math.abs(new Date(tx.date).getTime() - new Date(cashTransaction.date).getTime()) < 1000 // 1秒内的交易视为重复
+        );
+
+        if (isDuplicate) {
+          console.log('检测到重复的现金交易，跳过添加');
+          return prev;
+        }
+
+        return {
+          ...prev,
+          cashTransactions: {
+            ...prev.cashTransactions,
+            [selectedYear]: [
+              ...existingTransactions,
+              cashTransaction,
+            ],
+          },
+          yearlySummaries: {
+            ...prev.yearlySummaries,
+            [selectedYear]: {
+              cashBalance:
+                (yearData[selectedYear]?.cashBalance || 0) +
+                cashTransaction.amount,
+            },
+          },
+        };
+      });
+
+      setCashTransactionAmount("");
+
+      // 显示成功提示
+      setAlertInfo({
+        isOpen: true,
+        title: "操作成功",
+        description: `已${cashTransactionType === "deposit" ? "存入" : "取出"}现金 $${Math.abs(amount).toFixed(2)}`,
+        onConfirm: () => setAlertInfo(null),
+        confirmText: "确定"
+      });
+
+    } catch (error) {
+      console.error('添加现金交易失败:', error);
+      setAlertInfo({
+        isOpen: true,
+        title: "操作失败",
+        description: "添加现金交易时发生错误，请稍后重试",
+        onConfirm: () => setAlertInfo(null),
+        confirmText: "确定"
+      });
+    } finally {
+      // 延迟重置加载状态，防止快速重复点击
+      setTimeout(() => {
+        setIsCashTransactionLoading(false);
+      }, 1000);
+    }
   };
 
   const confirmAddNewStock = () => {
@@ -1669,7 +1714,13 @@ const StockPortfolioTracker: React.FC = () => {
               onChange={(e) => setCashTransactionAmount(e.target.value)}
               className="w-32"
             />
-            <Button onClick={addCashTransaction}>添加现金操作</Button>
+            <Button
+              onClick={addCashTransaction}
+              disabled={isCashTransactionLoading}
+              className={isCashTransactionLoading ? "opacity-50 cursor-not-allowed" : ""}
+            >
+              {isCashTransactionLoading ? "处理中..." : "添加现金操作"}
+            </Button>
           </div>
           <p
             className={cn(

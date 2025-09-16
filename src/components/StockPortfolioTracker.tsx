@@ -723,6 +723,9 @@ const StockPortfolioTracker: React.FC = () => {
         userUuid: currentUser?.uuid,
       };
 
+      // 获取当前现金余额（在更新之前）
+      const currentCashBalance = yearData[selectedYear]?.cashBalance || 0;
+
       setYearData((prevYearData) => {
         const updatedYearData = { ...prevYearData };
         if (!updatedYearData[selectedYear]) {
@@ -757,6 +760,9 @@ const StockPortfolioTracker: React.FC = () => {
           return prev;
         }
 
+        // 计算新的现金余额（使用更新前的余额）
+        const newCashBalance = currentCashBalance + cashTransaction.amount;
+
         return {
           ...prev,
           cashTransactions: {
@@ -769,9 +775,7 @@ const StockPortfolioTracker: React.FC = () => {
           yearlySummaries: {
             ...prev.yearlySummaries,
             [selectedYear]: {
-              cashBalance:
-                (yearData[selectedYear]?.cashBalance || 0) +
-                cashTransaction.amount,
+              cashBalance: newCashBalance,
             },
           },
         };

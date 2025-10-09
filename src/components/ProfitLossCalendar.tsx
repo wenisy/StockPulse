@@ -469,8 +469,97 @@ const ProfitLossCalendar: React.FC<ProfitLossCalendarProps> = ({
 
         const monthLabel = (m: string) => months[parseInt(m) - 1];
 
+        // 计算年度总计
+        const yearlyTotal = monthsData.reduce((acc, month) => {
+            return {
+                totalGain: acc.totalGain + (month.totalGain || 0),
+                totalGainPercent: acc.totalGainPercent + (month.totalGainPercent || 0),
+                tradingDaysCount: acc.tradingDaysCount + (month.tradingDaysCount || 0),
+                profitDays: acc.profitDays + (month.profitDays || 0),
+                lossDays: acc.lossDays + (month.lossDays || 0),
+            };
+        }, {
+            totalGain: 0,
+            totalGainPercent: 0,
+            tradingDaysCount: 0,
+            profitDays: 0,
+            lossDays: 0,
+        });
+
+        // 计算年度胜率
+        const yearlyWinRate = yearlyTotal.tradingDaysCount > 0
+            ? (yearlyTotal.profitDays / yearlyTotal.tradingDaysCount) * 100
+            : 0;
+
         return (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+            <div className="space-y-4">
+                {/* 年度总计统计区域 */}
+                <div className={cn(
+                    "p-4 rounded-lg border-2",
+                    yearlyTotal.totalGain >= 0
+                        ? "bg-green-50 border-green-300"
+                        : "bg-red-50 border-red-300"
+                )}>
+                    <div className="flex items-center justify-between mb-2">
+                        <h4 className="text-lg font-semibold flex items-center gap-2">
+                            <Calendar className="w-5 h-5" />
+                            {currentYear}年 年度总计
+                        </h4>
+                        {yearlyTotal.totalGain >= 0 ? (
+                            <TrendingUp className="w-5 h-5 text-green-600" />
+                        ) : (
+                            <TrendingDown className="w-5 h-5 text-red-600" />
+                        )}
+                    </div>
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {/* 年度收益 */}
+                        <div>
+                            <div className={cn(
+                                "text-2xl font-bold",
+                                yearlyTotal.totalGain >= 0 ? "text-green-700" : "text-red-700"
+                            )}>
+                                {yearlyTotal.totalGain >= 0 ? '+' : ''}
+                                {formatLargeNumber(yearlyTotal.totalGain, currency)}
+                            </div>
+                            <div className={cn(
+                                "text-lg font-medium mt-1",
+                                yearlyTotal.totalGainPercent >= 0 ? "text-green-600" : "text-red-600"
+                            )}>
+                                收益率: {yearlyTotal.totalGainPercent >= 0 ? '+' : ''}
+                                {yearlyTotal.totalGainPercent.toFixed(2)}%
+                            </div>
+                        </div>
+                        
+                        {/* 年度交易统计 */}
+                        <div className="text-sm space-y-1">
+                            <div className="flex items-center justify-between">
+                                <span className="text-gray-600">总交易天数:</span>
+                                <span className="font-medium">{yearlyTotal.tradingDaysCount} 天</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <span className="text-gray-600">盈利天数:</span>
+                                <span className="font-medium text-green-600">{yearlyTotal.profitDays} 天</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <span className="text-gray-600">亏损天数:</span>
+                                <span className="font-medium text-red-600">{yearlyTotal.lossDays} 天</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <span className="text-gray-600">年度胜率:</span>
+                                <span className={cn(
+                                    "font-bold",
+                                    yearlyWinRate >= 50 ? "text-green-600" : "text-red-600"
+                                )}>
+                                    {yearlyWinRate.toFixed(1)}%
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* 月度网格 */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                 {monthsData.map((m) => {
                     const positive = (m.totalGain || 0) > 0;
                     const negative = (m.totalGain || 0) < 0;
@@ -499,6 +588,7 @@ const ProfitLossCalendar: React.FC<ProfitLossCalendarProps> = ({
                         </div>
                     );
                 })}
+                </div>
             </div>
         );
     };
@@ -588,70 +678,73 @@ const ProfitLossCalendar: React.FC<ProfitLossCalendarProps> = ({
                 </div>
             </div>
 
-            {/* 月份导航 */}
-            <div className="flex items-center justify-between">
-                <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => changeMonth(-1)}
-                    disabled={isLoading}
-                >
-                    <ChevronLeft className="w-4 h-4" />
-                </Button>
+            {/* 月份导航 - 仅在月视图显示 */}
+            {viewMode === 'monthly' && (
+                <div className="flex items-center justify-between">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => changeMonth(-1)}
+                        disabled={isLoading}
+                    >
+                        <ChevronLeft className="w-4 h-4" />
+                    </Button>
 
-                <div className="text-center">
-                    <div className="flex items-center justify-center gap-2 mb-2">
-                        <h4 className="text-xl font-semibold">
-                            {currentYear}年
-                        </h4>
-                        <Select
-                            value={currentMonth.toString()}
-                            onValueChange={(value) => {
-                                const newMonth = parseInt(value);
-                                setCurrentMonth(newMonth);
-                                fetchCalendarData(currentYear, newMonth);
-                            }}
-                        >
-                            <SelectTrigger className="w-20 h-8">
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {months.map((month, index) => (
-                                    <SelectItem key={index + 1} value={(index + 1).toString()}>
-                                        {month}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-                    {monthlySummary && (
-                        <div className="text-sm mt-1 space-y-1">
-                            <div className={`font-medium ${monthlySummary.totalGain >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                月度收益: {formatLargeNumber(monthlySummary.totalGain, currency)}
-                                ({monthlySummary.totalGain >= 0 ? '+' : ''}{monthlySummary.totalGainPercent.toFixed(2)}%)
-                            </div>
-                            <div className="text-gray-600 text-xs">
-                                交易日: {monthlySummary.tradingDaysCount}天 |
-                                盈利: {monthlySummary.profitDays}天 |
-                                亏损: {monthlySummary.lossDays}天 |
-                                胜率: {monthlySummary.winRate.toFixed(1)}%
-                            </div>
+                    <div className="text-center">
+                        <div className="flex items-center justify-center gap-2 mb-2">
+                            <h4 className="text-xl font-semibold">
+                                {currentYear}年
+                            </h4>
+                            <Select
+                                value={currentMonth.toString()}
+                                onValueChange={(value) => {
+                                    const newMonth = parseInt(value);
+                                    setCurrentMonth(newMonth);
+                                    fetchCalendarData(currentYear, newMonth);
+                                }}
+                            >
+                                <SelectTrigger className="w-20 h-8">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {months.map((month, index) => (
+                                        <SelectItem key={index + 1} value={(index + 1).toString()}>
+                                            {month}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
                         </div>
-                    )}
+                        {monthlySummary && (
+                            <div className="text-sm mt-1 space-y-1">
+                                <div className={`font-medium ${monthlySummary.totalGain >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                    月度收益: {formatLargeNumber(monthlySummary.totalGain, currency)}
+                                    ({monthlySummary.totalGain >= 0 ? '+' : ''}{monthlySummary.totalGainPercent.toFixed(2)}%)
+                                </div>
+                                <div className="text-gray-600 text-xs">
+                                    交易日: {monthlySummary.tradingDaysCount}天 |
+                                    盈利: {monthlySummary.profitDays}天 |
+                                    亏损: {monthlySummary.lossDays}天 |
+                                    胜率: {monthlySummary.winRate.toFixed(1)}%
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => changeMonth(1)}
+                        disabled={isLoading}
+                    >
+                        <ChevronRight className="w-4 h-4" />
+                    </Button>
                 </div>
+            )}
 
-                <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => changeMonth(1)}
-                    disabled={isLoading}
-                >
-                    <ChevronRight className="w-4 h-4" />
-                </Button>
-            </div>
-
-            {/* 手动操作区域 */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            {/* 手动操作区域 - 仅在月视图显示 */}
+            {viewMode === 'monthly' && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <div className="space-y-3">
                     <div className="flex items-center gap-2">
                         <label className="text-sm text-blue-700 min-w-[60px]">生成日期:</label>
@@ -727,6 +820,7 @@ const ProfitLossCalendar: React.FC<ProfitLossCalendarProps> = ({
                     <p>📅 <strong>点击日历日期</strong>: 自动更新生成日期字段</p>
                 </div>
             </div>
+            )}
 
             {/* 错误提示 */}
             {error && (

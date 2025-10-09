@@ -473,14 +473,12 @@ const ProfitLossCalendar: React.FC<ProfitLossCalendarProps> = ({
         const yearlyTotal = monthsData.reduce((acc, month) => {
             return {
                 totalGain: acc.totalGain + (month.totalGain || 0),
-                totalGainPercent: acc.totalGainPercent + (month.totalGainPercent || 0),
                 tradingDaysCount: acc.tradingDaysCount + (month.tradingDaysCount || 0),
                 profitDays: acc.profitDays + (month.profitDays || 0),
                 lossDays: acc.lossDays + (month.lossDays || 0),
             };
         }, {
             totalGain: 0,
-            totalGainPercent: 0,
             tradingDaysCount: 0,
             profitDays: 0,
             lossDays: 0,
@@ -522,12 +520,11 @@ const ProfitLossCalendar: React.FC<ProfitLossCalendarProps> = ({
                                 {yearlyTotal.totalGain >= 0 ? '+' : ''}
                                 {formatLargeNumber(yearlyTotal.totalGain, currency)}
                             </div>
-                            <div className={cn(
-                                "text-lg font-medium mt-1",
-                                yearlyTotal.totalGainPercent >= 0 ? "text-green-600" : "text-red-600"
-                            )}>
-                                收益率: {yearlyTotal.totalGainPercent >= 0 ? '+' : ''}
-                                {yearlyTotal.totalGainPercent.toFixed(2)}%
+                            <div className="text-sm text-gray-600 mt-1">
+                                年度盈亏总额
+                            </div>
+                            <div className="text-xs text-gray-500 mt-2">
+                                * 收益率需结合总资产计算
                             </div>
                         </div>
                         

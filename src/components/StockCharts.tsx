@@ -11,6 +11,7 @@ import {
   LineChart,
   ResponsiveContainer,
   Tooltip,
+  TooltipProps,
   XAxis,
   YAxis
 } from 'recharts';
@@ -28,6 +29,40 @@ interface StockChartsProps {
   formatLargeNumber: (value: number, currency: string) => string;
   currency: string;
 }
+
+/**
+ * 自定义Tooltip组件 - 按金额排序显示股票信息
+ */
+const CustomLineChartTooltip: React.FC<TooltipProps<number, string> & {
+  formatLargeNumber: (value: number, currency: string) => string;
+  currency: string;
+}> = ({ active, payload, label, formatLargeNumber, currency }) => {
+  if (!active || !payload || payload.length === 0) {
+    return null;
+  }
+
+  // 按金额从大到小排序
+  const sortedPayload = [...payload].sort((a, b) => {
+    const valueA = typeof a.value === 'number' ? a.value : 0;
+    const valueB = typeof b.value === 'number' ? b.value : 0;
+    return valueB - valueA;
+  });
+
+  return (
+    <div className="bg-white p-3 border border-gray-300 rounded shadow-lg">
+      <p className="font-semibold mb-2">{`${label}年`}</p>
+      {sortedPayload.map((entry, index) => {
+        const value = typeof entry.value === 'number' ? entry.value : 0;
+        const name = entry.name === 'total' ? '总计' : entry.name;
+        return (
+          <p key={`item-${index}`} style={{ color: entry.color }} className="text-sm">
+            {`${name}: ${formatLargeNumber(value, currency)}`}
+          </p>
+        );
+      })}
+    </div>
+  );
+};
 
 /**
  * 股票图表组件
@@ -81,11 +116,7 @@ const StockCharts: React.FC<StockChartsProps> = ({
                 }}
               />
               <Tooltip
-                formatter={(value: number, name: string) => [
-                  formatLargeNumber(value, currency),
-                  name === 'total' ? '总计' : name
-                ]}
-                labelFormatter={(label) => `${label}年`}
+                content={<CustomLineChartTooltip formatLargeNumber={formatLargeNumber} currency={currency} />}
               />
               <Legend
                 onClick={handleLegendClick}

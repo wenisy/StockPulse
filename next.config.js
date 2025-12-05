@@ -10,10 +10,6 @@ const nextConfig = {
     images: {
         unoptimized: true,
     },
-    // 禁用 ESLint 检查
-    eslint: {
-        ignoreDuringBuilds: true,
-    },
     // 禁用类型检查
     typescript: {
         ignoreBuildErrors: true,

@@ -660,21 +660,28 @@ const StockPortfolioTracker: React.FC = () => {
   const addNewYear = () => {
     const trimmedYear = newYear.trim();
     if (trimmedYear && !years.includes(trimmedYear)) {
+      // 获取上一年（最近的小于新年份的年份）
       const referenceYear = years
         .filter((y) => y < trimmedYear)
         .sort((a, b) => b.localeCompare(a))[0];
 
-      const cashToCarryOver = referenceYear
-        ? yearData[referenceYear]?.cashBalance || 0
-        : 0;
+      const referenceYearData = referenceYear ? yearData[referenceYear] : null;
+
+      // 继承上一年的股票持仓（保持年末价格）
+      const stocksToCarryOver = referenceYearData?.stocks?.map(stock => ({
+        ...stock,
+      })) || [];
+
+      const cashToCarryOver = referenceYearData?.cashBalance || 0;
 
       const newYearDataItem: YearData = {
-        stocks: [],
+        stocks: stocksToCarryOver,  // 继承股票持仓
         cashTransactions: [],
         stockTransactions: [],
-        cashBalance: 0,
+        cashBalance: cashToCarryOver,  // 继承现金余额
       };
 
+      // 如果有现金结余，添加一条"上年结余"的交易记录
       if (cashToCarryOver > 0) {
         newYearDataItem.cashTransactions.push({
           amount: cashToCarryOver,
@@ -682,7 +689,6 @@ const StockPortfolioTracker: React.FC = () => {
           date: new Date().toISOString().split("T")[0],
           description: "上年结余",
         });
-        newYearDataItem.cashBalance = cashToCarryOver;
       }
 
       setYearData({ ...yearData, [trimmedYear]: newYearDataItem });

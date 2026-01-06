@@ -31,11 +31,19 @@ export const useStockData = () => {
       return false;
     }
 
+    // 获取上一年的年份
+    const previousYear = (parseInt(newYear) - 1).toString();
+    const previousYearData = yearData[previousYear];
+
+    // 继承上一年的股票持仓和现金余额
     const newYearData: YearData = {
-      stocks: [],
-      stockTransactions: [],
-      cashTransactions: [],
-      cashBalance: 0,
+      stocks: previousYearData?.stocks?.map(stock => ({
+        ...stock,
+        // 保持上一年的年末价格
+      })) || [],
+      stockTransactions: [],     // 新年份交易记录清空
+      cashTransactions: [],      // 新年份现金交易清空
+      cashBalance: previousYearData?.cashBalance || 0,  // 继承现金余额
     };
 
     setYearData(prev => ({
@@ -48,7 +56,7 @@ export const useStockData = () => {
     setFilteredYears(updatedYears);
     
     return true;
-  }, [years]);
+  }, [years, yearData]);
 
   const addCashTransaction = useCallback((
     year: string,

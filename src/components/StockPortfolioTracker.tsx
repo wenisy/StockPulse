@@ -471,6 +471,27 @@ const StockPortfolioTracker: React.FC = () => {
           return updatedYearData;
         });
 
+        // 记录价格更新的增量变化，用于同步到 Notion
+        setIncrementalChanges((prev) => {
+          const updatedStocks = targetStocks
+            .filter((stock) => stock.symbol && stockData[stock.symbol])
+            .map((stock) => ({
+              name: stock.name,
+              symbol: stock.symbol,
+              shares: stock.shares,
+              price: stockData[stock.symbol!].price,
+              costPrice: stock.costPrice,
+            }));
+
+          return {
+            ...prev,
+            stocks: {
+              ...prev.stocks,
+              [targetYear]: updatedStocks,
+            },
+          };
+        });
+
         setLastRefreshTime(new Date());
 
         if (isManual) {

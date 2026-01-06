@@ -423,16 +423,17 @@ const StockPortfolioTracker: React.FC = () => {
   const refreshPrices = async (isManual = false) => {
     setIsLoading(true);
     try {
-      const latestYear = new Date().getFullYear().toString();
-      const latestStocks = yearData[latestYear]?.stocks || [];
-      const symbols = latestStocks.map((stock) => stock.symbol).filter(Boolean);
+      // 使用当前选中的年份，而不是固定的当前年份
+      const targetYear = selectedYear || new Date().getFullYear().toString();
+      const targetStocks = yearData[targetYear]?.stocks || [];
+      const symbols = targetStocks.map((stock) => stock.symbol).filter(Boolean);
 
       if (symbols.length === 0) {
         if (isManual) {
           setAlertInfo({
             isOpen: true,
             title: "无股票数据",
-            description: "当前无股票数据可供更新",
+            description: `${targetYear}年无股票数据可供更新`,
             onConfirm: () => setAlertInfo(null),
           });
         }
@@ -458,10 +459,10 @@ const StockPortfolioTracker: React.FC = () => {
         setYearData((prevYearData) => {
           const updatedYearData = { ...prevYearData };
           if (
-            updatedYearData[latestYear] &&
-            updatedYearData[latestYear].stocks
+            updatedYearData[targetYear] &&
+            updatedYearData[targetYear].stocks
           ) {
-            updatedYearData[latestYear].stocks.forEach((stock) => {
+            updatedYearData[targetYear].stocks.forEach((stock) => {
               if (stock.symbol && stockData[stock.symbol]) {
                 stock.price = stockData[stock.symbol].price;
               }
@@ -476,7 +477,7 @@ const StockPortfolioTracker: React.FC = () => {
           setAlertInfo({
             isOpen: true,
             title: "价格已更新",
-            description: `股票价格已更新至最新数据（${new Date().toLocaleString()}）`,
+            description: `${targetYear}年股票价格已更新至最新数据（${new Date().toLocaleString()}）`,
             onConfirm: () => setAlertInfo(null),
           });
         }

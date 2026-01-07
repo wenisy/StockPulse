@@ -13,12 +13,14 @@ interface ProfitLossCalendarProps {
     selectedYear: string;
     formatLargeNumber: (value: number, currency: string) => string;
     currency: string;
+    years?: string[];  // 可选：从父组件传入的年份列表
 }
 
 const ProfitLossCalendar: React.FC<ProfitLossCalendarProps> = ({
     selectedYear,
     formatLargeNumber,
-    currency
+    currency,
+    years: parentYears
 }) => {
     // 美东时间状态
     const [usEasternTime, setUsEasternTime] = useState<{
@@ -89,8 +91,15 @@ const ProfitLossCalendar: React.FC<ProfitLossCalendarProps> = ({
 
     const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
 
-    // 获取可用年份 - 改为从用户的交易数据中获取
+    // 获取可用年份 - 优先使用父组件传入的年份列表
     const fetchAvailableYears = useCallback(async () => {
+        // 如果父组件传入了年份列表，直接使用
+        if (parentYears && parentYears.length > 0) {
+            const sortedYears = [...parentYears].sort();
+            setAvailableYears(sortedYears);
+            return;
+        }
+
         try {
             const token = localStorage.getItem('token');
             if (!token) {
@@ -145,7 +154,7 @@ const ProfitLossCalendar: React.FC<ProfitLossCalendarProps> = ({
             console.error('获取可用年份失败:', error);
             setAvailableYears([new Date().getFullYear().toString()]);
         }
-    }, []); // 移除依赖，避免无限循环
+    }, [parentYears]); // 当父组件年份列表变化时重新执行
 
     // 初始化时获取可用年份
     useEffect(() => {

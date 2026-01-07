@@ -152,6 +152,7 @@ const ReportDialog: React.FC<ReportDialogProps> = ({
                             selectedYear={selectedYear || new Date().getFullYear().toString()}
                             formatLargeNumber={formatLargeNumber}
                             currency={currency}
+                            years={Object.keys(yearData).sort()}
                         />
                     </TabsContent>
                     <TabsContent value="top">

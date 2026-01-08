@@ -36,7 +36,6 @@ import { RefreshCw, MoreHorizontal } from "lucide-react";
 import React, { useCallback, useEffect, useState, useRef } from "react";
 import RetirementCalculator from "./RetirementCalculator";
 import { useUserSettings } from "@/hooks/useUserSettings";
-import { useYearDataLoader } from "@/hooks/useYearDataLoader";
 import UserProfileManager, { UserProfileManagerHandle } from "./UserProfileManager";
 
 import { v4 as uuidv4 } from "uuid";
@@ -289,14 +288,11 @@ const StockPortfolioTracker: React.FC = () => {
     initializeData();
   }, []);
 
-  // --- Year Data Loader Hook ---
-  const yearDataLoader = useYearDataLoader();
-
   // --- Fetch Data from Backend (分年份加载优化版) ---
   const fetchJsonData = async (token: string) => {
     try {
-      // 1. 先加载年份列表和概览
-      const yearsResponse = await fetch(`${backendDomain}/api/data/years`, {
+      // 1. 先加载年份列表和概览 (使用参数模式)
+      const yearsResponse = await fetch(`${backendDomain}/api/data?mode=years`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -307,8 +303,8 @@ const StockPortfolioTracker: React.FC = () => {
           handleTokenExpired();
           return;
         }
-        // 如果新 API 失败，回退到旧 API
-        console.warn("新 API 失败，回退到旧 API");
+        // 如果新模式失败，回退到全量加载
+        console.warn("分年份加载失败，回退到全量加载");
         await fetchJsonDataLegacy(token);
         return;
       }
@@ -337,7 +333,7 @@ const StockPortfolioTracker: React.FC = () => {
       // 2. 并行加载最近 2 年的完整数据（用户最常看的）
       const yearsToLoad = sortedYears.slice(0, 2);
       const yearDataPromises = yearsToLoad.map(async (year: string) => {
-        const response = await fetch(`${backendDomain}/api/data/year/${year}`, {
+        const response = await fetch(`${backendDomain}/api/data?mode=year&year=${year}`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -374,7 +370,7 @@ const StockPortfolioTracker: React.FC = () => {
       }
     } catch (error) {
       console.error("获取数据时出错:", error);
-      // 回退到旧 API
+      // 回退到全量加载
       await fetchJsonDataLegacy(token);
     }
   };
@@ -387,7 +383,7 @@ const StockPortfolioTracker: React.FC = () => {
   ) => {
     for (const year of remainingYears) {
       try {
-        const response = await fetch(`${backendDomain}/api/data/year/${year}`, {
+        const response = await fetch(`${backendDomain}/api/data?mode=year&year=${year}`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },

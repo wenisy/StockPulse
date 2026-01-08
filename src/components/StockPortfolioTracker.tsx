@@ -36,6 +36,7 @@ import { RefreshCw, MoreHorizontal } from "lucide-react";
 import React, { useCallback, useEffect, useState, useRef } from "react";
 import RetirementCalculator from "./RetirementCalculator";
 import { useUserSettings } from "@/hooks/useUserSettings";
+import { useYearDataLoader } from "@/hooks/useYearDataLoader";
 import UserProfileManager, { UserProfileManagerHandle } from "./UserProfileManager";
 
 import { v4 as uuidv4 } from "uuid";
@@ -288,8 +289,153 @@ const StockPortfolioTracker: React.FC = () => {
     initializeData();
   }, []);
 
-  // --- Fetch Data from Backend ---
+  // --- Year Data Loader Hook ---
+  const yearDataLoader = useYearDataLoader();
+
+  // --- Fetch Data from Backend (分年份加载优化版) ---
   const fetchJsonData = async (token: string) => {
+    try {
+      // 1. 先加载年份列表和概览
+      const yearsResponse = await fetch(`${backendDomain}/api/data/years`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!yearsResponse.ok) {
+        if (yearsResponse.status === 401) {
+          handleTokenExpired();
+          return;
+        }
+        // 如果新 API 失败，回退到旧 API
+        console.warn("新 API 失败，回退到旧 API");
+        await fetchJsonDataLegacy(token);
+        return;
+      }
+
+      const yearsData = await yearsResponse.json();
+      const sortedYears = yearsData.years;
+
+      if (!sortedYears || sortedYears.length === 0) {
+        // 没有数据，使用默认数据
+        setYearData(stockInitialData);
+        const defaultYears = Object.keys(stockInitialData).sort(
+          (a, b) => parseInt(b) - parseInt(a)
+        );
+        setYears(defaultYears);
+        setFilteredYears(defaultYears);
+        setSelectedYear(defaultYears[0]);
+        setComparisonYear(defaultYears[0]);
+        return;
+      }
+
+      setYears(sortedYears);
+      setFilteredYears(sortedYears);
+      setSelectedYear(sortedYears[0]);
+      setComparisonYear(sortedYears[0]);
+
+      // 2. 并行加载最近 2 年的完整数据（用户最常看的）
+      const yearsToLoad = sortedYears.slice(0, 2);
+      const yearDataPromises = yearsToLoad.map(async (year: string) => {
+        const response = await fetch(`${backendDomain}/api/data/year/${year}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        if (response.ok) {
+          const data = await response.json();
+          return {
+            year,
+            data: {
+              stocks: data.stocks,
+              cashTransactions: data.cashTransactions,
+              stockTransactions: data.stockTransactions,
+              cashBalance: data.cashBalance,
+            },
+          };
+        }
+        return null;
+      });
+
+      const results = await Promise.all(yearDataPromises);
+      const loadedData: { [year: string]: YearData } = {};
+
+      results.forEach((result) => {
+        if (result) {
+          loadedData[result.year] = result.data;
+        }
+      });
+
+      setYearData(loadedData);
+
+      // 3. 后台加载剩余年份（如果有的话）
+      if (sortedYears.length > 2) {
+        loadRemainingYears(sortedYears.slice(2), token, loadedData);
+      }
+    } catch (error) {
+      console.error("获取数据时出错:", error);
+      // 回退到旧 API
+      await fetchJsonDataLegacy(token);
+    }
+  };
+
+  // 后台加载剩余年份
+  const loadRemainingYears = async (
+    remainingYears: string[],
+    token: string,
+    existingData: { [year: string]: YearData }
+  ) => {
+    for (const year of remainingYears) {
+      try {
+        const response = await fetch(`${backendDomain}/api/data/year/${year}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setYearData((prev) => ({
+            ...prev,
+            [year]: {
+              stocks: data.stocks,
+              cashTransactions: data.cashTransactions,
+              stockTransactions: data.stockTransactions,
+              cashBalance: data.cashBalance,
+            },
+          }));
+        }
+      } catch (error) {
+        console.error(`加载 ${year} 年数据失败:`, error);
+      }
+    }
+  };
+
+  // 处理 token 过期
+  const handleTokenExpired = () => {
+    console.warn("Token invalid or expired. Logging out.");
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    setIsLoggedIn(false);
+    setCurrentUser(null);
+    setYearData(stockInitialData);
+    const sortedYears = Object.keys(stockInitialData).sort(
+      (a, b) => parseInt(b) - parseInt(a)
+    );
+    setYears(sortedYears);
+    setFilteredYears(sortedYears);
+    setSelectedYear(sortedYears[0]);
+    setComparisonYear(sortedYears[0]);
+
+    setAlertInfo({
+      isOpen: true,
+      title: "会话已过期",
+      description: "您的登录已过期，请重新登录。",
+      onConfirm: () => setAlertInfo(null),
+    });
+  };
+
+  // 旧版 API 回退（兼容）
+  const fetchJsonDataLegacy = async (token: string) => {
     try {
       const response = await fetch(`${backendDomain}/api/data`, {
         headers: {
@@ -306,37 +452,13 @@ const StockPortfolioTracker: React.FC = () => {
         setFilteredYears(sortedYears);
         setSelectedYear(sortedYears[0]);
         setComparisonYear(sortedYears[0]);
+      } else if (
+        response.status === 401 ||
+        (data.message && data.message.includes("无效或过期的令牌"))
+      ) {
+        handleTokenExpired();
       } else {
-        // Check for invalid/expired token
-        if (
-          response.status === 401 ||
-          (data.message && data.message.includes("无效或过期的令牌"))
-        ) {
-          console.warn("Token invalid or expired. Logging out.");
-          // 清除本地存储并重置状态
-          localStorage.removeItem("token");
-          localStorage.removeItem("user");
-          setIsLoggedIn(false);
-          setCurrentUser(null);
-          setYearData(stockInitialData);
-          const sortedYears = Object.keys(stockInitialData).sort(
-            (a, b) => parseInt(b) - parseInt(a)
-          );
-          setYears(sortedYears);
-          setFilteredYears(sortedYears);
-          setSelectedYear(sortedYears[0]);
-          setComparisonYear(sortedYears[0]);
-
-          setAlertInfo({
-            // Inform the user
-            isOpen: true,
-            title: "会话已过期",
-            description: "您的登录已过期，请重新登录。",
-            onConfirm: () => setAlertInfo(null),
-          });
-        } else {
-          console.error("获取数据失败:", data.message || response.statusText);
-        }
+        console.error("获取数据失败:", data.message || response.statusText);
       }
     } catch (error) {
       console.error("获取数据时出错:", error);

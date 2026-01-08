@@ -217,7 +217,8 @@ const ReportDialog: React.FC<ReportDialogProps> = ({
                                             return null;
                                         }
                                         const stock = yearDataItem.stocks.find(s => s.name === tx.stockName);
-                                        const costPrice = stock?.costPrice || 0;
+                                        // 优先使用交易记录中的成本价，如果没有则使用当前持仓的成本价
+                                        const costPrice = tx.beforeCostPrice ?? stock?.costPrice ?? 0;
                                         const currentPrice = stock?.price || 0;
                                         const profit = tx.type === 'sell' ? (tx.price - costPrice) * tx.shares : 0;
                                         const profitPercentage = costPrice > 0 ? (profit / (costPrice * tx.shares)) * 100 : 0;

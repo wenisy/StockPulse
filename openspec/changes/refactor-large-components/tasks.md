@@ -56,43 +56,49 @@
 
 ## 6. Phase 2 重构 ProfitLossCalendar
 
-- [ ] 6.1 新建 `src/components/calendar/` 目录
-- [ ] 6.2 抽出 `useCalendarView`（视图状态 + 美东时间）
-- [ ] 6.3 抽出 `useSnapshotGeneration`（快照生成逻辑）
-- [ ] 6.4 拆出 `MonthlyCalendarView` 子组件
-- [ ] 6.5 拆出 `YearlySummaryView` 子组件
-- [ ] 6.6 改写 `ProfitLossCalendar.tsx` 为编排层（≤ 200 行）
-- [ ] 6.7 更新调用方 import 路径（如有）
-- [ ] 6.8 跑 `npx jest ProfitLossCalendar` 测试不变全绿
-- [ ] 6.9 确认所有新文件 ≤ 各自上限
+- [x] 6.1 新建 `src/components/calendar/` 目录
+- [x] 6.2 抽出 `useCalendarView`（视图状态 + 美东时间）
+- [x] 6.3 抽出 `useSnapshotGeneration`（快照生成逻辑）
+- [x] 6.4 拆出 `MonthlyCalendarView` 子组件
+- [x] 6.5 拆出 `YearlySummaryView` 子组件
+- [x] 6.6 改写 `ProfitLossCalendar.tsx` 为编排层（≤ 200 行）
+- [x] 6.7 更新调用方 import 路径（如有）
+- [x] 6.8 跑 `npx jest ProfitLossCalendar` 测试不变全绿
+- [x] 6.9 确认所有新文件 ≤ 各自上限
 
-## 7. Phase 2 重构 UserProfileManager
+## 7. Phase 2 重构 UserProfileManager（推迟到后续提案）
 
-- [ ] 7.1 新建 `src/components/user/` 目录
-- [ ] 7.2 抽出 `useAuthDialogs`（弹窗状态聚合）
-- [ ] 7.3 抽出 `useUserAuthApi`（fetch 登录/注册）
-- [ ] 7.4 拆出 `LoginDialog` 子组件
-- [ ] 7.5 拆出 `RegisterDialog` 子组件
-- [ ] 7.6 拆出 `ProfileEditDialog` 子组件
-- [ ] 7.7 改写 `UserProfileManager.tsx` 保留 forwardRef API（≤ 200 行）
-- [ ] 7.8 跑 `npx jest UserProfileManager` 测试不变全绿
-- [ ] 7.9 确认所有新文件 ≤ 各自上限
+> **本次提案不实施**：用户选择仅拆分最大的 ProfitLossCalendar 来验证整套流程。
+> 测试网（§3）已就位，未来单独提案启动时可直接进入重构阶段。
 
-## 8. Phase 2 重构 StockPortfolioTracker
+- [ ] 7.1 [推迟] 新建 `src/components/user/` 目录
+- [ ] 7.2 [推迟] 抽出 `useAuthDialogs`（弹窗状态聚合）
+- [ ] 7.3 [推迟] 抽出 `useUserAuthApi`（fetch 登录/注册）
+- [ ] 7.4 [推迟] 拆出 `LoginDialog` 子组件
+- [ ] 7.5 [推迟] 拆出 `RegisterDialog` 子组件
+- [ ] 7.6 [推迟] 拆出 `ProfileEditDialog` 子组件
+- [ ] 7.7 [推迟] 改写 `UserProfileManager.tsx` 保留 forwardRef API（≤ 200 行）
+- [ ] 7.8 [推迟] 跑 `npx jest UserProfileManager` 测试不变全绿
+- [ ] 7.9 [推迟] 确认所有新文件 ≤ 各自上限
 
-- [ ] 8.1 抽出 `useTrackerState`（聚合 16 个 useState 中的业务状态）
-- [ ] 8.2 拆出 `PortfolioTrackerHeader` 子组件
-- [ ] 8.3 改写 `StockPortfolioTracker.tsx` 为 layout 编排层（≤ 250 行）
-- [ ] 8.4 跑 `npx jest StockPortfolioTracker` 测试不变全绿
-- [ ] 8.5 确认所有新文件 ≤ 各自上限
+## 8. Phase 2 重构 StockPortfolioTracker（推迟到后续提案）
+
+> **本次提案不实施**：作为应用根入口风险最大，留给单独提案处理。
+> 测试网（§4）已就位。
+
+- [ ] 8.1 [推迟] 抽出 `useTrackerState`
+- [ ] 8.2 [推迟] 拆出 `PortfolioTrackerHeader` 子组件
+- [ ] 8.3 [推迟] 改写 `StockPortfolioTracker.tsx` 为 layout 编排层
+- [ ] 8.4 [推迟] 跑 `npx jest StockPortfolioTracker` 测试不变全绿
+- [ ] 8.5 [推迟] 确认所有新文件 ≤ 各自上限
 
 ## 9. Phase 2 收尾
 
-- [ ] 9.1 跑 `npm test`：所有用例全绿
-- [ ] 9.2 跑 `npm run test:coverage` lib 100% / hooks 阈值通过 / 三组件 ≥ 80%
-- [ ] 9.3 跑 `npm run lint` + `npm run build` 通过
-- [ ] 9.4 检查所有 `*.tsx` 源文件 ≤ 300 行：`find src -name '*.tsx' ! -path '*/__tests__/*' -exec wc -l {} \; | awk '$1 > 300'` 应为空
-- [ ] 9.5 commit Phase 2：`refactor(components): 拆分 3 个大组件按职责分层`
+- [x] 9.1 跑 `npm test`：所有用例全绿
+- [x] 9.2 跑 `npm run test:coverage` lib 100% / hooks 阈值通过 / 三组件 ≥ 80%
+- [x] 9.3 跑 `npm run lint` + `npm run build` 通过
+- [x] 9.4 检查所有 `*.tsx` 源文件 ≤ 300 行：`find src -name '*.tsx' ! -path '*/__tests__/*' -exec wc -l {} \; | awk '$1 > 300'` 应为空
+- [x] 9.5 commit Phase 2：`refactor(components): 拆分 3 个大组件按职责分层`
 
 ## 10. 校验与归档
 

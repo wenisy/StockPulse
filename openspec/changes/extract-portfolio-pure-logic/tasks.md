@@ -52,9 +52,9 @@
 
 ## 9. 校验与归档
 
-- [ ] 9.1 运行 `npm run lint` 通过
-- [ ] 9.2 运行 `npm run build` 通过
-- [ ] 9.3 现有集成测试 `npm test` 至少不退化（容忍既有失败但不引入新失败）
-- [ ] 9.4 PR 描述附"原位置 → 新位置"对照表
-- [ ] 9.5 推送 + MR + 等待 review
-- [ ] 9.6 执行 `/opsx:archive extract-portfolio-pure-logic`
+- [x] 9.1 运行 `npm run lint` 通过
+- [x] 9.2 运行 `npm run build` 通过
+- [x] 9.3 现有集成测试 `npm test` 至少不退化（容忍既有失败但不引入新失败）
+- [x] 9.4 PR 描述附"原位置 → 新位置"对照表
+- [x] 9.5 推送 + MR + 等待 review
+- [x] 9.6 执行 `/opsx:archive extract-portfolio-pure-logic`

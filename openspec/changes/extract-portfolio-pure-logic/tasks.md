@@ -41,9 +41,9 @@
 
 ## 7. 抽出 portfolio-metrics 模块
 
-- [ ] 7.1 创建 `src/lib/portfolio/portfolio-metrics.ts`
-- [ ] 7.2 实现 `computePortfolioValue`（总价值）、`computeReturnRate`（回报率）、`computeAllocation`（占比）、`computeYearlyGrowth`（年度增长）
-- [ ] 7.3 这些指标在现有 hook 中分散存在（`useCalculations.ts` / `useChartData.ts`），抽取时注意行为一致
+- [x] 7.1 创建 `src/lib/portfolio/portfolio-metrics.ts`
+- [x] 7.2 实现 `computePortfolioValue`（总价值）、`computeReturnRate`（回报率）、`computeAllocation`（占比）、`computeYearlyGrowth`（年度增长）
+- [x] 7.3 这些指标在现有 hook 中分散存在（`useCalculations.ts` / `useChartData.ts`），抽取时注意行为一致
 
 ## 8. 抽出 years 模块
 

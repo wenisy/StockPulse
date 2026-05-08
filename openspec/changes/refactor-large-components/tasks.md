@@ -102,7 +102,7 @@
 
 ## 10. 校验与归档
 
-- [ ] 10.1 执行 `/tcsc:review-pipeline refactor-large-components`
-- [ ] 10.2 修复任何 CRITICAL 后再次跑 review-pipeline 直到通过
-- [ ] 10.3 push + merge main
-- [ ] 10.4 `/opsx:archive refactor-large-components`
+- [x] 10.1 执行 `/tcsc:review-pipeline refactor-large-components`
+- [x] 10.2 修复任何 CRITICAL 后再次跑 review-pipeline 直到通过
+- [x] 10.3 push + merge main
+- [x] 10.4 `/opsx:archive refactor-large-components`

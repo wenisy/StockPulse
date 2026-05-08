@@ -2,6 +2,7 @@
 
 | 日期 | 变更 | 动因 | 新增能力 |
 |------|------|------|----------|
+| 2026-05-08 | [fill-coverage-gaps](./2026-05-08-fill-coverage-gaps/) | 7 个 hook 覆盖率全面提升（hooks 层 80% → 89%），阈值从 lines 79/branches 55 收紧到 85/68，新增 53 个用例，不改源代码 | — |
 | 2026-05-08 | [refactor-portfolio-tracker](./2026-05-08-refactor-portfolio-tracker/) | StockPortfolioTracker（553行）拆为 5 个文件（主组件 297 行 + AlertDialog + 3 个 tracker hook），主组件不再持有 useState | — |
 | 2026-05-08 | [refactor-user-profile-manager](./2026-05-08-refactor-user-profile-manager/) | UserProfileManager（649行）拆成 7 个文件（主组件 221 行 + 3 个 Dialog + 3 个 hook），forwardRef API 兼容 | — |
 | 2026-05-08 | [refactor-large-components](./2026-05-08-refactor-large-components/) | 仓库扫描发现 5 个 >300 行文件，3 个组件零测试。先补 25 个集成测试做安全网，再拆 ProfitLossCalendar 872→273 行（其余两组件留后续提案）；reviewer 抓出 stale closure / useEffect deps 2 个 CRITICAL 已修 | component-structure |

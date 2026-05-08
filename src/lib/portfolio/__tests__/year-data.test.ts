@@ -407,7 +407,7 @@ describe('防御性兜底分支（脏数据进入）', () => {
 
   it('applyCashTransactionToYear: existing.cashBalance 为 undefined 时按 0 起步', () => {
     const dirty = {
-      // @ts-expect-error
+      // @ts-expect-error 故意传入缺少 cashBalance 的脏数据以测试兜底行为
       '2024': { cashTransactions: [], stocks: [], stockTransactions: [] },
     } as { [y: string]: YearData };
     const next = applyCashTransactionToYear(dirty, '2024', {

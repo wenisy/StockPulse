@@ -11,7 +11,22 @@ import {
   AlertInfo,
 } from '@/types/stock';
 import { stockInitialData } from '@/components/data';
-import { v4 as uuidv4 } from 'uuid';
+import {
+  convertToCurrency as convertToCurrencyPure,
+  formatLargeNumber as formatLargeNumberPure,
+} from '@/lib/portfolio/currency';
+import {
+  applyCashTransactionToYear,
+  applyStockTransactionToYear,
+  carryOverYearData,
+} from '@/lib/portfolio/year-data';
+import { isDuplicateCashTx } from '@/lib/portfolio/duplicate-tx';
+import {
+  appendCashTxIncremental,
+  appendStockTxIncremental,
+  appendYearlySummary,
+} from '@/lib/portfolio/incremental';
+import { sortYearsDesc, computeLatestYear } from '@/lib/portfolio/years';
 
 const BACKEND_DOMAIN = '//stock-backend-tau.vercel.app';
 
@@ -82,10 +97,10 @@ export function usePortfolioData({
 
   const [yearData, setYearData] = useState<{ [year: string]: YearData }>(initialData);
   const [years, setYears] = useState<string[]>(
-    Object.keys(initialData).sort((a, b) => parseInt(b) - parseInt(a))
+    sortYearsDesc(Object.keys(initialData))
   );
   const [filteredYears, setFilteredYears] = useState<string[]>(
-    Object.keys(initialData).sort((a, b) => parseInt(b) - parseInt(a))
+    sortYearsDesc(Object.keys(initialData))
   );
   const [selectedYear, setSelectedYear] = useState(years[years.length - 1]);
   const [comparisonYear, setComparisonYear] = useState<string>(years[0]);
@@ -104,7 +119,7 @@ export function usePortfolioData({
     yearlySummaries: {},
   });
 
-  const latestYear = years.length > 0 ? Math.max(...years.map(Number)).toString() : '2024';
+  const latestYear = computeLatestYear(years);
 
   const getBasePath = useCallback(() => {
     if (typeof window !== 'undefined') {
@@ -119,19 +134,15 @@ export function usePortfolioData({
   }, []);
 
   const convertToCurrency = useCallback(
-    (amount: number, targetCurrency: string): number => {
-      const rate = exchangeRates[targetCurrency] || 1;
-      return amount / rate;
-    },
-    [exchangeRates]
+    (amount: number, targetCurrency: string): number =>
+      convertToCurrencyPure(amount, targetCurrency, exchangeRates),
+    [exchangeRates],
   );
 
   const formatLargeNumber = useCallback(
-    (num: number, targetCurrency: string) => {
-      const convertedNum = convertToCurrency(num, targetCurrency);
-      return new Intl.NumberFormat('zh-CN', { maximumFractionDigits: 2 }).format(convertedNum);
-    },
-    [convertToCurrency]
+    (num: number, targetCurrency: string) =>
+      formatLargeNumberPure(num, targetCurrency, exchangeRates),
+    [exchangeRates],
   );
 
   // 处理 token 过期
@@ -140,7 +151,7 @@ export function usePortfolioData({
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setYearData(stockInitialData);
-    const sortedYears = Object.keys(stockInitialData).sort((a, b) => parseInt(b) - parseInt(a));
+    const sortedYears = sortYearsDesc(Object.keys(stockInitialData));
     setYears(sortedYears);
     setFilteredYears(sortedYears);
     setSelectedYear(sortedYears[0]);
@@ -166,7 +177,7 @@ export function usePortfolioData({
         const data = await response.json();
         if (response.ok) {
           setYearData(data);
-          const sortedYears = Object.keys(data).sort((a, b) => parseInt(b) - parseInt(a));
+          const sortedYears = sortYearsDesc(Object.keys(data));
           setYears(sortedYears);
           setFilteredYears(sortedYears);
           setSelectedYear(sortedYears[0]);
@@ -457,46 +468,19 @@ export function usePortfolioData({
   // 添加新年份
   const addNewYear = useCallback(
     (newYearValue: string) => {
+      const result = carryOverYearData(yearData, years, newYearValue);
+      if (result.alreadyExists) return;
+
       const trimmedYear = newYearValue.trim();
-      if (trimmedYear && !years.includes(trimmedYear)) {
-        const referenceYear = years
-          .filter((y) => y < trimmedYear)
-          .sort((a, b) => b.localeCompare(a))[0];
+      setYearData(result.yearData);
+      const newYears = sortYearsDesc([...years, trimmedYear]);
+      setYears(newYears);
+      setFilteredYears(newYears);
+      setSelectedYear(trimmedYear);
 
-        const referenceYearData = referenceYear ? yearData[referenceYear] : null;
-        const stocksToCarryOver = referenceYearData?.stocks?.map((stock) => ({ ...stock })) || [];
-        const cashToCarryOver = referenceYearData?.cashBalance || 0;
-
-        const newYearDataItem: YearData = {
-          stocks: stocksToCarryOver,
-          cashTransactions: [],
-          stockTransactions: [],
-          cashBalance: cashToCarryOver,
-        };
-
-        if (cashToCarryOver > 0) {
-          newYearDataItem.cashTransactions.push({
-            amount: cashToCarryOver,
-            type: 'deposit',
-            date: new Date().toISOString().split('T')[0],
-            description: '上年结余',
-          });
-        }
-
-        setYearData({ ...yearData, [trimmedYear]: newYearDataItem });
-        const newYears = [...years, trimmedYear].sort((a, b) => parseInt(b) - parseInt(a));
-        setYears(newYears);
-        setFilteredYears(newYears);
-        setSelectedYear(trimmedYear);
-
-        setIncrementalChanges((prev) => ({
-          ...prev,
-          yearlySummaries: {
-            ...prev.yearlySummaries,
-            [trimmedYear]: { cashBalance: cashToCarryOver },
-          },
-        }));
-      }
+      setIncrementalChanges((prev) =>
+        appendYearlySummary(prev, trimmedYear, result.carriedCashBalance),
+      );
     },
     [years, yearData]
   );
@@ -513,49 +497,16 @@ export function usePortfolioData({
 
       const currentCashBalance = yearData[year]?.cashBalance || 0;
 
-      setYearData((prevYearData) => {
-        const updatedYearData = { ...prevYearData };
-        if (!updatedYearData[year]) {
-          updatedYearData[year] = {
-            stocks: [],
-            cashTransactions: [],
-            stockTransactions: [],
-            cashBalance: 0,
-          };
-        }
-        updatedYearData[year].cashTransactions.push(cashTransaction);
-        updatedYearData[year].cashBalance =
-          (updatedYearData[year].cashBalance || 0) + cashTransaction.amount;
-        return updatedYearData;
-      });
+      setYearData((prev) => applyCashTransactionToYear(prev, year, cashTransaction));
 
       setIncrementalChanges((prev) => {
         const existingTransactions = prev.cashTransactions[year] || [];
-        const isDuplicate = existingTransactions.some(
-          (tx) =>
-            tx.amount === cashTransaction.amount &&
-            tx.type === cashTransaction.type &&
-            tx.date === cashTransaction.date
-        );
-
-        if (isDuplicate) {
+        if (isDuplicateCashTx(existingTransactions, cashTransaction)) {
           console.log('检测到重复的现金交易，跳过添加');
           return prev;
         }
-
         const newCashBalance = currentCashBalance + cashTransaction.amount;
-
-        return {
-          ...prev,
-          cashTransactions: {
-            ...prev.cashTransactions,
-            [year]: [...existingTransactions, cashTransaction],
-          },
-          yearlySummaries: {
-            ...prev.yearlySummaries,
-            [year]: { cashBalance: newCashBalance },
-          },
-        };
+        return appendCashTxIncremental(prev, year, cashTransaction, newCashBalance);
       });
     },
     [currentUser, yearData]
@@ -575,89 +526,50 @@ export function usePortfolioData({
       symbol?: string,
       beforeCostPrice?: number
     ) => {
-      setYearData((prevYearData) => {
-        const updatedYearData = { ...prevYearData };
-        if (!updatedYearData[year]) {
-          updatedYearData[year] = {
-            stocks: [],
-            cashTransactions: [],
-            stockTransactions: [],
-            cashBalance: 0,
-          };
-        }
-
-        if (!updatedYearData[year].stocks) {
-          updatedYearData[year].stocks = [];
-        }
-
-        const stockIndex = updatedYearData[year].stocks.findIndex((s) => s.name === stockName);
-        const stockData: Stock = {
-          name: stockName,
+      setYearData((prev) => {
+        const next = applyStockTransactionToYear(prev, year, {
+          stockName,
           shares,
           price,
           costPrice,
-          id: stockIndex !== -1 ? updatedYearData[year].stocks[stockIndex].id : uuidv4(),
-          symbol: symbol || (stockIndex !== -1 ? updatedYearData[year].stocks[stockIndex].symbol : ''),
+          transactionShares,
+          transactionPrice,
+          transactionType,
+          symbol,
+          beforeCostPrice,
           userUuid: currentUser?.uuid,
-        };
+        });
 
-        if (stockIndex !== -1) {
-          updatedYearData[year].stocks[stockIndex] = stockData;
-          if (shares <= 0) {
-            updatedYearData[year].stocks = updatedYearData[year].stocks.filter(
-              (_, i) => i !== stockIndex
-            );
-          }
-        } else if (shares > 0) {
-          updatedYearData[year].stocks.push(stockData);
-        }
+        // 拼装本次拼装好的快照供 incrementalChanges 使用
+        const newStocks = next[year].stocks;
+        const stockSnapshot =
+          newStocks.find((s) => s.name === stockName) ?? {
+            // 清仓后 stocks 中不再有该股票，但 incrementalChanges 仍需要一份快照
+            name: stockName,
+            shares,
+            price,
+            costPrice,
+            id: '',
+            symbol: symbol ?? '',
+            userUuid: currentUser?.uuid,
+          };
+        const stockTx = next[year].stockTransactions[
+          next[year].stockTransactions.length - 1
+        ];
+        const cashTx = next[year].cashTransactions[
+          next[year].cashTransactions.length - 1
+        ];
 
-        const stockTransaction: StockTransaction = {
-          stockName,
-          type: transactionType,
-          shares: transactionShares,
-          price: transactionPrice,
-          date: new Date().toISOString().split('T')[0],
-          beforeCostPrice: beforeCostPrice ?? 0,
-          afterCostPrice: costPrice,
-          userUuid: currentUser?.uuid,
-        };
-        updatedYearData[year].stockTransactions.push(stockTransaction);
+        setIncrementalChanges((prevInc) =>
+          appendStockTxIncremental(prevInc, year, {
+            stock: stockSnapshot,
+            stockTx,
+            cashTx,
+            cashBalance: next[year].cashBalance,
+          }),
+        );
 
-        const cashTransaction: CashTransaction = {
-          amount:
-            transactionType === 'buy'
-              ? -transactionShares * transactionPrice
-              : transactionShares * transactionPrice,
-          type: transactionType,
-          date: new Date().toISOString().split('T')[0],
-          stockName,
-          userUuid: currentUser?.uuid,
-        };
-        updatedYearData[year].cashTransactions.push(cashTransaction);
-
-        // 更新增量变化
-        setIncrementalChanges((prev) => ({
-          ...prev,
-          stocks: {
-            ...prev.stocks,
-            [year]: [...(prev.stocks[year] || []), stockData],
-          },
-          stockTransactions: {
-            ...prev.stockTransactions,
-            [year]: [...(prev.stockTransactions[year] || []), stockTransaction],
-          },
-          cashTransactions: {
-            ...prev.cashTransactions,
-            [year]: [...(prev.cashTransactions[year] || []), cashTransaction],
-          },
-          yearlySummaries: {
-            ...prev.yearlySummaries,
-            [year]: { cashBalance: updatedYearData[year].cashBalance },
-          },
-        }));
-
-        return updatedYearData;
+        return next;
       });
     },
     [currentUser]

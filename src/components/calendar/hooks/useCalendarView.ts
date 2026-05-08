@@ -129,11 +129,10 @@ export function useCalendarView({
     }
   }, [parentYears]);
 
-  // 初始化获取可用年份（仅一次）
+  // parentYears 变化时重新计算可用年份
   useEffect(() => {
     fetchAvailableYears();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [fetchAvailableYears]);
 
   // 选中年份变化时同步 currentYear
   useEffect(() => {

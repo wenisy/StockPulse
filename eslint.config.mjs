@@ -26,6 +26,31 @@ const eslintConfig = [
     },
   },
   {
+    // 纯函数领域层：禁止依赖 React/Next/hooks/components
+    // 见 openspec/specs/portfolio-domain（前后端职责分工）与提案
+    // extract-portfolio-pure-logic 的 portfolio-codebase-layout spec。
+    files: ["src/lib/**/*.ts", "src/lib/**/*.tsx"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["react", "react-dom", "next", "next/*"],
+              message:
+                "src/lib/** 必须保持纯函数无依赖。React/Next 相关代码请放在 src/hooks/ 或 src/components/。",
+            },
+            {
+              group: ["@/hooks/*", "@/components/*"],
+              message:
+                "src/lib/** 不得依赖 hooks 或 components（依赖方向应为 components → hooks → lib）。",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     ignores: [".next/**", "out/**", "node_modules/**", "coverage/**"],
   },
 ];

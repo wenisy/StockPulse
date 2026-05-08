@@ -47,8 +47,8 @@
 
 ## 8. 抽出 years 模块
 
-- [ ] 8.1 创建 `src/lib/portfolio/years.ts`
-- [ ] 8.2 提取 `sortYearsDesc`、`computeLatestYear`
+- [x] 8.1 创建 `src/lib/portfolio/years.ts`
+- [x] 8.2 提取 `sortYearsDesc`、`computeLatestYear`
 
 ## 9. 校验与归档
 

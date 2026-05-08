@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ToastProvider } from "@/components/ui/toast";
+import { THEME_BOOT_SCRIPT } from "@/hooks/useTheme";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -14,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "股票智管家",
+  title: "StockPulse · 股票智管家",
   description: "您的智能股票投资组合管理助手，轻松追踪投资收益与资产配置",
   icons: {
     icon: [
@@ -29,9 +30,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="zh-CN" suppressHydrationWarning>
+      <head>
+        {/* FOUC 保护：React hydrate 前就把正确主题写入 <html> */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
+      </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-bg text-fg`}
       >
         <ToastProvider>
           {children}

@@ -2,6 +2,9 @@
 
 | 日期 | 变更 | 动因 | 新增能力 |
 |------|------|------|----------|
+| 2026-05-08 | [redesign-holdings-section](./2026-05-08-redesign-holdings-section/) | 新 Holdings 页：现代表格 + 排序 + 抽屉编辑 + 快速添加交易。复用 useStockOperations / useStockRowEdit 全部命令式 API | holdings-section |
+| 2026-05-08 | [redesign-overview-section](./2026-05-08-redesign-overview-section/) | 新 Overview 页：4 张 KPI StatCard（AnimatedNumber）+ Recharts 面积走势图 + 4 按钮快捷操作 | overview-section |
+| 2026-05-08 | [redesign-ui-foundation](./2026-05-08-redesign-ui-foundation/) | Dashboard 改版第 1 批：设计令牌 + 双主题(FOUC 保护) + AppShell(TopNav/SideNav/BottomTabBar) + 5 section 路由骨架 + legacy ?legacy=1 懒加载回退。风格对齐 Linear/Vercel/Raycast | design-system, app-shell, component-structure |
 | 2026-05-08 | [fill-coverage-gaps](./2026-05-08-fill-coverage-gaps/) | 7 个 hook 覆盖率全面提升（hooks 层 80% → 89%），阈值从 lines 79/branches 55 收紧到 85/68，新增 53 个用例，不改源代码 | — |
 | 2026-05-08 | [refactor-portfolio-tracker](./2026-05-08-refactor-portfolio-tracker/) | StockPortfolioTracker（553行）拆为 5 个文件（主组件 297 行 + AlertDialog + 3 个 tracker hook），主组件不再持有 useState | — |
 | 2026-05-08 | [refactor-user-profile-manager](./2026-05-08-refactor-user-profile-manager/) | UserProfileManager（649行）拆成 7 个文件（主组件 221 行 + 3 个 Dialog + 3 个 hook），forwardRef API 兼容 | — |

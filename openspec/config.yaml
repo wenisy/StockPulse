@@ -1,0 +1,70 @@
+schema: spec-driven
+
+# Project context (optional)
+# This is shown to AI when creating artifacts.
+context: |
+  本项目使用以下目录结构：
+  - docs/architecture/ — 架构设计（ADR、系统设计）
+  - docs/api/ — API 接口定义
+  - docs/guides/ — 开发指南（快速入门、工程规范）
+  - docs/modules/ — 按模块划分的技术文档
+  - docs/troubleshooting/ — 排障手册（Runbooks）
+  - .mcp.json — MCP 服务配置（清单由 installer 模板生成）
+  - openspec/ — 开发契约与变更管理
+    - specs/ — 能力规格定义
+    - changes/ — 活跃的变更提案
+    - changes/archive/ — 已归档的变更
+
+# 审查模式：默认并行（verify 和 review 同时启动，快）
+# 如需串行（verify 通过后才启动 review），将下面改为 serial
+review_mode: parallel
+
+rules:
+  archive:
+    - "归档前 MUST 执行 git branch 确认当前在特性分支上（非 main/master），如果在主分支上则提示用户先切换到特性分支"
+    - "归档前 MUST 执行 git log --oneline @{u}..HEAD 2>/dev/null 检查是否有未推送的提交，如果有则提示用户先 git push"
+    - "归档前 MUST 执行 git remote -v 获取远端仓库地址，然后提示用户确认是否已为该特性分支创建合并请求（MR/PR）"
+    - "如果以上任一条件未满足，MUST 阻止归档并明确告知用户需要先完成的步骤"
+    - |
+      归档完成后 MUST 更新索引文件：
+
+      1. specs/INDEX.md 更新：
+         读取 openspec/specs/ 下每个子目录的 spec.md，理解其内容后生成表格：
+         - 从文档中语义提取该 spec 的用途描述（优先从 ## Purpose 段落，若无则从首个 Requirement 概括）
+         - 统计 '### Requirement:' 出现次数作为需求数
+         - 生成 Markdown 表格写入 openspec/specs/INDEX.md，格式如下：
+
+         # Specs 索引
+
+         | Spec | 用途 | 需求数 |
+         |------|------|--------|
+         | [spec-name](./spec-name/spec.md) | 用途描述 | N |
+
+         如果 specs 目录下无子目录，写入：_暂无 spec。_
+
+      2. archive/INDEX.md 更新：
+         读取 openspec/changes/archive/ 下每个子目录的 proposal.md，理解其内容后生成表格：
+         - 从目录名提取日期（YYYY-MM-DD 前缀）和变更名
+         - 从 proposal.md 的 '## Why' 段落语义提取动因摘要（一句话）
+         - 从 proposal.md 的 '### New Capabilities' 提取新增能力名称
+         - 生成 Markdown 表格按日期倒序写入 openspec/changes/archive/INDEX.md，格式如下：
+
+         # 归档变更索引
+
+         | 日期 | 变更 | 动因 | 新增能力 |
+         |------|------|------|----------|
+         | 2026-03-20 | [change-name](./2026-03-20-change-name/) | 动因摘要 | capability-a, capability-b |
+
+         如果 archive 目录下无子目录，写入：_暂无归档变更。_
+
+  # openspec-installer:rules-apply v1
+  apply:
+    - |
+      编码完成后（所有 tasks.md 中的任务均已标记为 [x]），MUST 执行：
+      /tcsc:review-pipeline <change-name>
+
+      pipeline 返回后暂停，等待用户决定是否 /opsx:archive。
+      不得在 pipeline 未完成时直接建议 archive。
+
+      编排细节（团队创建、子 agent 启动、消息回传、并行/串行模式分支等）
+      由 .codebuddy/commands/tcsc/review-pipeline.md 单一维护，此处不再重复。

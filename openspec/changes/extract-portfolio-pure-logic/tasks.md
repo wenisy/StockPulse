@@ -36,8 +36,8 @@
 
 ## 6. 抽出 incremental 模块
 
-- [ ] 6.1 创建 `src/lib/portfolio/incremental.ts`
-- [ ] 6.2 整合 `usePortfolioData.ts:640-658` 与 `useStockOperations.ts:124-142` 的拼装逻辑，提取 `appendStockTxIncremental` / `appendCashTxIncremental` / `appendYearlySummary`
+- [x] 6.1 创建 `src/lib/portfolio/incremental.ts`
+- [x] 6.2 整合 `usePortfolioData.ts:640-658` 与 `useStockOperations.ts:124-142` 的拼装逻辑，提取 `appendStockTxIncremental` / `appendCashTxIncremental` / `appendYearlySummary`
 
 ## 7. 抽出 portfolio-metrics 模块
 

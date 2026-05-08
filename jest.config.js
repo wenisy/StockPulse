@@ -19,6 +19,9 @@ const customJestConfig = {
     '<rootDir>/node_modules/',
     '<rootDir>/.next/',
   ],
+  collectCoverageFrom: [
+    'src/lib/portfolio/**/*.ts',
+  ],
 };
 
 // 创建并导出Jest配置

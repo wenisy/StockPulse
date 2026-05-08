@@ -1,9 +1,9 @@
 ## 1. 准备
 
-- [ ] 1.1 在特性分支上启动该变更
-- [ ] 1.2 创建 `src/lib/portfolio/` 目录
-- [ ] 1.3 在 `eslint.config.mjs`（或 `.eslintrc.json`）添加 `no-restricted-imports` 规则，限制 `src/lib/**` 不可 import react/next/hooks/components
-- [ ] 1.4 在 `jest.config.js` 添加 `collectCoverageFrom: ['src/lib/portfolio/**/*.ts']`（不启用阈值）
+- [x] 1.1 在特性分支上启动该变更
+- [x] 1.2 创建 `src/lib/portfolio/` 目录
+- [x] 1.3 在 `eslint.config.mjs`（或 `.eslintrc.json`）添加 `no-restricted-imports` 规则，限制 `src/lib/**` 不可 import react/next/hooks/components
+- [x] 1.4 在 `jest.config.js` 添加 `collectCoverageFrom: ['src/lib/portfolio/**/*.ts']`（不启用阈值）
 
 ## 2. 抽出 currency 模块
 

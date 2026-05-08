@@ -46,3 +46,6 @@ next-env.d.ts
 # codebuddy files
 CLAUDE.md
 CODEBUDDY.md
+
+# mcp config (may contain tokens)
+.mcp.json

@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "NODE_OPTIONS='--max-old-space-size=8192' next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint .",
     "export": "NODE_OPTIONS='--max-old-space-size=8192' next build",
     "test": "jest",
     "test:watch": "jest --watch",

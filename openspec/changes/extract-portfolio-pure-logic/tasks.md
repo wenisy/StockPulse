@@ -7,10 +7,10 @@
 
 ## 2. 抽出 currency 模块
 
-- [ ] 2.1 创建 `src/lib/portfolio/currency.ts`
-- [ ] 2.2 从 `usePortfolioData.ts:121-135` 复制 `convertToCurrency` / `formatLargeNumber` 实现
-- [ ] 2.3 改写为接收 `exchangeRates` 参数（不再闭包捕获）
-- [ ] 2.4 导出函数
+- [x] 2.1 创建 `src/lib/portfolio/currency.ts`
+- [x] 2.2 从 `usePortfolioData.ts:121-135` 复制 `convertToCurrency` / `formatLargeNumber` 实现
+- [x] 2.3 改写为接收 `exchangeRates` 参数（不再闭包捕获）
+- [x] 2.4 导出函数
 
 ## 3. 抽出 cost-basis 模块
 

@@ -21,6 +21,7 @@ const customJestConfig = {
   ],
   collectCoverageFrom: [
     'src/lib/portfolio/**/*.ts',
+    'src/hooks/**/*.ts',
   ],
   coverageThreshold: {
     './src/lib/portfolio/': {
@@ -28,6 +29,12 @@ const customJestConfig = {
       branches: 100,
       functions: 100,
       statements: 100,
+    },
+    './src/hooks/': {
+      lines: 80,
+      branches: 60,
+      functions: 78,
+      statements: 80,
     },
   },
 };

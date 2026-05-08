@@ -31,8 +31,8 @@
 
 ## 5. 抽出 duplicate-tx 模块
 
-- [ ] 5.1 创建 `src/lib/portfolio/duplicate-tx.ts`
-- [ ] 5.2 从 `usePortfolioData.ts:534-539` 提取 `isDuplicateCashTx`
+- [x] 5.1 创建 `src/lib/portfolio/duplicate-tx.ts`
+- [x] 5.2 从 `usePortfolioData.ts:534-539` 提取 `isDuplicateCashTx`
 
 ## 6. 抽出 incremental 模块
 

@@ -136,10 +136,15 @@ export function useStockForm({
             description: '购买股票的现金不足，现金余额将变为负数',
             onConfirm: () => {
               setYearData((prev) => {
-                const updated = { ...prev };
-                updated[selectedYear].cashBalance =
-                  (updated[selectedYear].cashBalance || 0) - transactionCost;
-                return updated;
+                const currentYearData = prev[selectedYear];
+                if (!currentYearData) return prev;
+                return {
+                  ...prev,
+                  [selectedYear]: {
+                    ...currentYearData,
+                    cashBalance: (currentYearData.cashBalance || 0) - transactionCost,
+                  },
+                };
               });
               commitStockTransaction(
                 selectedYear,
@@ -216,15 +221,18 @@ export function useStockForm({
         description,
         onConfirm: () => {
           setYearData((prev) => {
-            const updated = { ...prev };
-            if (transactionType === 'buy') {
-              updated[selectedYear].cashBalance =
-                (updated[selectedYear].cashBalance || 0) - transactionCost;
-            } else {
-              updated[selectedYear].cashBalance =
-                (updated[selectedYear].cashBalance || 0) + transactionCost;
-            }
-            return updated;
+            const currentYearData = prev[selectedYear];
+            if (!currentYearData) return prev;
+            const cashBalance = transactionType === 'buy'
+              ? (currentYearData.cashBalance || 0) - transactionCost
+              : (currentYearData.cashBalance || 0) + transactionCost;
+            return {
+              ...prev,
+              [selectedYear]: {
+                ...currentYearData,
+                cashBalance,
+              },
+            };
           });
           commitStockTransaction(
             selectedYear,

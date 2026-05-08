@@ -129,21 +129,23 @@ export function useYearData({ currentUser }: UseYearDataProps): UseYearDataRetur
         userUuid: currentUser?.uuid,
       };
 
-      const currentCashBalance = yearData[year]?.cashBalance || 0;
+      setYearData((prevYearData) => {
+        const nextYearData = applyCashTransactionToYear(prevYearData, year, cashTransaction);
+        const newCashBalance = nextYearData[year]?.cashBalance ?? cashTransaction.amount;
 
-      setYearData((prev) => applyCashTransactionToYear(prev, year, cashTransaction));
+        setIncrementalChanges((prev) => {
+          const existingTransactions = prev.cashTransactions[year] || [];
+          if (isDuplicateCashTx(existingTransactions, cashTransaction)) {
+            console.log('检测到重复的现金交易，跳过添加');
+            return prev;
+          }
+          return appendCashTxIncremental(prev, year, cashTransaction, newCashBalance);
+        });
 
-      setIncrementalChanges((prev) => {
-        const existingTransactions = prev.cashTransactions[year] || [];
-        if (isDuplicateCashTx(existingTransactions, cashTransaction)) {
-          console.log('检测到重复的现金交易，跳过添加');
-          return prev;
-        }
-        const newCashBalance = currentCashBalance + cashTransaction.amount;
-        return appendCashTxIncremental(prev, year, cashTransaction, newCashBalance);
+        return nextYearData;
       });
     },
-    [currentUser, yearData],
+    [currentUser],
   );
 
   const updateStock = useCallback(

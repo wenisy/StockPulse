@@ -248,15 +248,22 @@ export function usePortfolioSync({
           const stockData = result.data;
 
           setYearData((prevYearData) => {
-            const updatedYearData = { ...prevYearData };
-            if (updatedYearData[currentLatestYear]?.stocks) {
-              updatedYearData[currentLatestYear].stocks.forEach((stock) => {
-                if (stock.symbol && stockData[stock.symbol]) {
-                  stock.price = stockData[stock.symbol].price;
-                }
-              });
+            const currentYearData = prevYearData[currentLatestYear];
+            if (!currentYearData?.stocks) {
+              return prevYearData;
             }
-            return updatedYearData;
+
+            return {
+              ...prevYearData,
+              [currentLatestYear]: {
+                ...currentYearData,
+                stocks: currentYearData.stocks.map((stock) =>
+                  stock.symbol && stockData[stock.symbol]
+                    ? { ...stock, price: stockData[stock.symbol].price }
+                    : stock,
+                ),
+              },
+            };
           });
 
           setIncrementalChanges((prev) => {

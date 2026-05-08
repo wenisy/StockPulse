@@ -32,10 +32,10 @@ const customJestConfig = {
       statements: 100,
     },
     './src/hooks/': {
-      lines: 79,
-      branches: 55,
-      functions: 75,
-      statements: 79,
+      lines: 85,
+      branches: 68,
+      functions: 80,
+      statements: 85,
     },
   },
 };

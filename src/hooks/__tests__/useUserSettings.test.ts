@@ -128,3 +128,119 @@ describe('useUserSettings - localStorage 初始化', () => {
     expect(result.current.retirementGoal).toBe('2000000');
   });
 });
+
+describe('useUserSettings - 已登录用户的 updater', () => {
+  const localStorageMock3 = (() => {
+    let store: Record<string, string> = {};
+    return {
+      getItem: jest.fn((key: string) => store[key] || null),
+      setItem: jest.fn((key: string, value: string) => { store[key] = value; }),
+      removeItem: jest.fn((key: string) => { delete store[key]; }),
+      clear: jest.fn(() => { store = {}; }),
+    };
+  })();
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    localStorageMock3.clear();
+    Object.defineProperty(window, 'localStorage', { value: localStorageMock3, writable: true });
+  });
+
+  it('updateRetirementGoal 已登录：调 setCurrentUser + 更新 localStorage user', () => {
+    const user = { username: 'u', uuid: 'u1', retirementGoal: '' };
+    const setCurrentUser = jest.fn();
+    const { result } = renderHook(() =>
+      useUserSettings(user as never, true, setCurrentUser as never),
+    );
+    act(() => { result.current.updateRetirementGoal('99999'); });
+    expect(setCurrentUser).toHaveBeenCalled();
+    expect(localStorageMock3.setItem).toHaveBeenCalledWith('user', expect.any(String));
+  });
+
+  it('updateAnnualReturn 已登录：调 setCurrentUser', () => {
+    const user = { username: 'u', uuid: 'u1' };
+    const setCurrentUser = jest.fn();
+    const { result } = renderHook(() =>
+      useUserSettings(user as never, true, setCurrentUser as never),
+    );
+    act(() => { result.current.updateAnnualReturn('10'); });
+    expect(setCurrentUser).toHaveBeenCalled();
+  });
+
+  it('updateTargetYears 已登录：调 setCurrentUser', () => {
+    const user = { username: 'u', uuid: 'u1' };
+    const setCurrentUser = jest.fn();
+    const { result } = renderHook(() =>
+      useUserSettings(user as never, true, setCurrentUser as never),
+    );
+    act(() => { result.current.updateTargetYears('15'); });
+    expect(setCurrentUser).toHaveBeenCalled();
+  });
+
+  it('updateCalculationMode 已登录：调 setCurrentUser', () => {
+    const user = { username: 'u', uuid: 'u1' };
+    const setCurrentUser = jest.fn();
+    const { result } = renderHook(() =>
+      useUserSettings(user as never, true, setCurrentUser as never),
+    );
+    act(() => { result.current.updateCalculationMode('years'); });
+    expect(setCurrentUser).toHaveBeenCalled();
+  });
+
+  it('updateAllSettings 已登录：调 setCurrentUser', () => {
+    const user = { username: 'u', uuid: 'u1' };
+    const setCurrentUser = jest.fn();
+    const { result } = renderHook(() =>
+      useUserSettings(user as never, true, setCurrentUser as never),
+    );
+    act(() => {
+      result.current.updateAllSettings({
+        retirementGoal: '5',
+        annualReturn: '6',
+        targetYears: '7',
+        calculationMode: 'years',
+      });
+    });
+    expect(setCurrentUser).toHaveBeenCalled();
+  });
+
+  it('updateAllSettings 未登录：各自写 localStorage', () => {
+    const { result } = renderHook(() => useUserSettings(null, false, undefined));
+    act(() => {
+      result.current.updateAllSettings({
+        retirementGoal: '5',
+        annualReturn: '6',
+        targetYears: '7',
+        calculationMode: 'years',
+      });
+    });
+    expect(localStorageMock3.setItem).toHaveBeenCalledWith('retirementGoal', '5');
+    expect(localStorageMock3.setItem).toHaveBeenCalledWith('annualReturn', '6');
+    expect(localStorageMock3.setItem).toHaveBeenCalledWith('targetYears', '7');
+    expect(localStorageMock3.setItem).toHaveBeenCalledWith('calculationMode', 'years');
+  });
+
+  it('updateRetirementGoal 未登录：写 localStorage', () => {
+    const { result } = renderHook(() => useUserSettings(null, false, undefined));
+    act(() => { result.current.updateRetirementGoal('100'); });
+    expect(localStorageMock3.setItem).toHaveBeenCalledWith('retirementGoal', '100');
+  });
+
+  it('updateAnnualReturn 未登录：写 localStorage', () => {
+    const { result } = renderHook(() => useUserSettings(null, false, undefined));
+    act(() => { result.current.updateAnnualReturn('8'); });
+    expect(localStorageMock3.setItem).toHaveBeenCalledWith('annualReturn', '8');
+  });
+
+  it('updateTargetYears 未登录：写 localStorage', () => {
+    const { result } = renderHook(() => useUserSettings(null, false, undefined));
+    act(() => { result.current.updateTargetYears('20'); });
+    expect(localStorageMock3.setItem).toHaveBeenCalledWith('targetYears', '20');
+  });
+
+  it('updateCalculationMode 未登录：写 localStorage', () => {
+    const { result } = renderHook(() => useUserSettings(null, false, undefined));
+    act(() => { result.current.updateCalculationMode('years'); });
+    expect(localStorageMock3.setItem).toHaveBeenCalledWith('calculationMode', 'years');
+  });
+});

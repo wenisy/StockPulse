@@ -70,4 +70,58 @@ describe('useStockData', () => {
     });
     expect(ok).toBe(false);
   });
+
+  it('addStockTransaction 卖出：减少股数', () => {
+    const { result } = renderHook(() => useStockData());
+    const year = result.current.years[0];
+    act(() => {
+      result.current.addStockTransaction(year, 'SELLTEST', 'S', 'buy', 100, 50);
+    });
+    act(() => {
+      result.current.addStockTransaction(year, 'SELLTEST', 'S', 'sell', 30, 60);
+    });
+    const found = result.current.yearData[year].stocks.find((s) => s.name === 'SELLTEST');
+    expect(found?.shares).toBe(70);
+  });
+
+  it('updateStock：更新指定股票字段', () => {
+    const { result } = renderHook(() => useStockData());
+    const year = result.current.years[0];
+    act(() => {
+      result.current.addStockTransaction(year, 'UPD', 'U', 'buy', 10, 100);
+    });
+    act(() => {
+      result.current.updateStock('UPD', year, 20, 150, 120, 'UPD2');
+    });
+    const found = result.current.yearData[year].stocks.find((s) => s.name === 'UPD');
+    expect(found?.shares).toBe(20);
+    expect(found?.price).toBe(150);
+  });
+
+  it('updateStock：年份不存在时不崩', () => {
+    const { result } = renderHook(() => useStockData());
+    expect(() => {
+      act(() => { result.current.updateStock('UPD', 'NOSUCH', 20, 150, 120); });
+    }).not.toThrow();
+  });
+
+  it('deleteStock：从所有年份移除', () => {
+    const { result } = renderHook(() => useStockData());
+    const year = result.current.years[0];
+    act(() => {
+      result.current.addStockTransaction(year, 'DELTEST', 'D', 'buy', 10, 100);
+    });
+    act(() => {
+      result.current.deleteStock('DELTEST');
+    });
+    const stocks = result.current.yearData[year].stocks;
+    expect(stocks.find((s) => s.name === 'DELTEST')).toBeUndefined();
+  });
+
+  it('handleYearFilterSelectionChange 存在并可调用', () => {
+    const { result } = renderHook(() => useStockData());
+    expect(() => {
+      act(() => { result.current.handleYearFilterSelectionChange(['2024']); });
+    }).not.toThrow();
+  });
 });

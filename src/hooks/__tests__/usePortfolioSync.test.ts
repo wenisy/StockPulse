@@ -156,4 +156,113 @@ describe('usePortfolioSync - refreshPrices', () => {
       expect.objectContaining({ title: '无股票数据' }),
     );
   });
+
+  it('成功响应：调用 setYearData 和 setIncrementalChanges', async () => {
+    const currentYear = new Date().getFullYear().toString();
+    const yearData = {
+      [currentYear]: {
+        stocks: [{ name: 'AAPL', shares: 10, price: 150, costPrice: 120, id: 'a1', symbol: 'AAPL' }],
+        cashTransactions: [], stockTransactions: [], cashBalance: 0,
+      },
+    };
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ success: true, data: { AAPL: { price: 200 } } }),
+    });
+    const props = makeProps({ yearData });
+    const { result } = renderHook(() => usePortfolioSync(props));
+    await act(async () => { await result.current.refreshPrices(true); });
+    expect(props.setYearData).toHaveBeenCalled();
+    expect(props.setIncrementalChanges).toHaveBeenCalled();
+    expect(props.setAlertInfo).toHaveBeenCalledWith(
+      expect.objectContaining({ title: '价格已更新' }),
+    );
+  });
+
+  it('后端返回失败：弹"更新失败"', async () => {
+    const currentYear = new Date().getFullYear().toString();
+    const yearData = {
+      [currentYear]: {
+        stocks: [{ name: 'AAPL', shares: 10, price: 150, costPrice: 120, id: 'a1', symbol: 'AAPL' }],
+        cashTransactions: [], stockTransactions: [], cashBalance: 0,
+      },
+    };
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ success: false, message: '出错了' }),
+    });
+    const props = makeProps({ yearData });
+    const { result } = renderHook(() => usePortfolioSync(props));
+    await act(async () => { await result.current.refreshPrices(true); });
+    expect(props.setAlertInfo).toHaveBeenCalledWith(
+      expect.objectContaining({ title: '更新失败' }),
+    );
+  });
+
+  it('fetch 抛异常：自动刷新路径弹"自动刷新失败"', async () => {
+    const currentYear = new Date().getFullYear().toString();
+    const yearData = {
+      [currentYear]: {
+        stocks: [{ name: 'AAPL', shares: 10, price: 150, costPrice: 120, id: 'a1', symbol: 'AAPL' }],
+        cashTransactions: [], stockTransactions: [], cashBalance: 0,
+      },
+    };
+    (global.fetch as jest.Mock).mockRejectedValueOnce(new Error('network'));
+    const props = makeProps({ yearData });
+    const { result } = renderHook(() => usePortfolioSync(props));
+    await act(async () => { await result.current.refreshPrices(false); });
+    expect(props.setAlertInfo).toHaveBeenCalledWith(
+      expect.objectContaining({ title: '自动刷新失败' }),
+    );
+  });
+
+  it('当年无股票且自动触发：静默（不弹）', async () => {
+    const props = makeProps({ yearData: {} });
+    const { result } = renderHook(() => usePortfolioSync(props));
+    await act(async () => { await result.current.refreshPrices(false); });
+    expect(props.setAlertInfo).not.toHaveBeenCalled();
+  });
+});
+
+describe('usePortfolioSync - saveDataToBackend 完整', () => {
+  beforeEach(() => { jest.clearAllMocks(); localStorageMock.clear(); });
+
+  it('成功保存：弹任何 alert', async () => {
+    localStorageMock.getItem.mockReturnValue('tok');
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ success: true }),
+    });
+    const props = makeProps();
+    const { result } = renderHook(() => usePortfolioSync(props));
+    await act(async () => { await result.current.saveDataToBackend(); });
+    expect(props.setIncrementalChanges).toHaveBeenCalledWith(
+      expect.objectContaining({ stocks: {}, cashTransactions: {}, stockTransactions: {}, yearlySummaries: {} }),
+    );
+  });
+
+  it('后端返回失败：弹"自动保存失败"', async () => {
+    localStorageMock.getItem.mockReturnValue('tok');
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: false,
+      json: async () => ({ message: '出错' }),
+    });
+    const props = makeProps();
+    const { result } = renderHook(() => usePortfolioSync(props));
+    await act(async () => { await result.current.saveDataToBackend(); });
+    expect(props.setAlertInfo).toHaveBeenCalledWith(
+      expect.objectContaining({ title: '自动保存失败' }),
+    );
+  });
+
+  it('网络错误：弹"自动保存失败"', async () => {
+    localStorageMock.getItem.mockReturnValue('tok');
+    (global.fetch as jest.Mock).mockRejectedValueOnce(new Error('network'));
+    const props = makeProps();
+    const { result } = renderHook(() => usePortfolioSync(props));
+    await act(async () => { await result.current.saveDataToBackend(); });
+    expect(props.setAlertInfo).toHaveBeenCalledWith(
+      expect.objectContaining({ title: '自动保存失败' }),
+    );
+  });
 });

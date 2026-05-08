@@ -22,12 +22,12 @@
 
 ## 4. 抽出 year-data 模块
 
-- [ ] 4.1 创建 `src/lib/portfolio/year-data.ts`
-- [ ] 4.2 从 `usePortfolioData.ts:505-562` 提取 `applyCashTransactionToYear`
-- [ ] 4.3 从 `usePortfolioData.ts:565-664` + `useStockOperations.ts:54-148`（去重两份实现）提取 `applyStockTransactionToYear`
-- [ ] 4.4 从 `usePortfolioData.ts:458-502` 提取 `carryOverYearData`
-- [ ] 4.5 从 `useStockOperations.ts:421-459` 提取 `removeStockFromAllYears`
-- [ ] 4.6 从 `useStockOperations.ts:323-405` 提取 `mergeEditedRowData`
+- [x] 4.1 创建 `src/lib/portfolio/year-data.ts`
+- [x] 4.2 从 `usePortfolioData.ts:505-562` 提取 `applyCashTransactionToYear`
+- [x] 4.3 从 `usePortfolioData.ts:565-664` + `useStockOperations.ts:54-148`（去重两份实现）提取 `applyStockTransactionToYear`
+- [x] 4.4 从 `usePortfolioData.ts:458-502` 提取 `carryOverYearData`
+- [x] 4.5 从 `useStockOperations.ts:421-459` 提取 `removeStockFromAllYears`
+- [x] 4.6 从 `useStockOperations.ts:323-405` 提取 `mergeEditedRowData`
 
 ## 5. 抽出 duplicate-tx 模块
 

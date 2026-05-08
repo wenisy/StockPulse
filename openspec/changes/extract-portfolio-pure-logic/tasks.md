@@ -14,11 +14,11 @@
 
 ## 3. 抽出 cost-basis 模块
 
-- [ ] 3.1 创建 `src/lib/portfolio/cost-basis.ts`
-- [ ] 3.2 从 `useStockOperations.ts:173-177` 提取加权成本价计算 → `computeWeightedCostPrice`
-- [ ] 3.3 从 `useStockOperations.ts:220-224` 提取卖出剩余成本 → `computeRemainingCostAfterSell`
-- [ ] 3.4 从 `useStockOperations.ts:236-237` 提取实现盈亏 → `computeRealizedProfit`
-- [ ] 3.5 处理零股、零成本边界（按 spec 的 scenario）
+- [x] 3.1 创建 `src/lib/portfolio/cost-basis.ts`
+- [x] 3.2 从 `useStockOperations.ts:173-177` 提取加权成本价计算 → `computeWeightedCostPrice`
+- [x] 3.3 从 `useStockOperations.ts:220-224` 提取卖出剩余成本 → `computeRemainingCostAfterSell`
+- [x] 3.4 从 `useStockOperations.ts:236-237` 提取实现盈亏 → `computeRealizedProfit`
+- [x] 3.5 处理零股、零成本边界（按 spec 的 scenario）
 
 ## 4. 抽出 year-data 模块
 

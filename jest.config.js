@@ -22,6 +22,14 @@ const customJestConfig = {
   collectCoverageFrom: [
     'src/lib/portfolio/**/*.ts',
   ],
+  coverageThreshold: {
+    './src/lib/portfolio/': {
+      lines: 100,
+      branches: 100,
+      functions: 100,
+      statements: 100,
+    },
+  },
 };
 
 // 创建并导出Jest配置

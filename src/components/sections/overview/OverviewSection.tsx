@@ -12,7 +12,12 @@ export function OverviewSection() {
   const { trackerState, portfolioData, chartData } = usePortfolio();
   const { yearData, formatLargeNumber } = portfolioData;
   const { calculateCumulativeInvested } = chartData;
-  const { currency, isReportDialogOpen, setIsReportDialogOpen, selectedReportYear, hiddenStocks, currentUser } = trackerState;
+  const { currency, isReportDialogOpen, setIsReportDialogOpen, selectedReportYear, hiddenStocks, currentUser, isLoggedIn } = trackerState;
+
+  // 问候语：早上好 / 下午好 / 晚上好
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? '早上好' : hour < 18 ? '下午好' : '晚上好';
+  const displayName = isLoggedIn && currentUser?.username ? currentUser.username : null;
 
   const totalPortfolioValue = selectedReportYear
     ? (yearData[selectedReportYear]?.stocks?.reduce(
@@ -27,8 +32,16 @@ export function OverviewSection() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="总览"
-        description="一眼看懂当前财务状况"
+        title={
+          displayName
+            ? `${greeting}，${displayName} 👋`
+            : '投资总览'
+        }
+        description={
+          displayName
+            ? '一眼看懂当前财务状况'
+            : '登录后可显示个人问候'
+        }
         actions={<QuickActions />}
       />
       <KpiCards />

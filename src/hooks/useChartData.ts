@@ -59,7 +59,8 @@ export function useChartData({
 
     if (yearData[latestYear] && yearData[latestYear].stocks) {
       yearData[latestYear].stocks.forEach((stock) => {
-        if (!hiddenStocks[stock.name]) {
+        // 只收录最新年末 shares > 0 的股票（过滤已清仓/空壳条目）
+        if (!hiddenStocks[stock.name] && stock.shares > 0) {
           latestStocks.add(stock.name);
         }
       });

@@ -59,6 +59,9 @@ export function StockHoldingCard({
 
   const hasAnyValue = chartData.some((d) => d.value > 0);
 
+  // 兜底：跨所有年份从未有真实持仓（shares>0），直接不渲染
+  if (!hasAnyValue && !lastActiveYear) return null;
+
   // 当前/最后持仓值
   const currentValue = displayStock ? displayStock.shares * displayStock.price : 0;
   const costBasis = displayStock ? displayStock.shares * displayStock.costPrice : 0;

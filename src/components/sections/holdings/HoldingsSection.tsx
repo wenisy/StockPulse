@@ -38,10 +38,14 @@ export function HoldingsSection() {
   const { newYear, setNewYear } = trackerState;
 
   // 所有出现过的股票名（跨所有年份），按最新年末市值降序
+  // 过滤掉"所有年份 shares 均为 0"的空壳条目（数据录入异常产生）
   const allStockNames = useMemo(() => {
     const names = new Set<string>();
     years.forEach((year) => {
-      yearData[year]?.stocks?.forEach((s) => names.add(s.name));
+      yearData[year]?.stocks?.forEach((s) => {
+        // 只收录至少在某一年真正有持仓（shares > 0）的股票
+        if (s.shares > 0) names.add(s.name);
+      });
     });
     return [...names].sort((a, b) => {
       const aStk = yearData[latestYear]?.stocks?.find((s) => s.name === a);

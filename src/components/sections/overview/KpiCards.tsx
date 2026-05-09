@@ -69,7 +69,7 @@ export function KpiCards() {
         format={fmt}
         delta={totalReturnPct}
         deltaLabel="vs 累计投入"
-        description={`总资产 − 全历史净投入 ${fmt(invested)}`}
+        description="全周期累计盈亏（不含未实现浮盈以外的税费）"
       />
       <StatCard
         label="年化复合收益"

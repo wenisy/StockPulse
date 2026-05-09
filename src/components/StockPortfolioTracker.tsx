@@ -204,7 +204,7 @@ const StockPortfolioTracker: React.FC = () => {
         onReportClick={callbacks.handleReportClick}
       />
 
-      <div className="mt-8 p-6 border rounded-lg shadow bg-white">
+      <div className="mt-8 p-6 border rounded-lg shadow bg-bg-elevated">
         <h2 className="text-xl font-semibold mb-4">退休目标计算器</h2>
         <RetirementCalculator
           retirementGoal={retirementGoal}

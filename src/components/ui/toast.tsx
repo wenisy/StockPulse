@@ -72,17 +72,17 @@ function ToastContainer() {
 
 function Toast({ title, description, variant = "default", onClose }: ToastProps) {
   const variants = {
-    default: "bg-white border-gray-200 text-gray-900",
-    success: "bg-green-50 border-green-200 text-green-900",
-    error: "bg-red-50 border-red-200 text-red-900",
-    warning: "bg-yellow-50 border-yellow-200 text-yellow-900",
+    default: "bg-bg-elevated border-border-default text-fg",
+    success: "bg-success/10 border-success/30 text-success",
+    error: "bg-danger/10 border-danger/30 text-danger",
+    warning: "bg-warning/10 border-warning/30 text-warning",
   }
 
   const icons = {
     default: null,
-    success: <CheckCircle className="h-5 w-5 text-green-500" />,
-    error: <XCircle className="h-5 w-5 text-red-500" />,
-    warning: <AlertCircle className="h-5 w-5 text-yellow-500" />,
+    success: <CheckCircle className="h-5 w-5 text-success" />,
+    error: <XCircle className="h-5 w-5 text-danger" />,
+    warning: <AlertCircle className="h-5 w-5 text-warning" />,
   }
 
   return (

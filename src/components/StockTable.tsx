@@ -121,7 +121,7 @@ const StockTable: React.FC<StockTableProps> = ({
                     <Button
                       size="icon"
                       onClick={() => toggleStockVisibility(stockName)}
-                      className="text-gray-500 hover:text-fg"
+                      className="text-fg-muted hover:text-fg"
                       data-testid={`visibility-${stockName}`}
                       aria-label="可见性"
                     >

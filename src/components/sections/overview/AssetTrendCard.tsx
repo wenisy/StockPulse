@@ -78,7 +78,7 @@ export function AssetTrendCard() {
                   formatLargeNumber(Number(v), currency),
                   '总资产',
                 ]}
-                labelStyle={{ color: colors.fgMuted }}
+                labelStyle={{ color: colors.fg }}
               />
               <Area
                 type="monotone"

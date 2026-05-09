@@ -92,13 +92,23 @@ const StockCharts: React.FC<StockChartsProps> = ({
       <div className="flex gap-4 mb-4">
         <Button
           onClick={() => setShowPositionChart(true)}
-          className={cn('px-4 py-2 rounded', showPositionChart ? 'bg-brand text-white' : 'bg-bg-subtle')}
+          className={cn(
+            'px-4 py-2 rounded',
+            showPositionChart
+              ? 'bg-brand text-brand-fg hover:bg-brand/90'
+              : 'bg-bg-subtle text-fg border border-border-default hover:bg-bg-elevated',
+          )}
         >
           仓位变化图（折线图）
         </Button>
         <Button
           onClick={() => setShowPositionChart(false)}
-          className={cn('px-4 py-2 rounded', !showPositionChart ? 'bg-brand text-white' : 'bg-bg-subtle')}
+          className={cn(
+            'px-4 py-2 rounded',
+            !showPositionChart
+              ? 'bg-brand text-brand-fg hover:bg-brand/90'
+              : 'bg-bg-subtle text-fg border border-border-default hover:bg-bg-elevated',
+          )}
         >
           股票占比图（柱状图）
         </Button>

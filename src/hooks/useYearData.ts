@@ -73,7 +73,8 @@ export function useYearData({ currentUser }: UseYearDataProps): UseYearDataRetur
   const [yearData, setYearData] = useState<{ [year: string]: YearData }>(initialData);
   const [years, setYears] = useState<string[]>(initialYears);
   const [filteredYears, setFilteredYears] = useState<string[]>(initialYears);
-  const [selectedYear, setSelectedYear] = useState(initialYears[initialYears.length - 1]);
+  // years 是降序排列，[0] 是最新年，默认选最新年
+  const [selectedYear, setSelectedYear] = useState(initialYears[0]);
   const [comparisonYear, setComparisonYear] = useState<string>(initialYears[0]);
   const [exchangeRates, setExchangeRates] = useState<ExchangeRates>({
     USD: 1,

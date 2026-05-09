@@ -41,6 +41,25 @@ export function KpiCards() {
         tone="brand"
         format={fmt}
         description={`${latestYear} 年末持仓市值 + 现金余额`}
+        breakdown={
+          invested > 0 ? (
+            <div className="space-y-1">
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="text-fg-subtle">累计投入</span>
+                <span className="tabular-nums font-medium text-fg">{fmt(invested)}</span>
+              </div>
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="text-fg-subtle">累计盈亏</span>
+                <span className={`tabular-nums font-semibold ${totalReturn >= 0 ? 'text-success' : 'text-danger'}`}>
+                  {totalReturn >= 0 ? '+' : ''}{fmt(totalReturn)}
+                  <span className="ml-1 font-normal opacity-75">
+                    ({totalReturnPct >= 0 ? '+' : ''}{totalReturnPct.toFixed(1)}%)
+                  </span>
+                </span>
+              </div>
+            </div>
+          ) : null
+        }
       />
       <StatCard
         label="累计收益"

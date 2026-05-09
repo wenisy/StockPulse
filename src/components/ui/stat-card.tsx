@@ -1,5 +1,6 @@
 'use client';
 
+import type { ReactNode } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import { ArrowDownRight, ArrowUpRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -17,6 +18,7 @@ export function StatCard({
   className,
   tone = 'neutral',
   description,
+  breakdown,
 }: {
   label: string;
   value: number;
@@ -30,6 +32,8 @@ export function StatCard({
   tone?: 'neutral' | 'success' | 'danger' | 'warning' | 'info' | 'brand';
   /** 卡片底部的小字说明，解释算法口径 */
   description?: string;
+  /** 结构化明细行（放在数字下方，用于"投入 + 收益"这类分解信息） */
+  breakdown?: ReactNode;
 }) {
   const toneBadgeClass =
     tone === 'success'
@@ -85,6 +89,10 @@ export function StatCard({
           suffix={suffix}
         />
       </div>
+
+      {breakdown ? (
+        <div className="mt-2 space-y-1">{breakdown}</div>
+      ) : null}
 
       {delta !== undefined ? (
         <div className={cn('mt-2 flex items-center gap-1 text-xs', deltaColor)}>

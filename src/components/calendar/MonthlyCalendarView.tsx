@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { ChevronLeft, ChevronRight, DollarSign, EyeOff, TrendingDown, TrendingUp } from 'lucide-react';
+import React from 'react';
+import { ChevronLeft, ChevronRight, DollarSign, TrendingDown, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -31,6 +31,7 @@ interface Props {
   isLoading: boolean;
   currency: string;
   formatLargeNumber: (value: number, currency: string) => string;
+  hideAmount: boolean;
   onChangeMonth: (delta: number) => void;
   onMonthSelect: (month: number) => void;
   onDateClick: (date: string) => void;
@@ -165,15 +166,13 @@ export const MonthlyCalendarView: React.FC<Props> = ({
   isLoading,
   currency,
   formatLargeNumber,
+  hideAmount,
   onChangeMonth,
   onMonthSelect,
   onDateClick,
 }) => {
   const firstDay = getFirstDayOfMonth(currentYear, currentMonth);
   const daysInMonth = getDaysInMonth(currentYear, currentMonth);
-
-  // 隐藏金额模式（用于分享截图）
-  const [hideAmount, setHideAmount] = useState(false);
 
   return (
     <>
@@ -217,22 +216,6 @@ export const MonthlyCalendarView: React.FC<Props> = ({
         </Button>
       </div>
 
-      {/* 隐藏金额切换按钮 */}
-      <div className="flex justify-end">
-        <button
-          type="button"
-          onClick={() => setHideAmount((v) => !v)}
-          className={cn(
-            'flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs transition-colors duration-[var(--motion-fast)]',
-            hideAmount
-              ? 'bg-brand/10 text-brand font-medium'
-              : 'text-fg-muted hover:bg-bg-subtle hover:text-fg',
-          )}
-        >
-          <EyeOff className="h-3.5 w-3.5" aria-hidden />
-          {hideAmount ? '已隐藏金额（仅 %）' : '隐藏金额，仅显示 %'}
-        </button>
-      </div>
 
       {/* 日历网格 */}
       {!isLoading && (

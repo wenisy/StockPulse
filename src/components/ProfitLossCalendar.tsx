@@ -1,6 +1,6 @@
 "use client";
-import React, { useEffect } from 'react';
-import { Calendar, RefreshCw, Play } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Calendar, EyeOff, RefreshCw, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/components/ui/toast';
@@ -52,6 +52,9 @@ const ProfitLossCalendar: React.FC<ProfitLossCalendarProps> = ({
     setGenerateDate,
     availableYears,
   } = useCalendarView({ selectedYear, parentYears });
+
+  // 隐藏金额（月视图 + 年视图共享）
+  const [hideAmount, setHideAmount] = useState(false);
 
   // 快照生成流程
   const {
@@ -141,6 +144,20 @@ const ProfitLossCalendar: React.FC<ProfitLossCalendarProps> = ({
           >
             年度（月度汇总）
           </Button>
+          {/* 隐藏金额按钮 —— 月视图和年视图共享 */}
+          <button
+            type="button"
+            onClick={() => setHideAmount((v) => !v)}
+            className={cn(
+              'flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs transition-colors duration-[var(--motion-fast)]',
+              hideAmount
+                ? 'bg-brand/10 text-brand font-medium'
+                : 'text-fg-muted hover:bg-bg-subtle hover:text-fg',
+            )}
+          >
+            <EyeOff className="h-3.5 w-3.5" aria-hidden />
+            {hideAmount ? '已隐藏金额' : '隐藏金额'}
+          </button>
         </div>
         {process.env.NODE_ENV === 'development' && (
           <div className="text-xs text-fg-muted">
@@ -171,6 +188,7 @@ const ProfitLossCalendar: React.FC<ProfitLossCalendarProps> = ({
             isLoading={isLoading}
             currency={currency}
             formatLargeNumber={formatLargeNumber}
+            hideAmount={hideAmount}
             onChangeMonth={onChangeMonth}
             onMonthSelect={(m) => {
               setCurrentMonth(m);
@@ -246,6 +264,7 @@ const ProfitLossCalendar: React.FC<ProfitLossCalendarProps> = ({
           currentYear={currentYear}
           currency={currency}
           formatLargeNumber={formatLargeNumber}
+          hideAmount={hideAmount}
           onMonthClick={(m) => {
             setCurrentMonth(m);
             setViewMode('monthly');

@@ -136,19 +136,27 @@ const RetirementCalculator: React.FC<RetirementCalculatorProps> = ({
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">计算模式</label>
+          <label className="block text-sm font-medium mb-1 text-fg">计算模式</label>
           <div className="flex space-x-2">
             <Button
               type="button"
               onClick={() => onCalculationModeChange('rate')}
-              className={cn(calculationMode === 'rate' ? 'bg-brand text-white' : 'bg-bg-subtle')}
+              className={cn(
+                calculationMode === 'rate'
+                  ? 'bg-brand text-brand-fg hover:bg-brand/90'
+                  : 'bg-bg-subtle text-fg hover:bg-bg-elevated border border-border-default',
+              )}
             >
               输入预期回报率
             </Button>
             <Button
               type="button"
               onClick={() => onCalculationModeChange('years')}
-              className={cn(calculationMode === 'years' ? 'bg-brand text-white' : 'bg-bg-subtle')}
+              className={cn(
+                calculationMode === 'years'
+                  ? 'bg-brand text-brand-fg hover:bg-brand/90'
+                  : 'bg-bg-subtle text-fg hover:bg-bg-elevated border border-border-default',
+              )}
             >
               输入目标年限
             </Button>

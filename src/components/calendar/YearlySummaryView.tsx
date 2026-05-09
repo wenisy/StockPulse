@@ -18,6 +18,7 @@ interface Props {
   currentYear: number;
   currency: string;
   formatLargeNumber: (value: number, currency: string) => string;
+  hideAmount: boolean;
   onMonthClick: (month: number) => void;
 }
 
@@ -26,6 +27,7 @@ export const YearlySummaryView: React.FC<Props> = ({
   currentYear,
   currency,
   formatLargeNumber,
+  hideAmount,
   onMonthClick,
 }) => {
   const monthsData = yearlySummary ?? Array.from({ length: 12 }, (_, i) => ({
@@ -79,8 +81,10 @@ export const YearlySummaryView: React.FC<Props> = ({
                 'text-2xl font-bold',
                 yearlyTotal.totalGain >= 0 ? 'text-success' : 'text-danger',
               )}>
-                {yearlyTotal.totalGain >= 0 ? '+' : ''}
-                {formatLargeNumber(yearlyTotal.totalGain, currency)}
+                {!hideAmount && (
+                  <>{yearlyTotal.totalGain >= 0 ? '+' : ''}{formatLargeNumber(yearlyTotal.totalGain, currency)}</>
+                )}
+                {hideAmount && <span className="text-lg font-semibold">金额已隐藏</span>}
               </div>
               <div className="text-sm text-fg-muted mt-1">年度盈亏总额</div>
               <div className="text-xs text-fg-subtle mt-2">* 收益率需结合总资产计算</div>
@@ -142,8 +146,12 @@ export const YearlySummaryView: React.FC<Props> = ({
                   'text-base font-bold',
                   positive ? 'text-success' : negative ? 'text-danger' : 'text-fg',
                 )}>
-                  {m.totalGain > 0 ? '+' : ''}{formatLargeNumber(m.totalGain, currency)}
-                  <span className="ml-1 text-sm">({m.totalGainPercent.toFixed(2)}%)</span>
+                  {!hideAmount && (
+                    <>{m.totalGain > 0 ? '+' : ''}{formatLargeNumber(m.totalGain, currency)} </>
+                  )}
+                  <span className={hideAmount ? 'text-base' : 'text-sm'}>
+                    ({m.totalGainPercent.toFixed(2)}%)
+                  </span>
                 </div>
                 <div className="mt-1 text-xs text-fg-muted">
                   交易日 {m.tradingDaysCount} 天 · 胜率 {m.winRate.toFixed(1)}%

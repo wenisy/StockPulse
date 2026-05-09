@@ -111,14 +111,14 @@ export function HoldingsSection() {
         title="持仓"
         description={`${activeNames.length} 只持仓中${closedNames.length > 0 ? ` · ${closedNames.length} 只历史` : ''}`}
         actions={
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {/* 新增年份 */}
             <div className="flex items-center gap-1">
               <Input
                 value={newYear}
                 onChange={(e) => setNewYear(e.target.value)}
                 placeholder="如 2027"
-                className="w-24 h-8 text-sm"
+                className="w-20 h-8 text-sm"
                 inputMode="numeric"
                 maxLength={4}
               />
@@ -127,7 +127,7 @@ export function HoldingsSection() {
                 variant="outline"
                 onClick={handleAddYear}
                 disabled={!newYear || years.includes(newYear)}
-                className="h-8 px-2 text-xs"
+                className="h-8 px-2 text-xs whitespace-nowrap"
               >
                 新增年份
               </Button>
@@ -162,7 +162,7 @@ export function HoldingsSection() {
               </span>
             </span>
           </div>
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4">
             {/* 年份选择 */}
             <label className="flex flex-col gap-1">
               <span className="text-xs text-fg-subtle">交易年份</span>

@@ -58,21 +58,24 @@ const CalendarDay: React.FC<{
         <TooltipTrigger asChild>
           <div
             className={cn(
-              'relative h-20 p-2 border rounded-lg cursor-pointer transition-all duration-200 hover:shadow-md',
+              // 移动端 h-14，桌面 h-20；padding 移动端更小
+              'relative h-14 sm:h-20 p-1 sm:p-2 border rounded-lg cursor-pointer transition-all duration-200 hover:shadow-md',
               getProfitLossColor(dayData?.totalGainPercent || 0, hasData),
             )}
             onClick={() => onClick(dateStr)}
           >
-            <div className="text-sm font-medium">{day}</div>
+            {/* 日期数字：移动端小字，桌面正常 */}
+            <div className="text-xs sm:text-sm font-medium">{day}</div>
             {hasData && dayData && (
-              <div className="text-xs font-bold mt-1">
+              <div className="text-[10px] sm:text-xs font-bold mt-0.5 sm:mt-1 leading-tight">
                 {dayData.totalGainPercent > 0 ? '+' : ''}
-                {dayData.totalGainPercent.toFixed(2)}%
+                {dayData.totalGainPercent.toFixed(1)}%
               </div>
             )}
+            {/* 金额：移动端始终隐藏（屏幕太小），桌面按 hideAmount 控制 */}
             {hasData && dayData && !hideAmount && (
               <div className={cn(
-                'text-[10px] tabular-nums leading-tight',
+                'hidden sm:block text-[10px] tabular-nums leading-tight',
                 dayData.totalGain > 0 ? 'text-success' : dayData.totalGain < 0 ? 'text-danger' : 'text-fg-muted',
               )}>
                 {dayData.totalGain > 0 ? '+' : ''}
@@ -80,12 +83,13 @@ const CalendarDay: React.FC<{
               </div>
             )}
             {hasTransaction && (
-              <div className="absolute top-1 right-1">
-                <div className="w-2 h-2 bg-brand rounded-full"></div>
+              <div className="absolute top-0.5 right-0.5 sm:top-1 sm:right-1">
+                <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-brand rounded-full"></div>
               </div>
             )}
+            {/* 趋势图标：移动端隐藏，节省空间 */}
             {hasData && dayData && (
-              <div className="absolute bottom-1 right-1">
+              <div className="hidden sm:block absolute bottom-1 right-1">
                 {dayData.totalGain > 0 ? (
                   <TrendingUp className="w-3 h-3" />
                 ) : dayData.totalGain < 0 ? (
@@ -219,17 +223,17 @@ export const MonthlyCalendarView: React.FC<Props> = ({
 
       {/* 日历网格 */}
       {!isLoading && (
-        <div className="bg-bg-elevated rounded-lg border p-4">
-          <div className="grid grid-cols-7 gap-2 mb-2">
+        <div className="bg-bg-elevated rounded-lg border p-2 sm:p-4">
+          <div className="grid grid-cols-7 gap-1 sm:gap-2 mb-1 sm:mb-2">
             {WEEKDAYS.map((day) => (
-              <div key={day} className="text-center text-sm font-medium text-fg-muted py-2">
+              <div key={day} className="text-center text-[10px] sm:text-sm font-medium text-fg-muted py-1 sm:py-2">
                 {day}
               </div>
             ))}
           </div>
-          <div className="grid grid-cols-7 gap-2">
+          <div className="grid grid-cols-7 gap-1 sm:gap-2">
             {Array.from({ length: firstDay }).map((_, i) => (
-              <div key={`empty-${i}`} className="h-20"></div>
+              <div key={`empty-${i}`} className="h-14 sm:h-20"></div>
             ))}
             {Array.from({ length: daysInMonth }).map((_, i) => (
               <CalendarDay

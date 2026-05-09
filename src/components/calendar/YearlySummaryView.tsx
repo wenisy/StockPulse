@@ -116,7 +116,7 @@ export const YearlySummaryView: React.FC<Props> = ({
         </div>
 
         {/* 月度网格 */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
           {monthsData.map((m) => {
             const positive = (m.totalGain || 0) > 0;
             const negative = (m.totalGain || 0) < 0;

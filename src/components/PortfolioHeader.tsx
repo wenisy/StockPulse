@@ -62,7 +62,7 @@ const PortfolioHeader: React.FC<PortfolioHeaderProps> = ({
       <div className="flex items-center space-x-4">
         <h1 className="text-2xl font-bold">股票投资组合追踪工具</h1>
         {isLoggedIn && currentUser && (
-          <div className="text-sm text-gray-600">
+          <div className="text-sm text-fg-muted">
             欢迎,{" "}
             <span className="font-semibold">
               {currentUser.nickname || currentUser.username}
@@ -116,7 +116,7 @@ const PortfolioHeader: React.FC<PortfolioHeaderProps> = ({
 
           {/* 下拉菜单 */}
           {isMoreMenuOpen && (
-            <div className="absolute right-0 top-full mt-2 w-48 bg-white border border-gray-200 rounded-md shadow-lg z-50">
+            <div className="absolute right-0 top-full mt-2 w-48 bg-bg-elevated border border-border-subtle rounded-md shadow-lg z-50">
               <div className="py-1">
                 <button
                   onClick={() => {
@@ -124,14 +124,14 @@ const PortfolioHeader: React.FC<PortfolioHeaderProps> = ({
                     setIsMoreMenuOpen(false);
                   }}
                   disabled={isLoading}
-                  className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 disabled:opacity-50"
+                  className="flex items-center gap-2 w-full px-4 py-2 text-sm text-fg hover:bg-bg-subtle disabled:opacity-50"
                 >
                   <RefreshCw
                     className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`}
                   />
                   刷新价格
                 </button>
-                <div className="border-t border-gray-200 my-1"></div>
+                <div className="border-t border-border-subtle my-1"></div>
                 {!isLoggedIn ? (
                   <>
                     <button
@@ -142,7 +142,7 @@ const PortfolioHeader: React.FC<PortfolioHeaderProps> = ({
                           0
                         );
                       }}
-                      className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      className="flex items-center gap-2 w-full px-4 py-2 text-sm text-fg hover:bg-bg-subtle"
                     >
                       登录
                     </button>
@@ -154,7 +154,7 @@ const PortfolioHeader: React.FC<PortfolioHeaderProps> = ({
                           0
                         );
                       }}
-                      className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      className="flex items-center gap-2 w-full px-4 py-2 text-sm text-fg hover:bg-bg-subtle"
                     >
                       注册
                     </button>
@@ -169,7 +169,7 @@ const PortfolioHeader: React.FC<PortfolioHeaderProps> = ({
                           0
                         );
                       }}
-                      className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      className="flex items-center gap-2 w-full px-4 py-2 text-sm text-fg hover:bg-bg-subtle"
                     >
                       个人资料
                     </button>
@@ -178,7 +178,7 @@ const PortfolioHeader: React.FC<PortfolioHeaderProps> = ({
                         setIsMoreMenuOpen(false);
                         userProfileRef.current?.logout();
                       }}
-                      className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      className="flex items-center gap-2 w-full px-4 py-2 text-sm text-fg hover:bg-bg-subtle"
                     >
                       登出
                     </button>

@@ -93,7 +93,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   setCurrency,
 }) => {
   return (
-    <div className="p-4 border rounded-lg bg-gray-50 space-y-4">
+    <div className="p-4 border rounded-lg bg-bg-subtle space-y-4">
       {/* 年份管理 */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
@@ -167,8 +167,8 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
           className={cn(
             "text-sm mt-2",
             (yearData[selectedYear]?.cashBalance || 0) < 0
-              ? "text-red-500"
-              : "text-green-500"
+              ? "text-danger"
+              : "text-success"
           )}
         >
           现金余额:{" "}
@@ -271,7 +271,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
 
       {/* 最后更新时间 */}
       {priceData && Object.keys(priceData).length > 0 && (
-        <p className="text-xs text-gray-500">
+        <p className="text-xs text-fg-muted">
           最后更新时间: {Object.values(priceData)[0]?.lastUpdated || "未知"}
         </p>
       )}

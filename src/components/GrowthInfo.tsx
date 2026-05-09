@@ -71,7 +71,7 @@ const GrowthInfo: React.FC<GrowthInfoProps> = ({
 
         return (
             <div className="space-y-1 text-sm">
-                <p className="text-blue-500">
+                <p className="text-brand">
                     初始投入: {formatLargeNumber(initialInvestment, currency)}
                 </p>
             </div>
@@ -84,14 +84,14 @@ const GrowthInfo: React.FC<GrowthInfoProps> = ({
     return (
         <div className="space-y-1 text-sm">
             <div className="flex items-center gap-1">
-                <p className={cn(growth.actualGrowth >= 0 ? 'text-green-500' : 'text-red-500')}>
+                <p className={cn(growth.actualGrowth >= 0 ? 'text-success' : 'text-danger')}>
                     较上年总增长: {formatLargeNumber(growth.actualGrowth, currency)}
                     ({growth.actualGrowthRate.toFixed(2)}%)
                 </p>
                 <TooltipProvider>
                     <UITooltip>
                         <TooltipTrigger>
-                            <HelpCircle className="h-4 w-4 text-gray-400" />
+                            <HelpCircle className="h-4 w-4 text-fg-subtle" />
                         </TooltipTrigger>
                         <TooltipContent>
                             <p>包含入金在内的总体增长金额和比例，<br />计算公式：当年总资产 - 上年总资产</p>
@@ -101,14 +101,14 @@ const GrowthInfo: React.FC<GrowthInfoProps> = ({
             </div>
 
             <div className="flex items-center gap-1">
-                <p className={cn(growth.investmentGrowth >= 0 ? 'text-green-500' : 'text-red-500')}>
+                <p className={cn(growth.investmentGrowth >= 0 ? 'text-success' : 'text-danger')}>
                     投资回报: {formatLargeNumber(growth.investmentGrowth, currency)}
                     ({growth.investmentGrowthRate.toFixed(2)}%)
                 </p>
                 <TooltipProvider>
                     <UITooltip>
                         <TooltipTrigger>
-                            <HelpCircle className="h-4 w-4 text-gray-400" />
+                            <HelpCircle className="h-4 w-4 text-fg-subtle" />
                         </TooltipTrigger>
                         <TooltipContent>
                             <p>扣除当年入金后的实际投资回报，<br />计算公式：(当年总资产 - 当年入金) - 上年总资产</p>
@@ -119,13 +119,13 @@ const GrowthInfo: React.FC<GrowthInfoProps> = ({
 
             {growth.yearDeposits > 0 && (
                 <div className="flex items-center gap-1">
-                    <p className="text-blue-500">
+                    <p className="text-brand">
                         当年入金: {formatLargeNumber(growth.yearDeposits, currency)}
                     </p>
                     <TooltipProvider>
                         <UITooltip>
                             <TooltipTrigger>
-                                <HelpCircle className="h-4 w-4 text-gray-400" />
+                                <HelpCircle className="h-4 w-4 text-fg-subtle" />
                             </TooltipTrigger>
                             <TooltipContent>
                                 <p>当年新增投入的资金总额，<br />不包括股票交易产生的现金流动</p>

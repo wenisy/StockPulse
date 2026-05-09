@@ -94,7 +94,7 @@ export function HoldingsSection() {
               <select
                 value={transactionType}
                 onChange={(e) => setTransactionType(e.target.value as 'buy' | 'sell')}
-                className="h-9 rounded-md border border-border-default bg-bg px-2 text-sm"
+                className="h-9 rounded-md border border-border-default bg-bg px-2 text-sm text-fg"
               >
                 <option value="buy">买入</option>
                 <option value="sell">卖出</option>

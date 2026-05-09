@@ -34,9 +34,9 @@ const InvestmentOverview: React.FC<InvestmentOverviewProps> = ({
   return (
     <div>
       <h2 className="text-xl font-semibold mb-4">投资总览</h2>
-      <div className="p-6 border rounded-lg bg-white shadow-sm space-y-4">
+        <div className="p-6 border rounded-lg bg-bg-elevated shadow-sm space-y-4">
         <div className="flex items-center gap-4">
-          <span className="text-gray-600">选择对比年份：</span>
+          <span className="text-fg-muted">选择对比年份：</span>
           <Select onValueChange={setComparisonYear} value={comparisonYear}>
             <SelectTrigger className="w-32">
               <SelectValue placeholder="选择年份" />
@@ -53,13 +53,13 @@ const InvestmentOverview: React.FC<InvestmentOverviewProps> = ({
           const result = calculateInvestmentReturn(comparisonYear);
           return (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="p-4 bg-gray-50 rounded-lg">
+              <div className="p-4 bg-bg-subtle rounded-lg">
                 <div className="flex items-center gap-1">
-                  <div className="text-sm text-gray-500">截至{comparisonYear}年累计投入</div>
+                  <div className="text-sm text-fg-muted">截至{comparisonYear}年累计投入</div>
                   <TooltipProvider>
                     <UITooltip>
                       <TooltipTrigger>
-                        <HelpCircle className="h-4 w-4 text-gray-400" />
+                        <HelpCircle className="h-4 w-4 text-fg-subtle" />
                       </TooltipTrigger>
                       <TooltipContent>
                         <p>从最早记录年份至{comparisonYear}年的净投入金额<br />（所有存入金额减去取出金额）
@@ -68,33 +68,33 @@ const InvestmentOverview: React.FC<InvestmentOverviewProps> = ({
                     </UITooltip>
                   </TooltipProvider>
                 </div>
-                <div className="text-xl font-bold text-blue-600">
+                <div className="text-xl font-bold text-brand">
                   {formatLargeNumber(result.totalInvestment, currency)}
                 </div>
               </div>
 
-              <div className="p-4 bg-gray-50 rounded-lg">
-                <div className="text-sm text-gray-500">{comparisonYear}年总持仓</div>
-                <div className="text-xl font-bold text-blue-600">
+              <div className="p-4 bg-bg-subtle rounded-lg">
+                <div className="text-sm text-fg-muted">{comparisonYear}年总持仓</div>
+                <div className="text-xl font-bold text-brand">
                   {formatLargeNumber(result.portfolioValue, currency)}
                 </div>
               </div>
 
-              <div className="p-4 bg-gray-50 rounded-lg">
-                <div className="text-sm text-gray-500">总收益金额</div>
+              <div className="p-4 bg-bg-subtle rounded-lg">
+                <div className="text-sm text-fg-muted">总收益金额</div>
                 <div className={cn(
                   "text-xl font-bold",
-                  result.absoluteReturn >= 0 ? "text-green-600" : "text-red-600"
+                  result.absoluteReturn >= 0 ? "text-success" : "text-danger"
                 )}>
                   {formatLargeNumber(result.absoluteReturn, currency)}
                 </div>
               </div>
 
-              <div className="p-4 bg-gray-50 rounded-lg">
-                <div className="text-sm text-gray-500">总收益率</div>
+              <div className="p-4 bg-bg-subtle rounded-lg">
+                <div className="text-sm text-fg-muted">总收益率</div>
                 <div className={cn(
                   "text-xl font-bold",
-                  result.percentageReturn >= 0 ? "text-green-600" : "text-red-600"
+                  result.percentageReturn >= 0 ? "text-success" : "text-danger"
                 )}>
                   {result.percentageReturn.toFixed(2)}%
                 </div>
@@ -103,7 +103,7 @@ const InvestmentOverview: React.FC<InvestmentOverviewProps> = ({
           );
         })()}
 
-        <div className="text-sm text-gray-500 mt-2">
+        <div className="text-sm text-fg-muted mt-2">
           * 总收益基于历史累计投入资金（存入减去取出）与选定年份的总持仓价值进行计算
         </div>
       </div>

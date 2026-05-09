@@ -70,7 +70,7 @@ const CalendarDay: React.FC<{
             )}
             {hasTransaction && (
               <div className="absolute top-1 right-1">
-                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                <div className="w-2 h-2 bg-brand rounded-full"></div>
               </div>
             )}
             {hasData && dayData && (
@@ -98,7 +98,7 @@ const CalendarDay: React.FC<{
                   <span>当日收益率: {dayData.totalGainPercent.toFixed(2)}%</span>
                 </div>
                 {hasTransaction && (
-                  <div className="text-blue-600 text-sm">📈 当日有交易</div>
+                  <div className="text-brand text-sm">📈 当日有交易</div>
                 )}
                 {dayData.stocks && dayData.stocks.length > 0 && (
                   <div className="border-t pt-2 mt-2">
@@ -111,16 +111,16 @@ const CalendarDay: React.FC<{
                             <div className="text-right">
                               <div className={cn(
                                 'font-medium',
-                                stock.gainPercent > 0 ? 'text-green-600' :
-                                stock.gainPercent < 0 ? 'text-red-600' : 'text-gray-600',
+                                stock.gainPercent > 0 ? 'text-success' :
+                                stock.gainPercent < 0 ? 'text-danger' : 'text-fg-muted',
                               )}>
                                 {stock.gainPercent > 0 ? '+' : ''}
                                 {stock.gainPercent.toFixed(2)}%
                               </div>
                               <div className={cn(
                                 'text-xs',
-                                stock.gain > 0 ? 'text-green-500' :
-                                stock.gain < 0 ? 'text-red-500' : 'text-gray-500',
+                                stock.gain > 0 ? 'text-success' :
+                                stock.gain < 0 ? 'text-danger' : 'text-fg-muted',
                               )}>
                                 {stock.gain > 0 ? '+' : ''}
                                 {formatLargeNumber(stock.gain, currency)}
@@ -134,7 +134,7 @@ const CalendarDay: React.FC<{
                 )}
               </>
             ) : (
-              <div className="text-gray-500">暂无数据</div>
+              <div className="text-fg-muted">暂无数据</div>
             )}
           </div>
         </TooltipContent>
@@ -181,11 +181,11 @@ export const MonthlyCalendarView: React.FC<Props> = ({
           </div>
           {monthlySummary && (
             <div className="text-sm mt-1 space-y-1">
-              <div className={`font-medium ${monthlySummary.totalGain >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              <div className={`font-medium ${monthlySummary.totalGain >= 0 ? 'text-success' : 'text-danger'}`}>
                 月度收益: {formatLargeNumber(monthlySummary.totalGain, currency)}
                 ({monthlySummary.totalGain >= 0 ? '+' : ''}{monthlySummary.totalGainPercent.toFixed(2)}%)
               </div>
-              <div className="text-gray-600 text-xs">
+              <div className="text-fg-muted text-xs">
                 交易日: {monthlySummary.tradingDaysCount}天 |
                 盈利: {monthlySummary.profitDays}天 |
                 亏损: {monthlySummary.lossDays}天 |
@@ -201,10 +201,10 @@ export const MonthlyCalendarView: React.FC<Props> = ({
 
       {/* 日历网格 */}
       {!isLoading && (
-        <div className="bg-white rounded-lg border p-4">
+        <div className="bg-bg-elevated rounded-lg border p-4">
           <div className="grid grid-cols-7 gap-2 mb-2">
             {WEEKDAYS.map((day) => (
-              <div key={day} className="text-center text-sm font-medium text-gray-500 py-2">
+              <div key={day} className="text-center text-sm font-medium text-fg-muted py-2">
                 {day}
               </div>
             ))}

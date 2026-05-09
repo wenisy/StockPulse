@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend, BarChart, CartesianGrid, XAxis, YAxis, Bar } from 'recharts';
 import { YearData, User } from '@/types/stock';
 import ProfitLossCalendar from './ProfitLossCalendar';
+import { useResolvedColors } from '@/hooks/useResolvedColors';
 
 interface ReportDialogProps {
     isOpen: boolean;
@@ -32,6 +33,8 @@ const ReportDialog: React.FC<ReportDialogProps> = ({
     cumulativeInvested,
     currentUser,
 }) => {
+    const colors = useResolvedColors();
+
     if (!selectedYear || !yearData[selectedYear]) return null;
 
     const yearDataItem = yearData[selectedYear];
@@ -72,7 +75,12 @@ const ReportDialog: React.FC<ReportDialogProps> = ({
             .map((stock, index) => ({ rank: index + 1, ...stock }));
     };
 
-    const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
+    const tooltipStyle = {
+        background: colors.bgElevated,
+        border: `1px solid ${colors.borderDefault}`,
+        color: colors.fg,
+        borderRadius: 8,
+    };
 
     return (
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -95,17 +103,17 @@ const ReportDialog: React.FC<ReportDialogProps> = ({
                     </TabsList>
                     <TabsContent value="summary">
                         <div className="grid grid-cols-3 gap-4 mb-4">
-                            <div className="p-4 bg-gray-50 rounded-lg">
+                            <div className="p-4 bg-bg-subtle rounded-lg">
                                 <h3 className="font-semibold">当年总持仓</h3>
                                 <p>{formatLargeNumber(totalPortfolioValue, currency)}</p>
                             </div>
-                            <div className="p-4 bg-gray-50 rounded-lg">
+                            <div className="p-4 bg-bg-subtle rounded-lg">
                                 <h3 className="font-semibold">累计投入现金</h3>
                                 <p>{formatLargeNumber(cumulativeInvested, currency)}</p>
                             </div>
-                            <div className="p-4 bg-gray-50 rounded-lg">
+                            <div className="p-4 bg-bg-subtle rounded-lg">
                                 <h3 className="font-semibold">投资增长</h3>
-                                <p className={growth >= 0 ? 'text-green-500' : 'text-red-500'}>
+                                <p className={growth >= 0 ? 'text-success' : 'text-danger'}>
                                     {formatLargeNumber(growth, currency)} ({growthRate.toFixed(2)}%)
                                 </p>
                             </div>
@@ -124,10 +132,13 @@ const ReportDialog: React.FC<ReportDialogProps> = ({
                                     label={({ name, value }) => `${name} (${((value / pieTotalValue) * 100).toFixed(2)}%)`}
                                 >
                                     {pieData.map((entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                        <Cell key={`cell-${index}`} fill={colors.chartColors[index % colors.chartColors.length]} />
                                     ))}
                                 </Pie>
-                                <Tooltip formatter={(value: number) => `${((value / pieTotalValue) * 100).toFixed(2)}%`} />
+                                <Tooltip
+                                    formatter={(value: number) => `${((value / pieTotalValue) * 100).toFixed(2)}%`}
+                                    contentStyle={tooltipStyle}
+                                />
                                 <Legend />
                             </PieChart>
                         </ResponsiveContainer>
@@ -135,13 +146,16 @@ const ReportDialog: React.FC<ReportDialogProps> = ({
                     <TabsContent value="performance">
                         <ResponsiveContainer width="100%" height={300}>
                             <BarChart data={prepareBarChartData()} layout="vertical">
-                                <CartesianGrid strokeDasharray="3 3" />
-                                <XAxis type="number" domain={[-100, 100]} tickFormatter={(value) => `${value}%`} />
-                                <YAxis type="category" dataKey="name" />
-                                <Tooltip formatter={(value: number | string) => `${Number(value).toFixed(2)}%`} />
-                                <Bar dataKey="profitLoss" fill="#82ca9d">
+                                <CartesianGrid strokeDasharray="3 3" stroke={colors.borderSubtle} />
+                                <XAxis type="number" domain={[-100, 100]} tickFormatter={(value) => `${value}%`} tick={{ fill: colors.fgMuted, fontSize: 12 }} />
+                                <YAxis type="category" dataKey="name" tick={{ fill: colors.fgMuted, fontSize: 12 }} />
+                                <Tooltip
+                                    formatter={(value: number | string) => `${Number(value).toFixed(2)}%`}
+                                    contentStyle={tooltipStyle}
+                                />
+                                <Bar dataKey="profitLoss" fill={colors.success}>
                                     {prepareBarChartData().map((entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={entry.profitLoss >= 0 ? '#82ca9d' : '#ff7300'} />
+                                        <Cell key={`cell-${index}`} fill={entry.profitLoss >= 0 ? colors.success : colors.danger} />
                                     ))}
                                 </Bar>
                             </BarChart>
@@ -158,23 +172,23 @@ const ReportDialog: React.FC<ReportDialogProps> = ({
                     <TabsContent value="top">
                         <div>
                             <h3 className="font-semibold">最佳表现排名</h3>
-                            <table className="w-full border-collapse border mt-2">
+                            <table className="w-full border-collapse border border-border-default mt-2">
                                 <thead>
                                     <tr>
-                                        <th className="border p-2">排名</th>
-                                        <th className="border p-2">股票名称</th>
-                                        <th className="border p-2">股票代码</th>
-                                        <th className="border p-2">盈亏比例</th>
+                                        <th className="border border-border-default p-2">排名</th>
+                                        <th className="border border-border-default p-2">股票名称</th>
+                                        <th className="border border-border-default p-2">股票代码</th>
+                                        <th className="border border-border-default p-2">盈亏比例</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {prepareTopPerformersData().map(stock => (
                                         <tr key={stock.rank}>
-                                            <td className="border p-2 text-center">{stock.rank}</td>
-                                            <td className="border p-2">{stock.name}</td>
-                                            <td className="border p-2">{stock.symbol}</td>
-                                            <td className="border p-2 text-right">
-                                                <span className={stock.profitLoss >= 0 ? 'text-green-500' : 'text-red-500'}>
+                                            <td className="border border-border-default p-2 text-center">{stock.rank}</td>
+                                            <td className="border border-border-default p-2">{stock.name}</td>
+                                            <td className="border border-border-default p-2">{stock.symbol}</td>
+                                            <td className="border border-border-default p-2 text-right">
+                                                <span className={stock.profitLoss >= 0 ? 'text-success' : 'text-danger'}>
                                                     {stock.profitLoss.toFixed(2)}%
                                                 </span>
                                             </td>
@@ -195,7 +209,7 @@ const ReportDialog: React.FC<ReportDialogProps> = ({
                                             return null;
                                         }
                                         const isIncrease = tx.type === 'deposit' || tx.type === 'sell';
-                                        const colorClass = isIncrease ? 'text-green-500' : 'text-red-500';
+                                        const colorClass = isIncrease ? 'text-success' : 'text-danger';
                                         const description = tx.description || (tx.type === 'deposit' ? '存入' : tx.type === 'withdraw' ? '取出' : tx.type === 'buy' ? `买入${tx.stockName}` : `卖出${tx.stockName}`);
                                         return (
                                             <li key={index} className={colorClass}>
@@ -217,19 +231,18 @@ const ReportDialog: React.FC<ReportDialogProps> = ({
                                             return null;
                                         }
                                         const stock = yearDataItem.stocks.find(s => s.name === tx.stockName);
-                                        // 优先使用交易记录中的成本价，如果没有则使用当前持仓的成本价
                                         const costPrice = tx.beforeCostPrice ?? stock?.costPrice ?? 0;
                                         const currentPrice = stock?.price || 0;
                                         const profit = tx.type === 'sell' ? (tx.price - costPrice) * tx.shares : 0;
                                         const profitPercentage = costPrice > 0 ? (profit / (costPrice * tx.shares)) * 100 : 0;
-                                        const colorClass = tx.type === 'buy' ? 'text-blue-500' : profit >= 0 ? 'text-green-500' : 'text-red-500';
+                                        const colorClass = tx.type === 'buy' ? 'text-brand' : profit >= 0 ? 'text-success' : 'text-danger';
                                         return (
                                             <li key={index} className={colorClass}>
                                                 {tx.date}: {tx.type === 'buy' ? '买入' : '卖出'} {tx.stockName} {tx.shares}股，价格 {formatLargeNumber(tx.price, currency)}
                                                 {tx.beforeCostPrice !== undefined && tx.afterCostPrice !== undefined && (
                                                     <>
                                                         ，交易前成本价 {formatLargeNumber(tx.beforeCostPrice, currency)}，
-                                                        交易后成本价 <span className={tx.afterCostPrice < tx.beforeCostPrice ? 'text-green-500' : tx.afterCostPrice > tx.beforeCostPrice ? 'text-red-500' : ''}>
+                                                        交易后成本价 <span className={tx.afterCostPrice < tx.beforeCostPrice ? 'text-success' : tx.afterCostPrice > tx.beforeCostPrice ? 'text-danger' : ''}>
                                                             {formatLargeNumber(tx.afterCostPrice, currency)}
                                                             {tx.afterCostPrice !== tx.beforeCostPrice && (
                                                                 <> ({tx.afterCostPrice < tx.beforeCostPrice ? '↓' : '↑'})</>

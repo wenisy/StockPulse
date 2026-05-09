@@ -1,6 +1,5 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import {
   Area,
   AreaChart,
@@ -15,29 +14,17 @@ import { Section } from '@/components/ui/section';
 import { PageHeader } from '@/components/ui/page-header';
 import { EmptyState } from '@/components/ui/empty-state';
 import { usePortfolio } from '@/components/shell/PortfolioContext';
-import { useTheme } from '@/hooks/useTheme';
-import { resolveCssColor } from '@/lib/design/resolveColor';
+import { useResolvedColors } from '@/hooks/useResolvedColors';
 
 export function AssetTrendCard() {
   const { chartData, portfolioData, trackerState } = usePortfolio();
   const { lineChartData } = chartData;
   const { formatLargeNumber } = portfolioData;
   const { currency } = trackerState;
-  const { resolvedTheme } = useTheme();
-
-  const [colors, setColors] = useState({ brand: '#6366f1', grid: '#e5e7eb', fg: '#334155' });
-
-  useEffect(() => {
-    setColors({
-      brand: resolveCssColor('brand') || '#6366f1',
-      grid: resolveCssColor('border-subtle') || '#e5e7eb',
-      fg: resolveCssColor('fg-muted') || '#334155',
-    });
-  }, [resolvedTheme]);
+  const colors = useResolvedColors();
 
   const empty = !lineChartData || lineChartData.length === 0;
 
-  // 精简只保留 year + total 两个字段
   const data = (lineChartData ?? []).map((d) => ({
     year: d.year,
     total: Number(d.total ?? 0),
@@ -65,32 +52,33 @@ export function AssetTrendCard() {
                   <stop offset="100%" stopColor={colors.brand} stopOpacity={0.02} />
                 </linearGradient>
               </defs>
-              <CartesianGrid stroke={colors.grid} vertical={false} />
+              <CartesianGrid stroke={colors.borderSubtle} vertical={false} />
               <XAxis
                 dataKey="year"
-                tick={{ fill: colors.fg, fontSize: 12 }}
-                axisLine={{ stroke: colors.grid }}
+                tick={{ fill: colors.fgMuted, fontSize: 12 }}
+                axisLine={{ stroke: colors.borderSubtle }}
                 tickLine={false}
               />
               <YAxis
-                tick={{ fill: colors.fg, fontSize: 12 }}
-                axisLine={{ stroke: colors.grid }}
+                tick={{ fill: colors.fgMuted, fontSize: 12 }}
+                axisLine={{ stroke: colors.borderSubtle }}
                 tickLine={false}
                 tickFormatter={(v) => formatLargeNumber(Number(v), currency)}
                 width={60}
               />
               <Tooltip
                 contentStyle={{
-                  background: 'var(--bg-elevated)',
-                  border: `1px solid ${colors.grid}`,
+                  background: colors.bgElevated,
+                  border: `1px solid ${colors.borderDefault}`,
                   borderRadius: 8,
                   fontSize: 12,
+                  color: colors.fg,
                 }}
                 formatter={(v: number) => [
                   formatLargeNumber(Number(v), currency),
                   '总资产',
                 ]}
-                labelStyle={{ color: colors.fg }}
+                labelStyle={{ color: colors.fgMuted }}
               />
               <Area
                 type="monotone"

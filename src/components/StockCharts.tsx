@@ -16,6 +16,7 @@ import {
   YAxis
 } from 'recharts';
 import { StockChartData } from '@/types/stock';
+import { useResolvedColors } from '@/hooks/useResolvedColors';
 
 interface StockChartsProps {
   showPositionChart: boolean;
@@ -36,12 +37,14 @@ interface StockChartsProps {
 const CustomLineChartTooltip: React.FC<TooltipProps<number, string> & {
   formatLargeNumber: (value: number, currency: string) => string;
   currency: string;
-}> = ({ active, payload, label, formatLargeNumber, currency }) => {
+  bgColor: string;
+  borderColor: string;
+  textColor: string;
+}> = ({ active, payload, label, formatLargeNumber, currency, bgColor, borderColor, textColor }) => {
   if (!active || !payload || payload.length === 0) {
     return null;
   }
 
-  // 按金额从大到小排序
   const sortedPayload = [...payload].sort((a, b) => {
     const valueA = typeof a.value === 'number' ? a.value : 0;
     const valueB = typeof b.value === 'number' ? b.value : 0;
@@ -49,13 +52,14 @@ const CustomLineChartTooltip: React.FC<TooltipProps<number, string> & {
   });
 
   return (
-    <div className="bg-white p-3 border border-gray-300 rounded shadow-lg">
+    <div style={{ background: bgColor, border: `1px solid ${borderColor}`, color: textColor }}
+      className="p-3 rounded shadow-lg text-sm">
       <p className="font-semibold mb-2">{`${label}年`}</p>
       {sortedPayload.map((entry, index) => {
         const value = typeof entry.value === 'number' ? entry.value : 0;
         const name = entry.name === 'total' ? '总计' : entry.name;
         return (
-          <p key={`item-${index}`} style={{ color: entry.color }} className="text-sm">
+          <p key={`item-${index}`} style={{ color: entry.color }}>
             {`${name}: ${formatLargeNumber(value, currency)}`}
           </p>
         );
@@ -80,19 +84,21 @@ const StockCharts: React.FC<StockChartsProps> = ({
   formatLargeNumber,
   currency
 }) => {
+  const colors = useResolvedColors();
+
   return (
     <div>
       <h2 className="text-xl font-semibold mb-4">图表类型</h2>
       <div className="flex gap-4 mb-4">
         <Button
           onClick={() => setShowPositionChart(true)}
-          className={cn('px-4 py-2 rounded', showPositionChart ? 'bg-blue-500 text-white' : 'bg-gray-200')}
+          className={cn('px-4 py-2 rounded', showPositionChart ? 'bg-brand text-white' : 'bg-bg-subtle')}
         >
           仓位变化图（折线图）
         </Button>
         <Button
           onClick={() => setShowPositionChart(false)}
-          className={cn('px-4 py-2 rounded', !showPositionChart ? 'bg-blue-500 text-white' : 'bg-gray-200')}
+          className={cn('px-4 py-2 rounded', !showPositionChart ? 'bg-brand text-white' : 'bg-bg-subtle')}
         >
           股票占比图（柱状图）
         </Button>
@@ -104,11 +110,11 @@ const StockCharts: React.FC<StockChartsProps> = ({
         <ResponsiveContainer width="100%" height="100%">
           {showPositionChart ? (
             <LineChart data={lineChartData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="year" />
+              <CartesianGrid strokeDasharray="3 3" stroke={colors.borderSubtle} />
+              <XAxis dataKey="year" tick={{ fill: colors.fgMuted, fontSize: 12 }} />
               <YAxis
                 tickCount={5}
-                tick={{ fontSize: 12 }}
+                tick={{ fill: colors.fgMuted, fontSize: 12 }}
                 tickFormatter={(value) => {
                   if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
                   if (value >= 1000) return `${(value / 1000).toFixed(1)}K`;
@@ -116,7 +122,15 @@ const StockCharts: React.FC<StockChartsProps> = ({
                 }}
               />
               <Tooltip
-                content={<CustomLineChartTooltip formatLargeNumber={formatLargeNumber} currency={currency} />}
+                content={
+                  <CustomLineChartTooltip
+                    formatLargeNumber={formatLargeNumber}
+                    currency={currency}
+                    bgColor={colors.bgElevated}
+                    borderColor={colors.borderDefault}
+                    textColor={colors.fg}
+                  />
+                }
               />
               <Legend
                 onClick={handleLegendClick}
@@ -132,37 +146,39 @@ const StockCharts: React.FC<StockChartsProps> = ({
                     dataKey={stock}
                     name={stock === 'total' ? '总计' : stock}
                     hide={!!hiddenSeries[stock]}
-                    stroke={['#8884d8', '#82ca9d', '#ffc658', '#ff7300', '#0088fe'][index % 5]}
+                    stroke={colors.chartColors[index % 5]}
                     strokeWidth={stock === 'total' ? 3 : 1.5}
                   />
                 ))}
             </LineChart>
           ) : (
             <BarChart data={barChartData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" />
+              <CartesianGrid strokeDasharray="3 3" stroke={colors.borderSubtle} />
+              <XAxis dataKey="name" tick={{ fill: colors.fgMuted, fontSize: 12 }} />
               <YAxis
+                tick={{ fill: colors.fgMuted, fontSize: 12 }}
                 tickFormatter={(value: number) => `${value.toFixed(0)}%`}
                 domain={[0, 100]}
               />
               <Tooltip
                 formatter={(value: number, name: string) => [`${value.toFixed(2)}%`, `${name}年占比`]}
                 labelFormatter={(label) => `${label}`}
+                contentStyle={{
+                  background: colors.bgElevated,
+                  border: `1px solid ${colors.borderDefault}`,
+                  color: colors.fg,
+                  borderRadius: 8,
+                }}
               />
               <Legend
                 onClick={handleLegendClick}
                 formatter={(value) => {
-                  // 处理年份标签，显示为 'XXXX年占比'
-                  if (value.endsWith('年占比')) {
-                    return value;
-                  }
+                  if (value.endsWith('年占比')) return value;
                   return value === 'total' ? '总计' : value;
                 }}
               />
               {(() => {
-                // 检查哪些年份有实际数据
                 const yearsWithData = years.filter(year => {
-                  // 检查是否至少有一个股票在这一年有数据
                   return barChartData.some(stock => {
                     const value = stock[year] as number;
                     return value !== undefined && value > 0;
@@ -170,15 +186,15 @@ const StockCharts: React.FC<StockChartsProps> = ({
                 });
 
                 return yearsWithData
-                  .slice() // 创建副本以避免修改原数组
-                  .sort((a, b) => parseInt(a) - parseInt(b)) // 按年份从小到大排序
+                  .slice()
+                  .sort((a, b) => parseInt(a) - parseInt(b))
                   .map((year, index) => (
                     <Bar
                       key={year}
                       dataKey={year}
                       name={`${year}年占比`}
                       hide={!!hiddenSeries[year]}
-                      fill={['#8884d8', '#82ca9d', '#ffc658', '#ff7300', '#0088fe'][index % 5]}
+                      fill={colors.chartColors[index % 5]}
                     />
                   ));
               })()}

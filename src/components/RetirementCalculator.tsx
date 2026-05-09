@@ -60,13 +60,13 @@ const RetirementCalculator: React.FC<RetirementCalculatorProps> = ({
     const goalAmount = parseFloat(retirementGoal);
 
     if (!goalAmount || isNaN(goalAmount)) {
-      return <p className="text-gray-500">请输入目标金额</p>;
+      return <p className="text-fg-muted">请输入目标金额</p>;
     }
 
     if (calculationMode === 'rate') {
       const returnRate = parseFloat(annualReturn);
       if (!returnRate || isNaN(returnRate)) {
-        return <p className="text-gray-500">请输入预期年回报率</p>;
+        return <p className="text-fg-muted">请输入预期年回报率</p>;
       }
       const yearsNeeded = calculateYearsToGoal(currentAmount, goalAmount, returnRate);
 
@@ -77,16 +77,16 @@ const RetirementCalculator: React.FC<RetirementCalculatorProps> = ({
           <p>差距金额: <span className="font-semibold">{formatLargeNumber(goalAmount - currentAmount, currency)}</span></p>
           <p>预期年回报率: <span className="font-semibold">{returnRate}%</span></p>
           {yearsNeeded === Infinity ? (
-            <p className="text-red-500">无法达到目标（回报率过低）</p>
+            <p className="text-danger">无法达到目标（回报率过低）</p>
           ) : yearsNeeded <= 0 ? (
-            <p className="text-green-500">已达到目标！</p>
+            <p className="text-success">已达到目标！</p>
           ) : (
             <div className="space-y-2">
-              <p>预计需要 <span className="font-semibold text-blue-600">{yearsNeeded.toFixed(1)}</span> 年可达到目标</p>
+              <p>预计需要 <span className="font-semibold text-brand">{yearsNeeded.toFixed(1)}</span> 年可达到目标</p>
               {yearsNeeded > 0 && yearsNeeded < 100 && (
                 <Button
                   onClick={() => setShowCompoundGrowthDialog(true)}
-                  className="w-full bg-gradient-to-r from-blue-500 to-green-500 hover:from-blue-600 hover:to-green-600 text-white"
+                  className="w-full bg-gradient-to-r from-brand to-success hover:from-brand/90 hover:to-success/90 text-white"
                   size="sm"
                 >
                   <TrendingUp className="w-4 h-4 mr-2" />
@@ -100,7 +100,7 @@ const RetirementCalculator: React.FC<RetirementCalculatorProps> = ({
     } else {
       const years = parseInt(targetYears);
       if (!years || isNaN(years)) {
-        return <p className="text-gray-500">请输入目标年限</p>;
+        return <p className="text-fg-muted">请输入目标年限</p>;
       }
       const requiredRate = calculateRequiredReturnRate(currentAmount, goalAmount, years);
 
@@ -111,11 +111,11 @@ const RetirementCalculator: React.FC<RetirementCalculatorProps> = ({
           <p>差距金额: <span className="font-semibold">{formatLargeNumber(goalAmount - currentAmount, currency)}</span></p>
           <p>目标年限: <span className="font-semibold">{years}</span> 年</p>
           {currentAmount >= goalAmount ? (
-            <p className="text-green-500">已达到目标！</p>
+            <p className="text-success">已达到目标！</p>
           ) : requiredRate > 100 ? (
-            <p className="text-red-500">年限过短，需要的回报率过高（超过100%）</p>
+            <p className="text-danger">年限过短，需要的回报率过高（超过100%）</p>
           ) : (
-            <p>需要年回报率: <span className="font-semibold text-blue-600">{requiredRate.toFixed(2)}%</span></p>
+            <p>需要年回报率: <span className="font-semibold text-brand">{requiredRate.toFixed(2)}%</span></p>
           )}
         </div>
       );
@@ -141,14 +141,14 @@ const RetirementCalculator: React.FC<RetirementCalculatorProps> = ({
             <Button
               type="button"
               onClick={() => onCalculationModeChange('rate')}
-              className={cn(calculationMode === 'rate' ? 'bg-blue-500 text-white' : 'bg-gray-200')}
+              className={cn(calculationMode === 'rate' ? 'bg-brand text-white' : 'bg-bg-subtle')}
             >
               输入预期回报率
             </Button>
             <Button
               type="button"
               onClick={() => onCalculationModeChange('years')}
-              className={cn(calculationMode === 'years' ? 'bg-blue-500 text-white' : 'bg-gray-200')}
+              className={cn(calculationMode === 'years' ? 'bg-brand text-white' : 'bg-bg-subtle')}
             >
               输入目标年限
             </Button>
@@ -207,7 +207,7 @@ const RetirementCalculator: React.FC<RetirementCalculatorProps> = ({
       </div>
 
       {!compact && (
-        <div className="bg-gray-50 p-4 rounded-lg">
+        <div className="bg-bg-subtle p-4 rounded-lg">
           <h3 className="text-lg font-medium mb-3">计算结果</h3>
           {renderCalculationResult()}
         </div>

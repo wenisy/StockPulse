@@ -28,12 +28,12 @@ const PortfolioOverview: React.FC<PortfolioOverviewProps> = ({
         {Object.keys(totalValues).map((year) => (
           <div
             key={year}
-            className="p-4 border rounded-lg shadow bg-white cursor-pointer"
+            className="p-4 border rounded-lg shadow bg-bg-elevated cursor-pointer hover:bg-bg-subtle transition-colors"
             onClick={() => onReportClick(year)}
             data-testid={`report-button-${year}`}
           >
             <h3 className="text-lg font-medium">{year}年总持仓</h3>
-            <p className="text-2xl font-bold text-blue-600">
+            <p className="text-2xl font-bold text-brand">
               {formatLargeNumber(totalValues[year], currency)}
             </p>
             <GrowthInfo

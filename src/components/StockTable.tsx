@@ -63,7 +63,7 @@ const StockTable: React.FC<StockTableProps> = ({
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-semibold">持仓明细表</h2>
         <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-600">年份筛选：</span>
+          <span className="text-sm text-fg-muted">年份筛选：</span>
           <div className="w-64">
             <YearFilter
               options={[
@@ -78,7 +78,7 @@ const StockTable: React.FC<StockTableProps> = ({
         </div>
       </div>
       <div className="overflow-x-auto relative touch-pan-x" style={{ WebkitOverflowScrolling: 'touch' }}>
-        <table className="min-w-full border-collapse border border-gray-300">
+        <table className="min-w-full border-collapse border border-border-default">
           <colgroup>
             <col className="hidden sm:table-column" style={{ width: '50px' }} />
             <col className="w-[80px] sm:w-[200px]" />
@@ -89,20 +89,20 @@ const StockTable: React.FC<StockTableProps> = ({
           </colgroup>
           <thead>
             <tr>
-              <th className="hidden sm:table-cell sticky left-0 z-20 px-6 py-3 text-left text-xs font-medium uppercase tracking-wider bg-gray-100">
+              <th className="hidden sm:table-cell sticky left-0 z-20 px-6 py-3 text-left text-xs font-medium uppercase tracking-wider bg-bg-subtle">
                 {table.headers[0]}
               </th>
-              <th className="sticky left-0 sm:left-[50px] z-20 px-2 sm:px-6 py-3 text-left text-xs font-medium uppercase tracking-wider bg-gray-100">
+              <th className="sticky left-0 sm:left-[50px] z-20 px-2 sm:px-6 py-3 text-left text-xs font-medium uppercase tracking-wider bg-bg-subtle">
                 <span className="sm:hidden">代码</span>
                 <span className="hidden sm:inline">{table.headers[1]}</span>
               </th>
               {table.headers.slice(2, -1).map((header, index) => (
                 <th key={index}
-                  className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider bg-gray-50">
+                  className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider bg-bg-elevated">
                   {header}
                 </th>
               ))}
-              <th className="sticky right-0 z-20 px-6 py-3 text-left text-xs font-medium uppercase tracking-wider bg-gray-100">
+              <th className="sticky right-0 z-20 px-6 py-3 text-left text-xs font-medium uppercase tracking-wider bg-bg-subtle">
                 {table.headers[table.headers.length - 1]}
               </th>
             </tr>
@@ -114,14 +114,14 @@ const StockTable: React.FC<StockTableProps> = ({
 
               return (
                 <tr key={rowIndex} className={cn(
-                  rowIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50',
+                  rowIndex % 2 === 0 ? 'bg-bg-elevated' : 'bg-bg-subtle',
                   isHidden && 'opacity-50'
                 )}>
                   <td className="hidden sm:table-cell sticky left-0 z-10 px-6 py-4 whitespace-nowrap text-center bg-inherit">
                     <Button
                       size="icon"
                       onClick={() => toggleStockVisibility(stockName)}
-                      className="text-gray-500 hover:text-gray-700"
+                      className="text-gray-500 hover:text-fg"
                       data-testid={`visibility-${stockName}`}
                       aria-label="可见性"
                     >
@@ -149,7 +149,7 @@ const StockTable: React.FC<StockTableProps> = ({
                           {(row[1] as { name: string }).name}
                         </div>
                         {(row[1] as { symbol?: string }).symbol && (
-                          <div className="text-xs sm:text-sm text-gray-900 sm:text-gray-500 truncate font-medium sm:font-normal" title={(row[1] as { symbol?: string }).symbol}>
+                          <div className="text-xs sm:text-sm text-fg sm:text-fg-muted truncate font-medium sm:font-normal" title={(row[1] as { symbol?: string }).symbol}>
                             {(row[1] as { symbol?: string }).symbol}
                           </div>
                         )}
@@ -182,9 +182,9 @@ const StockTable: React.FC<StockTableProps> = ({
                             当前价值: {shares !== undefined && price !== undefined ?
                               `${formatLargeNumber(shares * price, currency)} (${shares} * ${formatLargeNumber(price, currency)})`
                               : 'N/A'}
-                            {isLatestPrice && <span className="ml-2 text-xs text-green-500">实时</span>}
+                            {isLatestPrice && <span className="ml-2 text-xs text-success">实时</span>}
                           </div>
-                          <div className="text-sm text-gray-500">
+                          <div className="text-sm text-fg-muted">
                             成本: {shares !== undefined && costPrice !== undefined ?
                               `${formatLargeNumber(shares * costPrice, currency)} (${shares} * ${formatLargeNumber(costPrice, currency)})`
                               : 'N/A'}
@@ -200,7 +200,7 @@ const StockTable: React.FC<StockTableProps> = ({
                       <Button
                         size="icon"
                         onClick={() => handleSaveRow(stockName)}
-                        className="text-green-500 hover:text-green-700"
+                        className="text-success hover:text-success/80"
                         data-testid={`save-${stockName}`}
                       >
                         <Save className="h-4 w-4" />
@@ -209,7 +209,7 @@ const StockTable: React.FC<StockTableProps> = ({
                       <Button
                         size="icon"
                         onClick={() => handleEditRow(stockName)}
-                        className="text-blue-500 hover:text-blue-700"
+                        className="text-brand hover:text-brand/80"
                         data-testid={`edit-${stockName}`}
                       >
                         <Edit className="h-4 w-4" />
@@ -218,7 +218,7 @@ const StockTable: React.FC<StockTableProps> = ({
                     <Button
                       size="icon"
                       onClick={() => handleDeleteStock(stockName)}
-                      className="text-red-500 hover:text-red-700"
+                      className="text-danger hover:text-danger/80"
                       data-testid={`delete-${stockName}`}
                     >
                       <Trash2 className="h-4 w-4" />
@@ -230,15 +230,15 @@ const StockTable: React.FC<StockTableProps> = ({
           </tbody>
           <tfoot>
             <tr>
-              <td className="sticky left-0 z-10 px-6 py-3 text-left text-sm font-semibold uppercase tracking-wider bg-gray-100">
+              <td className="sticky left-0 z-10 px-6 py-3 text-left text-sm font-semibold uppercase tracking-wider bg-bg-subtle">
                 {table.totalRow[0]}
               </td>
-              <td className="sticky left-[50px] z-10 px-6 py-3 text-left text-sm font-semibold uppercase tracking-wider bg-gray-100">
+              <td className="sticky left-[50px] z-10 px-6 py-3 text-left text-sm font-semibold uppercase tracking-wider bg-bg-subtle">
                 {table.totalRow[1]}
               </td>
               {filteredYears.map((year) => (
                 <td key={year}
-                  className="px-6 py-3 text-center text-sm font-semibold uppercase tracking-wider bg-gray-100">
+                  className="px-6 py-3 text-center text-sm font-semibold uppercase tracking-wider bg-bg-subtle">
                   {yearData[year] && yearData[year].stocks
                     ? formatLargeNumber(
                       yearData[year].stocks.reduce(
@@ -250,7 +250,7 @@ const StockTable: React.FC<StockTableProps> = ({
                     : '-'}
                 </td>
               ))}
-              <td className="sticky right-0 z-10 px-6 py-3 text-left text-sm font-semibold uppercase tracking-wider bg-gray-100">
+              <td className="sticky right-0 z-10 px-6 py-3 text-left text-sm font-semibold uppercase tracking-wider bg-bg-subtle">
                 {table.totalRow[table.totalRow.length - 1]}
               </td>
             </tr>

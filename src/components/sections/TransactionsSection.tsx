@@ -97,7 +97,7 @@ export function TransactionsSection() {
             <select
               value={typeFilter}
               onChange={(e) => setTypeFilter(e.target.value as typeof typeFilter)}
-              className="h-8 rounded-md border border-border-default bg-bg-elevated px-2 text-sm"
+              className="h-8 rounded-md border border-border-default bg-bg-elevated px-2 text-sm text-fg"
             >
               <option value="all">全部类型</option>
               <option value="buy">买入</option>
@@ -107,7 +107,7 @@ export function TransactionsSection() {
             <select
               value={yearFilter}
               onChange={(e) => setYearFilter(e.target.value)}
-              className="h-8 rounded-md border border-border-default bg-bg-elevated px-2 text-sm"
+              className="h-8 rounded-md border border-border-default bg-bg-elevated px-2 text-sm text-fg"
             >
               <option value="all">全部年份</option>
               {years.map((y) => (

@@ -159,7 +159,7 @@ export const ProfileEditDialog: React.FC<ProfileEditDialogProps> = ({
               />
             </div>
           </div>
-          {error && <p className="text-red-500">{error}</p>}
+          {error && <p className="text-danger">{error}</p>}
         </div>
         <DialogFooter>
           <Button onClick={onSubmit}>保存更改</Button>

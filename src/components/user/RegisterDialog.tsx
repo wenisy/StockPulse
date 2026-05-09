@@ -120,7 +120,7 @@ export const RegisterDialog: React.FC<RegisterDialogProps> = ({
               />
             </div>
           </div>
-          {error && <p className="text-red-500">{error}</p>}
+          {error && <p className="text-danger">{error}</p>}
         </div>
         <DialogFooter>
           <Button onClick={onSubmit}>注册</Button>

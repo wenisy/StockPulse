@@ -84,7 +84,7 @@ export const LoginDialog: React.FC<LoginDialogProps> = ({
               }
             }}
           />
-          {error && <p className="text-red-500">{error}</p>}
+          {error && <p className="text-danger">{error}</p>}
         </div>
         <DialogFooter>
           <Button onClick={onSubmit}>登录</Button>

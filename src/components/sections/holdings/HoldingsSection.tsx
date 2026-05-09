@@ -37,7 +37,7 @@ export function HoldingsSection() {
 
   const { newYear, setNewYear } = trackerState;
 
-  // 所有出现过的股票名（跨所有年份）
+  // 所有出现过的股票名（跨所有年份），按最新年末市值降序
   const allStockNames = useMemo(() => {
     const names = new Set<string>();
     years.forEach((year) => {
@@ -51,6 +51,16 @@ export function HoldingsSection() {
       return bVal - aVal;
     });
   }, [years, yearData, latestYear]);
+
+  // 分为：当前持仓 vs 历史持仓（已清仓）
+  const activeNames = allStockNames.filter((name) => {
+    const stk = yearData[latestYear]?.stocks?.find((s) => s.name === name);
+    return stk && stk.shares > 0;
+  });
+  const closedNames = allStockNames.filter((name) => {
+    const stk = yearData[latestYear]?.stocks?.find((s) => s.name === name);
+    return !stk || stk.shares <= 0;
+  });
 
   // 联动：Combobox 选项从最新年持仓派生
   const nameOptions = useMemo(
@@ -95,7 +105,7 @@ export function HoldingsSection() {
     <div className="space-y-6">
       <PageHeader
         title="持仓"
-        description={`${allStockNames.length} 只股票 · 历年走势`}
+        description={`${activeNames.length} 只持仓中${closedNames.length > 0 ? ` · ${closedNames.length} 只历史` : ''}`}
         actions={
           <div className="flex items-center gap-2">
             {/* 新增年份 */}
@@ -246,10 +256,55 @@ export function HoldingsSection() {
           description="点击「添加交易」开始追踪你的第一只股票"
         />
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {allStockNames.map((name) => (
-            <StockHoldingCard key={name} stockName={name} onEdit={setEditing} />
-          ))}
+        <div className="space-y-8">
+          {/* 区块一：当前持仓 */}
+          {activeNames.length > 0 ? (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold uppercase tracking-wider text-fg-muted">
+                  持仓中
+                </span>
+                <span className="rounded-full bg-success/10 px-2 py-0.5 text-[11px] font-medium text-success">
+                  {activeNames.length}
+                </span>
+              </div>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                {activeNames.map((name) => (
+                  <StockHoldingCard key={name} stockName={name} onEdit={setEditing} />
+                ))}
+              </div>
+            </div>
+          ) : (
+            <EmptyState
+              icon={Inbox}
+              title="当前无持仓"
+              description="点击「添加交易」买入第一只股票"
+            />
+          )}
+
+          {/* 区块二：历史持仓（已清仓） */}
+          {closedNames.length > 0 ? (
+            <div className="space-y-3">
+              {/* 分割线 */}
+              <div className="flex items-center gap-3">
+                <div className="h-px flex-1 bg-border-subtle" />
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-fg-subtle">
+                    历史持仓
+                  </span>
+                  <span className="rounded-full bg-bg-subtle px-2 py-0.5 text-[11px] font-medium text-fg-subtle">
+                    {closedNames.length}
+                  </span>
+                </div>
+                <div className="h-px flex-1 bg-border-subtle" />
+              </div>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 opacity-75">
+                {closedNames.map((name) => (
+                  <StockHoldingCard key={name} stockName={name} onEdit={setEditing} />
+                ))}
+              </div>
+            </div>
+          ) : null}
         </div>
       )}
 

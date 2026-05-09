@@ -4,6 +4,7 @@ import { PageHeader } from '@/components/ui/page-header';
 import { KpiCards } from './KpiCards';
 import { AssetTrendCard } from './AssetTrendCard';
 import { QuickActions } from './QuickActions';
+import { YearlyBreakdownGrid } from './YearlyBreakdownGrid';
 import { usePortfolio } from '@/components/shell/PortfolioContext';
 import ReportDialog from '@/components/ReportDialog';
 
@@ -32,6 +33,7 @@ export function OverviewSection() {
       />
       <KpiCards />
       <AssetTrendCard />
+      <YearlyBreakdownGrid />
 
       {/* Report Dialog 挂载点（复用 legacy） */}
       <ReportDialog

@@ -129,3 +129,97 @@ export function computeCumulativeCashInvested(
     });
   return total;
 }
+
+/**
+ * 计算指定年份的"年内净入金"（deposit - withdraw，按绝对值口径）。
+ *
+ * 数据约定：useYearData.addCashTransaction 在 withdraw 时把 amount 存为负值，
+ * deposit 时存为正值。但**为了语义稳健**，本函数不依赖符号：
+ * - 看 type === 'deposit' → 累加 |amount|
+ * - 看 type === 'withdraw' → 累减 |amount|
+ * - 其他 type（如 buy/sell，stockTransaction 触发的 cash 联动）忽略
+ *
+ * 返回正数表示净流入，负数表示净流出。
+ *
+ * @param yearData 年度数据
+ * @param year 目标年份（字符串）
+ */
+export function computeYearNetDeposits(
+  yearData: { [year: string]: YearData },
+  year: string,
+): number {
+  const data = yearData[year];
+  if (!data) return 0;
+  let net = 0;
+  data.cashTransactions.forEach((tx) => {
+    const abs = Math.abs(tx.amount);
+    if (tx.type === 'deposit') {
+      net += abs;
+    } else if (tx.type === 'withdraw') {
+      net -= abs;
+    }
+    // 'buy' / 'sell' 等股票联动的现金流不计入
+  });
+  return net;
+}
+
+/**
+ * 类型 A：年度同比增长率（含入金，百分比形式，如 12.5 表示 +12.5%）。
+ *
+ * 公式：(thisYear - lastYear) / lastYear × 100
+ *
+ * 边界：
+ * - 第一年（years 中没有上一年）返回 null
+ * - 上年末市值 ≤ 0 时返回 null
+ * - 找不到 totalValues[prevYear] 时返回 null
+ *
+ * 与 computeYearlyGrowth 的区别：那个是 (lastYearValue, thisYearValue) 直接传值，
+ * 边界返回 0；本函数从 totalValues map 里取值，并用 null 表达"不可计算"。
+ */
+export function computeYearGrowthRate(
+  year: string,
+  totalValues: { [year: string]: number },
+  years: string[],
+): number | null {
+  const sortedYears = [...years].sort((a, b) => parseInt(a) - parseInt(b));
+  const idx = sortedYears.indexOf(year);
+  if (idx <= 0) return null; // 第一年或不在列表里
+  const prevYear = sortedYears[idx - 1];
+  const prevValue = totalValues[prevYear];
+  const curValue = totalValues[year];
+  if (prevValue === undefined || curValue === undefined) return null;
+  if (prevValue <= 0) return null;
+  return ((curValue - prevValue) / prevValue) * 100;
+}
+
+/**
+ * 类型 B：年内"纯投资回报率"（不含本年入金，百分比形式）。
+ *
+ * 公式：(yearEndValue - yearNetDeposits) / prevYearEndValue - 1，× 100
+ *
+ * 含义：假设本年开始时持仓不动、年内新入的钱不影响"基线"，那么纯投资本身
+ * 在这一年增长了多少。这是衡量"投资能力"而非"账户增长"的常用口径。
+ *
+ * 边界：
+ * - 第一年（无上年）返回 null
+ * - 上年末市值 ≤ 0 时返回 null
+ * - 找不到对应数据时返回 null
+ * - yearNetDeposits 可正可负（净取出），公式照用
+ */
+export function computeYearNetReturnRate(
+  yearData: { [year: string]: YearData },
+  years: string[],
+  year: string,
+  totalValues: { [year: string]: number },
+): number | null {
+  const sortedYears = [...years].sort((a, b) => parseInt(a) - parseInt(b));
+  const idx = sortedYears.indexOf(year);
+  if (idx <= 0) return null;
+  const prevYear = sortedYears[idx - 1];
+  const prevValue = totalValues[prevYear];
+  const curValue = totalValues[year];
+  if (prevValue === undefined || curValue === undefined) return null;
+  if (prevValue <= 0) return null;
+  const netDeposits = computeYearNetDeposits(yearData, year);
+  return ((curValue - netDeposits) / prevValue - 1) * 100;
+}

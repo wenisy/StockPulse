@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowUpRight, Layers, Sparkles, TrendingUp, Wallet } from 'lucide-react';
+import { BarChart2, Layers, Sparkles, TrendingUp, Wallet } from 'lucide-react';
 import { StatCard } from '@/components/ui/stat-card';
 import { usePortfolio } from '@/components/shell/PortfolioContext';
 import { computeYearNetReturnRate } from '@/lib/portfolio/portfolio-metrics';
@@ -9,7 +9,6 @@ export function KpiCards() {
   const { portfolioData, chartData, trackerState } = usePortfolio();
   const { formatLargeNumber, yearData, latestYear, years } = portfolioData;
   const { totalValues, calculateCumulativeInvested, getLatestYearGrowthRate } = chartData;
-
   const { currency } = trackerState;
 
   const currentTotal = totalValues[latestYear] ?? 0;
@@ -21,14 +20,20 @@ export function KpiCards() {
   const holdingsCount =
     yearData[latestYear]?.stocks?.filter((s) => s.shares > 0).length ?? 0;
 
-  // YTD（含入金）：用 getLatestYearGrowthRate() 返回的字符串
-  const ytdRaw = getLatestYearGrowthRate();
-  const ytdPct = ytdRaw ? parseFloat(ytdRaw) : null;
+  // 年化复合收益率（CAGR，含入金）：全周期年化
+  const cagrRaw = getLatestYearGrowthRate();
+  const cagrPct = cagrRaw ? parseFloat(cagrRaw) : null;
 
-  // 本年纯收益（不含本年入金）：使用新增的纯函数
+  // 本年纯收益（不含本年入金）：(年末市值 - 本年入金净额) / 上年末市值 - 1
   const netReturnPct = computeYearNetReturnRate(yearData, years, latestYear, totalValues);
 
   const fmt = (v: number) => formatLargeNumber(v, currency);
+
+  // 最早年 → 用于 CAGR 说明
+  const sortedYears = [...years].sort((a, b) => parseInt(a) - parseInt(b));
+  const firstYear = sortedYears[0] ?? latestYear;
+  const investmentYears =
+    parseInt(latestYear) - parseInt(firstYear) + 1;
 
   return (
     <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
@@ -38,6 +43,7 @@ export function KpiCards() {
         icon={Wallet}
         tone="brand"
         format={fmt}
+        description={`${latestYear} 年末持仓市值 + 现金余额`}
       />
       <StatCard
         label="累计收益"
@@ -46,7 +52,8 @@ export function KpiCards() {
         tone={totalReturn >= 0 ? 'success' : 'danger'}
         format={fmt}
         delta={returnPct}
-        deltaLabel="相对本金 · 含入金"
+        deltaLabel="vs 累计投入"
+        description={`总资产 − 全历史净投入 ${fmt(invested)}`}
       />
       <StatCard
         label="本年纯收益"
@@ -54,13 +61,23 @@ export function KpiCards() {
         icon={Sparkles}
         tone={netReturnPct !== null && netReturnPct >= 0 ? 'success' : 'danger'}
         format={(n) => (netReturnPct === null ? '—' : `${n.toFixed(2)}%`)}
+        description={
+          netReturnPct === null
+            ? `${latestYear} 年为首年，无上年基准`
+            : `(${latestYear}年末 − 本年入金) ÷ ${parseInt(latestYear) - 1}年末 − 1`
+        }
       />
       <StatCard
-        label="年初至今"
-        value={ytdPct ?? 0}
-        icon={ArrowUpRight}
-        tone={ytdPct !== null && ytdPct >= 0 ? 'success' : 'danger'}
-        format={(n) => (ytdPct === null ? '—' : `${n.toFixed(2)}%`)}
+        label="年化复合收益"
+        value={cagrPct ?? 0}
+        icon={BarChart2}
+        tone={cagrPct !== null && cagrPct >= 0 ? 'success' : 'danger'}
+        format={(n) => (cagrPct === null ? '—' : `${n.toFixed(2)}%`)}
+        description={
+          cagrPct === null
+            ? '数据不足，无法计算'
+            : `全周期 CAGR，共 ${investmentYears} 年（${firstYear}–${latestYear}），含入金`
+        }
       />
       <StatCard
         label="持仓数"
@@ -68,6 +85,7 @@ export function KpiCards() {
         icon={Layers}
         tone="info"
         format={(n) => Math.round(n).toString()}
+        description={`${latestYear} 年末 shares > 0 的持仓只数`}
       />
     </div>
   );

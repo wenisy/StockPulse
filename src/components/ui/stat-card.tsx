@@ -16,6 +16,7 @@ export function StatCard({
   suffix,
   className,
   tone = 'neutral',
+  description,
 }: {
   label: string;
   value: number;
@@ -27,6 +28,8 @@ export function StatCard({
   suffix?: string;
   className?: string;
   tone?: 'neutral' | 'success' | 'danger' | 'warning' | 'info' | 'brand';
+  /** 卡片底部的小字说明，解释算法口径 */
+  description?: string;
 }) {
   const toneBadgeClass =
     tone === 'success'
@@ -96,6 +99,9 @@ export function StatCard({
           </span>
           {deltaLabel ? <span className="text-fg-subtle">{deltaLabel}</span> : null}
         </div>
+      ) : null}
+      {description ? (
+        <p className="mt-2 text-[11px] leading-tight text-fg-subtle">{description}</p>
       ) : null}
     </div>
   );

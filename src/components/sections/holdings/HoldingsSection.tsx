@@ -13,11 +13,12 @@ import { StockHoldingCard } from './StockHoldingCard';
 import { HoldingDetailDrawer } from './HoldingDetailDrawer';
 
 export function HoldingsSection() {
-  const { stockOperations, portfolioData, callbacks } = usePortfolio();
-  const { latestYear, yearData, years } = portfolioData;
+  const { stockOperations, portfolioData, callbacks, trackerState } = usePortfolio();
+  const { latestYear, yearData, years, selectedYear, setSelectedYear } = portfolioData;
 
   const [editing, setEditing] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [newYearInput, setNewYearInput] = useState('');
 
   const {
     newStockName,
@@ -34,13 +35,14 @@ export function HoldingsSection() {
     setTransactionType,
   } = stockOperations;
 
+  const { newYear, setNewYear } = trackerState;
+
   // 所有出现过的股票名（跨所有年份）
   const allStockNames = useMemo(() => {
     const names = new Set<string>();
     years.forEach((year) => {
       yearData[year]?.stocks?.forEach((s) => names.add(s.name));
     });
-    // 按最新年末市值降序排列
     return [...names].sort((a, b) => {
       const aStk = yearData[latestYear]?.stocks?.find((s) => s.name === a);
       const bStk = yearData[latestYear]?.stocks?.find((s) => s.name === b);
@@ -50,16 +52,11 @@ export function HoldingsSection() {
     });
   }, [years, yearData, latestYear]);
 
-  // 联动：从 latestYear 持仓派生股票名 / symbol 选项
+  // 联动：Combobox 选项从最新年持仓派生
   const nameOptions = useMemo(
-    () =>
-      yearData[latestYear]?.stocks?.map((s) => ({
-        label: s.name,
-        value: s.name,
-      })) ?? [],
+    () => yearData[latestYear]?.stocks?.map((s) => ({ label: s.name, value: s.name })) ?? [],
     [yearData, latestYear],
   );
-
   const symbolOptions = useMemo(
     () =>
       yearData[latestYear]?.stocks
@@ -73,11 +70,17 @@ export function HoldingsSection() {
     const matched = yearData[latestYear]?.stocks?.find((s) => s.name === value);
     if (matched) setNewStockSymbol(matched.symbol || '');
   };
-
   const onSelectSymbol = (value: string) => {
     setNewStockSymbol(value);
     const matched = yearData[latestYear]?.stocks?.find((s) => s.symbol === value);
     if (matched) setNewStockName(matched.name);
+  };
+
+  const handleAddYear = () => {
+    if (!newYear) return;
+    setNewYear(newYear);
+    callbacks.addNewYear();
+    setNewYearInput('');
   };
 
   const submitNewTx = () => {
@@ -85,20 +88,45 @@ export function HoldingsSection() {
     setShowForm(false);
   };
 
+  // 年份排序（降序供选择器使用）
+  const sortedYears = [...years].sort((a, b) => parseInt(b) - parseInt(a));
+
   return (
     <div className="space-y-6">
       <PageHeader
         title="持仓"
         description={`${allStockNames.length} 只股票 · 历年走势`}
         actions={
-          <Button
-            size="sm"
-            onClick={() => setShowForm((v) => !v)}
-            className="bg-brand text-brand-fg hover:bg-brand/90"
-          >
-            <Plus className="h-4 w-4" />
-            添加交易
-          </Button>
+          <div className="flex items-center gap-2">
+            {/* 新增年份 */}
+            <div className="flex items-center gap-1">
+              <Input
+                value={newYear}
+                onChange={(e) => setNewYear(e.target.value)}
+                placeholder="如 2027"
+                className="w-24 h-8 text-sm"
+                inputMode="numeric"
+                maxLength={4}
+              />
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleAddYear}
+                disabled={!newYear || years.includes(newYear)}
+                className="h-8 px-2 text-xs"
+              >
+                新增年份
+              </Button>
+            </div>
+            <Button
+              size="sm"
+              onClick={() => setShowForm((v) => !v)}
+              className="bg-brand text-brand-fg hover:bg-brand/90"
+            >
+              <Plus className="h-4 w-4" />
+              添加交易
+            </Button>
+          </div>
         }
       />
 
@@ -107,6 +135,23 @@ export function HoldingsSection() {
         <Section className="p-4">
           <h3 className="mb-3 text-sm font-semibold text-fg">新交易</h3>
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+            {/* 年份选择 */}
+            <label className="flex flex-col gap-1">
+              <span className="text-xs text-fg-subtle">交易年份</span>
+              <select
+                value={selectedYear}
+                onChange={(e) => {
+                  setSelectedYear(e.target.value);
+                  callbacks.handleYearChange(e.target.value);
+                }}
+                className="h-9 rounded-md border border-border-default bg-bg px-2 text-sm text-fg"
+              >
+                {sortedYears.map((y) => (
+                  <option key={y} value={y}>{y} 年</option>
+                ))}
+              </select>
+            </label>
+            {/* 类型 */}
             <label className="flex flex-col gap-1">
               <span className="text-xs text-fg-subtle">类型</span>
               <select
@@ -118,6 +163,7 @@ export function HoldingsSection() {
                 <option value="sell">卖出</option>
               </select>
             </label>
+            {/* 股票名 */}
             <label className="flex flex-col gap-1">
               <span className="text-xs text-fg-subtle">股票名</span>
               <Combobox
@@ -129,6 +175,7 @@ export function HoldingsSection() {
                 customInputPlaceholder="输入新股票名…"
               />
             </label>
+            {/* Symbol */}
             <label className="flex flex-col gap-1">
               <span className="text-xs text-fg-subtle">Symbol</span>
               <Combobox
@@ -140,6 +187,7 @@ export function HoldingsSection() {
                 customInputPlaceholder="输入新代码…"
               />
             </label>
+            {/* 股数 */}
             <label className="flex flex-col gap-1">
               <span className="text-xs text-fg-subtle">股数</span>
               <Input
@@ -148,6 +196,7 @@ export function HoldingsSection() {
                 onChange={(e) => setNewShares(e.target.value)}
               />
             </label>
+            {/* 价格 */}
             <label className="flex flex-col gap-1">
               <span className="text-xs text-fg-subtle">价格</span>
               <Input
@@ -156,6 +205,7 @@ export function HoldingsSection() {
                 onChange={(e) => setNewPrice(e.target.value)}
               />
             </label>
+            {/* 年末价 */}
             <label className="flex flex-col gap-1">
               <span className="text-xs text-fg-subtle">年末价（可选）</span>
               <Input
@@ -166,13 +216,8 @@ export function HoldingsSection() {
             </label>
           </div>
           <div className="mt-3 flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setShowForm(false)}>
-              取消
-            </Button>
-            <Button
-              onClick={submitNewTx}
-              className="bg-brand text-brand-fg hover:bg-brand/90"
-            >
+            <Button variant="outline" onClick={() => setShowForm(false)}>取消</Button>
+            <Button onClick={submitNewTx} className="bg-brand text-brand-fg hover:bg-brand/90">
               确认
             </Button>
           </div>
@@ -189,16 +234,11 @@ export function HoldingsSection() {
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {allStockNames.map((name) => (
-            <StockHoldingCard
-              key={name}
-              stockName={name}
-              onEdit={setEditing}
-            />
+            <StockHoldingCard key={name} stockName={name} onEdit={setEditing} />
           ))}
         </div>
       )}
 
-      {/* 编辑抽屉（按年修改） */}
       <HoldingDetailDrawer stockName={editing} onClose={() => setEditing(null)} />
     </div>
   );

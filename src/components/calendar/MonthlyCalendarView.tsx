@@ -1,5 +1,5 @@
-import React from 'react';
-import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown, DollarSign } from 'lucide-react';
+import React, { useState } from 'react';
+import { ChevronLeft, ChevronRight, DollarSign, EyeOff, TrendingDown, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -43,8 +43,9 @@ const CalendarDay: React.FC<{
   calendarData: CalendarData[];
   currency: string;
   formatLargeNumber: (value: number, currency: string) => string;
+  hideAmount: boolean;
   onClick: (date: string) => void;
-}> = ({ day, currentYear, currentMonth, calendarData, currency, formatLargeNumber, onClick }) => {
+}> = ({ day, currentYear, currentMonth, calendarData, currency, formatLargeNumber, hideAmount, onClick }) => {
   const dateStr = `${currentYear}-${currentMonth.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
   const dayData = getDataForDate(calendarData, dateStr);
   const hasData = dayData?.hasData || false;
@@ -68,6 +69,15 @@ const CalendarDay: React.FC<{
                 {dayData.totalGainPercent.toFixed(2)}%
               </div>
             )}
+            {hasData && dayData && !hideAmount && (
+              <div className={cn(
+                'text-[10px] tabular-nums leading-tight',
+                dayData.totalGain > 0 ? 'text-success' : dayData.totalGain < 0 ? 'text-danger' : 'text-fg-muted',
+              )}>
+                {dayData.totalGain > 0 ? '+' : ''}
+                {formatLargeNumber(dayData.totalGain, currency)}
+              </div>
+            )}
             {hasTransaction && (
               <div className="absolute top-1 right-1">
                 <div className="w-2 h-2 bg-brand rounded-full"></div>
@@ -89,10 +99,12 @@ const CalendarDay: React.FC<{
             <div className="font-semibold">{dateStr}</div>
             {hasData && dayData ? (
               <>
-                <div className="flex items-center gap-2">
-                  <DollarSign className="w-4 h-4" />
-                  <span>当日盈亏: {formatLargeNumber(dayData.totalGain, currency)}</span>
-                </div>
+                {!hideAmount && (
+                  <div className="flex items-center gap-2">
+                    <DollarSign className="w-4 h-4" />
+                    <span>当日盈亏: {formatLargeNumber(dayData.totalGain, currency)}</span>
+                  </div>
+                )}
                 <div className="flex items-center gap-2">
                   <TrendingUp className="w-4 h-4" />
                   <span>当日收益率: {dayData.totalGainPercent.toFixed(2)}%</span>
@@ -117,14 +129,16 @@ const CalendarDay: React.FC<{
                                 {stock.gainPercent > 0 ? '+' : ''}
                                 {stock.gainPercent.toFixed(2)}%
                               </div>
-                              <div className={cn(
-                                'text-xs',
-                                stock.gain > 0 ? 'text-success' :
-                                stock.gain < 0 ? 'text-danger' : 'text-fg-muted',
-                              )}>
-                                {stock.gain > 0 ? '+' : ''}
-                                {formatLargeNumber(stock.gain, currency)}
-                              </div>
+                              {!hideAmount && (
+                                <div className={cn(
+                                  'text-xs',
+                                  stock.gain > 0 ? 'text-success' :
+                                  stock.gain < 0 ? 'text-danger' : 'text-fg-muted',
+                                )}>
+                                  {stock.gain > 0 ? '+' : ''}
+                                  {formatLargeNumber(stock.gain, currency)}
+                                </div>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -158,6 +172,9 @@ export const MonthlyCalendarView: React.FC<Props> = ({
   const firstDay = getFirstDayOfMonth(currentYear, currentMonth);
   const daysInMonth = getDaysInMonth(currentYear, currentMonth);
 
+  // 隐藏金额模式（用于分享截图）
+  const [hideAmount, setHideAmount] = useState(false);
+
   return (
     <>
       {/* 月份导航 */}
@@ -182,7 +199,8 @@ export const MonthlyCalendarView: React.FC<Props> = ({
           {monthlySummary && (
             <div className="text-sm mt-1 space-y-1">
               <div className={`font-medium ${monthlySummary.totalGain >= 0 ? 'text-success' : 'text-danger'}`}>
-                月度收益: {formatLargeNumber(monthlySummary.totalGain, currency)}
+                月度收益:
+                {!hideAmount && ` ${formatLargeNumber(monthlySummary.totalGain, currency)}`}
                 ({monthlySummary.totalGain >= 0 ? '+' : ''}{monthlySummary.totalGainPercent.toFixed(2)}%)
               </div>
               <div className="text-fg-muted text-xs">
@@ -197,6 +215,23 @@ export const MonthlyCalendarView: React.FC<Props> = ({
         <Button variant="outline" size="sm" onClick={() => onChangeMonth(1)} disabled={isLoading}>
           <ChevronRight className="w-4 h-4" />
         </Button>
+      </div>
+
+      {/* 隐藏金额切换按钮 */}
+      <div className="flex justify-end">
+        <button
+          type="button"
+          onClick={() => setHideAmount((v) => !v)}
+          className={cn(
+            'flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs transition-colors duration-[var(--motion-fast)]',
+            hideAmount
+              ? 'bg-brand/10 text-brand font-medium'
+              : 'text-fg-muted hover:bg-bg-subtle hover:text-fg',
+          )}
+        >
+          <EyeOff className="h-3.5 w-3.5" aria-hidden />
+          {hideAmount ? '已隐藏金额（仅 %）' : '隐藏金额，仅显示 %'}
+        </button>
       </div>
 
       {/* 日历网格 */}
@@ -222,6 +257,7 @@ export const MonthlyCalendarView: React.FC<Props> = ({
                 calendarData={calendarData}
                 currency={currency}
                 formatLargeNumber={formatLargeNumber}
+                hideAmount={hideAmount}
                 onClick={onDateClick}
               />
             ))}

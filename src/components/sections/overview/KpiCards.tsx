@@ -1,6 +1,6 @@
 'use client';
 
-import { BarChart2, Coins, Percent, TrendingUp, Wallet } from 'lucide-react';
+import { BarChart2, Coins, Layers, TrendingUp, Wallet } from 'lucide-react';
 import { StatCard } from '@/components/ui/stat-card';
 import { usePortfolio } from '@/components/shell/PortfolioContext';
 
@@ -14,6 +14,10 @@ export function KpiCards() {
   const invested = calculateCumulativeInvested(latestYear) || 0;
   const totalReturn = currentTotal - invested;
   const totalReturnPct = invested > 0 ? (totalReturn / invested) * 100 : 0;
+
+  // 持仓数（当前年末 shares > 0）
+  const holdingsCount =
+    yearData[latestYear]?.stocks?.filter((s) => s.shares > 0).length ?? 0;
 
   // 现金余额
   const cashBalance = yearData[latestYear]?.cashBalance ?? 0;
@@ -49,14 +53,6 @@ export function KpiCards() {
         description={`总资产 − 全历史净投入 ${fmt(invested)}`}
       />
       <StatCard
-        label="累计收益率"
-        value={totalReturnPct}
-        icon={Percent}
-        tone={totalReturnPct >= 0 ? 'success' : 'danger'}
-        format={(n) => `${n.toFixed(2)}%`}
-        description="(总资产 − 累计投入) ÷ 累计投入，全周期总回报"
-      />
-      <StatCard
         label="年化复合收益"
         value={cagrPct ?? 0}
         icon={BarChart2}
@@ -75,6 +71,14 @@ export function KpiCards() {
         tone="info"
         format={fmt}
         description={`${latestYear} 年末可用现金`}
+      />
+      <StatCard
+        label="持仓数"
+        value={holdingsCount}
+        icon={Layers}
+        tone="neutral"
+        format={(n) => Math.round(n).toString()}
+        description={`${latestYear} 年末持有股票只数`}
       />
     </div>
   );

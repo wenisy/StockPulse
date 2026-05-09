@@ -1,18 +1,19 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Plus } from 'lucide-react';
 import { PageHeader } from '@/components/ui/page-header';
 import { Section } from '@/components/ui/section';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Combobox } from '@/components/ui/combobox';
 import { usePortfolio } from '@/components/shell/PortfolioContext';
 import { HoldingsTable } from './HoldingsTable';
 import { HoldingDetailDrawer } from './HoldingDetailDrawer';
 
 export function HoldingsSection() {
   const { stockOperations, portfolioData, callbacks } = usePortfolio();
-  const { latestYear } = portfolioData;
+  const { latestYear, yearData } = portfolioData;
 
   const [editing, setEditing] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -31,6 +32,36 @@ export function HoldingsSection() {
     setNewYearEndPrice,
     setTransactionType,
   } = stockOperations;
+
+  // 联动：从 latestYear 持仓派生股票名 / symbol 选项
+  const nameOptions = useMemo(
+    () =>
+      yearData[latestYear]?.stocks?.map((s) => ({
+        label: s.name,
+        value: s.name,
+      })) ?? [],
+    [yearData, latestYear],
+  );
+
+  const symbolOptions = useMemo(
+    () =>
+      yearData[latestYear]?.stocks
+        ?.map((s) => ({ label: s.symbol || '', value: s.symbol || '' }))
+        .filter((o) => o.value) ?? [],
+    [yearData, latestYear],
+  );
+
+  const onSelectName = (value: string) => {
+    setNewStockName(value);
+    const matched = yearData[latestYear]?.stocks?.find((s) => s.name === value);
+    if (matched) setNewStockSymbol(matched.symbol || '');
+  };
+
+  const onSelectSymbol = (value: string) => {
+    setNewStockSymbol(value);
+    const matched = yearData[latestYear]?.stocks?.find((s) => s.symbol === value);
+    if (matched) setNewStockName(matched.name);
+  };
 
   const submitNewTx = () => {
     callbacks.onAddStock();
@@ -71,11 +102,25 @@ export function HoldingsSection() {
             </label>
             <label className="flex flex-col gap-1">
               <span className="text-xs text-fg-subtle">股票名</span>
-              <Input value={newStockName} onChange={(e) => setNewStockName(e.target.value)} />
+              <Combobox
+                options={nameOptions}
+                value={newStockName}
+                onChange={onSelectName}
+                placeholder="选择或输入股票名"
+                allowCustomInput
+                customInputPlaceholder="输入新股票名…"
+              />
             </label>
             <label className="flex flex-col gap-1">
               <span className="text-xs text-fg-subtle">Symbol</span>
-              <Input value={newStockSymbol} onChange={(e) => setNewStockSymbol(e.target.value)} />
+              <Combobox
+                options={symbolOptions}
+                value={newStockSymbol}
+                onChange={onSelectSymbol}
+                placeholder="选择或输入代码"
+                allowCustomInput
+                customInputPlaceholder="输入新代码…"
+              />
             </label>
             <label className="flex flex-col gap-1">
               <span className="text-xs text-fg-subtle">股数</span>

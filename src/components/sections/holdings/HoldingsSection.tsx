@@ -133,7 +133,21 @@ export function HoldingsSection() {
       {/* 添加交易表单 */}
       {showForm ? (
         <Section className="p-4">
-          <h3 className="mb-3 text-sm font-semibold text-fg">新交易</h3>
+          {/* 当前年份余额提示 */}
+          <div className="mb-3 flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-fg">新交易</h3>
+            <span className="text-xs text-fg-muted">
+              {selectedYear} 年现金余额：
+              <span className={`ml-1 font-semibold tabular-nums ${
+                (yearData[selectedYear]?.cashBalance ?? 0) >= 0 ? 'text-success' : 'text-danger'
+              }`}>
+                {portfolioData.formatLargeNumber(
+                  yearData[selectedYear]?.cashBalance ?? 0,
+                  trackerState.currency,
+                )}
+              </span>
+            </span>
+          </div>
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
             {/* 年份选择 */}
             <label className="flex flex-col gap-1">

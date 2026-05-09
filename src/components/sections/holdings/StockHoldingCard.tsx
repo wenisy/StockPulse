@@ -1,14 +1,20 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { Edit3, Eye, EyeOff, Trash2 } from 'lucide-react';
+import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
 import { cn } from '@/lib/utils';
 import { usePortfolio } from '@/components/shell/PortfolioContext';
 import { useResolvedColors } from '@/hooks/useResolvedColors';
 
-/**
- * 单只股票的持仓卡片，展示历年市值迷你柱状图 + 当前年汇总。
- */
 export function StockHoldingCard({
   stockName,
   onEdit,
@@ -16,61 +22,72 @@ export function StockHoldingCard({
   stockName: string;
   onEdit: (name: string) => void;
 }) {
-  const { portfolioData, chartData, trackerState, callbacks, stockOperations } =
-    usePortfolio();
+  const { portfolioData, trackerState, callbacks, stockOperations } = usePortfolio();
   const { yearData, formatLargeNumber, years, latestYear } = portfolioData;
-  const { lineChartData } = chartData;
   const { currency, hiddenStocks } = trackerState;
   const { toggleStockVisibility } = callbacks;
   const colors = useResolvedColors();
 
   const hidden = !!hiddenStocks[stockName];
-  const [hoverYear, setHoverYear] = useState<string | null>(null);
 
-  // 当前年持仓信息
+  // 最新年持仓（可能为 null，说明已清仓）
   const latestStock = yearData[latestYear]?.stocks?.find((s) => s.name === stockName);
+  const isClosed = !latestStock || latestStock.shares <= 0;
 
-  // 各年市值（从 lineChartData 提取该股票）
-  const yearlyValues = useMemo(() => {
-    const sorted = [...years].sort((a, b) => parseInt(a) - parseInt(b));
-    return sorted.map((year) => {
-      const entry = lineChartData.find((d) => d.year === year);
-      const value = entry ? (Number(entry[stockName]) || 0) : 0;
-      return { year, value };
+  // 找该股票最后有持仓的年份
+  const sortedAsc = [...years].sort((a, b) => parseInt(a) - parseInt(b));
+  const lastActiveYear = sortedAsc
+    .slice()
+    .reverse()
+    .find((y) => {
+      const stk = yearData[y]?.stocks?.find((s) => s.name === stockName);
+      return stk && stk.shares > 0;
+    }) ?? null;
+
+  const displayStock = isClosed && lastActiveYear
+    ? yearData[lastActiveYear]?.stocks?.find((s) => s.name === stockName)
+    : latestStock;
+
+  // 各年市值数据（用于 Recharts）
+  const chartData = useMemo(() => {
+    return sortedAsc.map((year) => {
+      const stk = yearData[year]?.stocks?.find((s) => s.name === stockName);
+      const value = stk ? stk.shares * stk.price : 0;
+      return { year, value, label: `'${year.slice(2)}` };
     });
-  }, [years, lineChartData, stockName]);
+  }, [sortedAsc, yearData, stockName]);
 
-  const maxValue = Math.max(...yearlyValues.map((d) => d.value), 1);
+  const hasAnyValue = chartData.some((d) => d.value > 0);
 
-  const fmt = (v: number) => formatLargeNumber(v, currency);
-
-  if (!latestStock && yearlyValues.every((d) => d.value === 0)) return null;
-
-  const currentValue = latestStock
-    ? latestStock.shares * latestStock.price
-    : 0;
-  const costBasis = latestStock
-    ? latestStock.shares * latestStock.costPrice
-    : 0;
+  // 当前/最后持仓值
+  const currentValue = displayStock ? displayStock.shares * displayStock.price : 0;
+  const costBasis = displayStock ? displayStock.shares * displayStock.costPrice : 0;
   const returnAmt = currentValue - costBasis;
   const returnPct = costBasis > 0 ? (returnAmt / costBasis) * 100 : 0;
   const isPositive = returnAmt >= 0;
 
-  // 找上一年值，算本年涨跌
-  const sortedYears = [...years].sort((a, b) => parseInt(a) - parseInt(b));
-  const latestIdx = sortedYears.indexOf(latestYear);
-  const prevYear = latestIdx > 0 ? sortedYears[latestIdx - 1] : null;
-  const prevValue = prevYear
-    ? (lineChartData.find((d) => d.year === prevYear)?.[stockName] as number) || 0
-    : null;
-  const yoyAmt = prevValue !== null ? currentValue - prevValue : null;
-  const yoyPct = prevValue ? ((currentValue - prevValue) / prevValue) * 100 : null;
+  // 本年 vs 上年涨跌（只对未清仓）
+  const latestIdx = sortedAsc.indexOf(latestYear);
+  const prevYear = latestIdx > 0 ? sortedAsc[latestIdx - 1] : null;
+  const prevEntry = prevYear ? chartData.find((d) => d.year === prevYear) : null;
+  const latestEntry = chartData.find((d) => d.year === latestYear);
+  const yoyAmt =
+    !isClosed && prevEntry && latestEntry
+      ? latestEntry.value - prevEntry.value
+      : null;
+  const yoyPct =
+    prevEntry && prevEntry.value > 0 && yoyAmt !== null
+      ? (yoyAmt / prevEntry.value) * 100
+      : null;
 
-  const displayYear = hoverYear ?? latestYear;
-  const displayEntry = lineChartData.find((d) => d.year === displayYear);
-  const displayValue = displayEntry ? (Number(displayEntry[stockName]) || 0) : 0;
-  const displayShares = yearData[displayYear]?.stocks?.find((s) => s.name === stockName)?.shares ?? 0;
-  const displayPrice = yearData[displayYear]?.stocks?.find((s) => s.name === stockName)?.price ?? 0;
+  const fmt = (v: number) => formatLargeNumber(v, currency);
+
+  // Symbol：跨年找第一个有的
+  const symbol = sortedAsc
+    .slice()
+    .reverse()
+    .map((y) => yearData[y]?.stocks?.find((s) => s.name === stockName)?.symbol)
+    .find(Boolean);
 
   return (
     <div
@@ -79,32 +96,36 @@ export function StockHoldingCard({
         'transition-all duration-[var(--motion-base)] ease-[cubic-bezier(0.16,1,0.3,1)]',
         'hover:shadow-md hover:-translate-y-0.5 hover:border-border-default',
         hidden && 'opacity-50',
+        isClosed && 'border-dashed',
       )}
     >
-      {/* 头部：股票名 + 操作按钮 */}
+      {/* 头部 */}
       <div className="mb-3 flex items-start justify-between gap-2">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <span className="truncate text-sm font-semibold text-fg">
-              {stockName}
-            </span>
-            {latestStock?.symbol ? (
+            <span className="truncate text-sm font-semibold text-fg">{stockName}</span>
+            {symbol ? (
               <span className="shrink-0 rounded bg-bg-subtle px-1.5 py-0.5 text-[11px] font-medium text-fg-muted">
-                {latestStock.symbol}
+                {symbol}
+              </span>
+            ) : null}
+            {isClosed ? (
+              <span className="shrink-0 rounded-full border border-fg-subtle/30 px-1.5 py-0.5 text-[10px] text-fg-subtle">
+                已清仓
               </span>
             ) : null}
           </div>
-          {latestStock ? (
+          {displayStock ? (
             <div className="mt-0.5 text-xs text-fg-muted">
-              {latestStock.shares.toLocaleString()} 股 · 成本{' '}
-              {fmt(latestStock.costPrice)}
+              {isClosed ? `${lastActiveYear} 年末：` : ''}
+              {displayStock.shares.toLocaleString()} 股 · 成本 {fmt(displayStock.costPrice)}
             </div>
           ) : (
-            <div className="mt-0.5 text-xs text-fg-subtle">已清仓</div>
+            <div className="mt-0.5 text-xs text-fg-subtle">无持仓记录</div>
           )}
         </div>
 
-        {/* 操作按钮组 */}
+        {/* 操作按钮 */}
         <div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
           <button
             type="button"
@@ -133,103 +154,87 @@ export function StockHoldingCard({
         </div>
       </div>
 
-      {/* 当前市值 + 收益 */}
-      <div className="mb-4 flex items-end justify-between">
-        <div>
-          <div className="text-2xl font-semibold text-fg tabular-nums">
-            {fmt(currentValue)}
-          </div>
-          <div
-            className={cn(
-              'mt-0.5 text-xs tabular-nums font-medium',
-              isPositive ? 'text-success' : 'text-danger',
-            )}
-          >
-            {isPositive ? '+' : ''}
-            {fmt(returnAmt)} ({isPositive ? '+' : ''}{returnPct.toFixed(1)}%)
-            <span className="ml-1 text-fg-subtle font-normal">相对成本</span>
-          </div>
-        </div>
-        {yoyAmt !== null && yoyPct !== null ? (
-          <div className="text-right">
+      {/* 市值 + 收益 */}
+      {displayStock ? (
+        <div className="mb-4 flex items-end justify-between">
+          <div>
+            <div className="text-2xl font-semibold text-fg tabular-nums">
+              {fmt(currentValue)}
+            </div>
             <div
               className={cn(
-                'text-xs font-medium tabular-nums',
-                yoyAmt >= 0 ? 'text-success' : 'text-danger',
+                'mt-0.5 text-xs font-medium tabular-nums',
+                isPositive ? 'text-success' : 'text-danger',
               )}
             >
-              {yoyAmt >= 0 ? '+' : ''}{fmt(yoyAmt)}
+              {isPositive ? '+' : ''}{fmt(returnAmt)} ({isPositive ? '+' : ''}{returnPct.toFixed(1)}%)
+              <span className="ml-1 font-normal text-fg-subtle">vs 成本</span>
             </div>
-            <div className="text-[10px] text-fg-subtle">vs {prevYear}</div>
           </div>
-        ) : null}
-      </div>
+          {yoyAmt !== null && yoyPct !== null ? (
+            <div className="text-right">
+              <div className={cn('text-xs font-medium tabular-nums', yoyAmt >= 0 ? 'text-success' : 'text-danger')}>
+                {yoyAmt >= 0 ? '+' : ''}{fmt(yoyAmt)}
+              </div>
+              <div className="text-[10px] text-fg-subtle">vs {prevYear}</div>
+            </div>
+          ) : null}
+        </div>
+      ) : (
+        <div className="mb-4 text-sm text-fg-subtle">—</div>
+      )}
 
-      {/* 历年迷你柱状图 */}
-      {yearlyValues.length > 1 ? (
-        <div className="space-y-1">
-          <div className="text-[10px] text-fg-subtle">历年市值走势</div>
-          <div className="flex items-end gap-1" style={{ height: 48 }}>
-            {yearlyValues.map(({ year, value }) => {
-              const isHoverYear = hoverYear === year;
-              const isLatest = year === latestYear;
-              const heightPct = maxValue > 0 ? (value / maxValue) * 100 : 0;
-              const barColor = value > 0
-                ? isLatest
-                  ? colors.brand
-                  : isHoverYear
-                    ? colors.info
-                    : `${colors.brand}60`
-                : colors.borderDefault;
-
-              return (
-                <div
-                  key={year}
-                  className="group/bar relative flex flex-1 flex-col items-center justify-end gap-0.5"
-                  onMouseEnter={() => setHoverYear(year)}
-                  onMouseLeave={() => setHoverYear(null)}
-                >
-                  {/* 柱体 */}
-                  <div
-                    className="w-full rounded-t-sm transition-all duration-[var(--motion-fast)]"
-                    style={{
-                      height: `${Math.max(heightPct, value > 0 ? 8 : 3)}%`,
-                      backgroundColor: barColor,
-                    }}
-                  />
-                  {/* 年份标签 */}
-                  <div
-                    className={cn(
-                      'text-[9px] tabular-nums transition-colors',
-                      isLatest ? 'text-brand font-semibold' : 'text-fg-subtle',
-                      isHoverYear && 'text-fg',
-                    )}
-                  >
-                    {year.slice(2)}
-                  </div>
-                </div>
-              );
-            })}
+      {/* Recharts 面积图 */}
+      {hasAnyValue && chartData.length > 1 ? (
+        <div>
+          <div className="mb-1 text-[10px] text-fg-subtle">历年市值走势</div>
+          <div className="h-24">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={chartData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+                <defs>
+                  <linearGradient id={`fill-${stockName}`} x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={isClosed ? colors.fgMuted : colors.brand} stopOpacity={0.3} />
+                    <stop offset="100%" stopColor={isClosed ? colors.fgMuted : colors.brand} stopOpacity={0.02} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid stroke={colors.borderSubtle} vertical={false} />
+                <XAxis
+                  dataKey="label"
+                  tick={{ fill: colors.fgMuted, fontSize: 10 }}
+                  axisLine={false}
+                  tickLine={false}
+                  interval={0}
+                />
+                <YAxis hide />
+                <Tooltip
+                  contentStyle={{
+                    background: colors.bgElevated,
+                    border: `1px solid ${colors.borderDefault}`,
+                    borderRadius: 6,
+                    fontSize: 11,
+                    color: colors.fg,
+                  }}
+                  formatter={(v: number) => [fmt(v), '市值']}
+                  labelFormatter={(label: string) => {
+                    const entry = chartData.find((d) => d.label === label);
+                    const stk = entry ? yearData[entry.year]?.stocks?.find((s) => s.name === stockName) : null;
+                    return stk
+                      ? `${entry?.year} 年  ${stk.shares} 股 @ ${fmt(stk.price)}`
+                      : `${entry?.year} 年  已清仓`;
+                  }}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="value"
+                  stroke={isClosed ? colors.fgMuted : colors.brand}
+                  strokeWidth={1.5}
+                  fill={`url(#fill-${stockName})`}
+                  dot={false}
+                  activeDot={{ r: 3, fill: isClosed ? colors.fgMuted : colors.brand }}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
           </div>
-
-          {/* hover 时显示对应年份数据 */}
-          {hoverYear ? (
-            <div className="flex items-center justify-between rounded-md bg-bg-subtle px-2 py-1 text-xs">
-              <span className="text-fg-muted">{hoverYear} 年</span>
-              <span className="tabular-nums font-medium text-fg">{fmt(displayValue)}</span>
-              {displayShares > 0 ? (
-                <span className="text-fg-subtle">
-                  {displayShares} 股 @ {fmt(displayPrice)}
-                </span>
-              ) : (
-                <span className="text-fg-subtle">未持仓</span>
-              )}
-            </div>
-          ) : (
-            <div className="flex items-center justify-between rounded-md bg-bg-subtle px-2 py-1 text-xs opacity-0 pointer-events-none">
-              <span>–</span>
-            </div>
-          )}
         </div>
       ) : null}
     </div>

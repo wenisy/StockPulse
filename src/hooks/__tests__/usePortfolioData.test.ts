@@ -41,12 +41,12 @@ describe('usePortfolioData - 初始状态', () => {
     expect(result.current.latestYear).toBe(expected);
   });
 
-  it('selectedYear 默认为 years[years.length-1]', () => {
+  it('selectedYear 默认为最新年（years[0]，降序排列）', () => {
     const { result } = renderHook(() =>
       usePortfolioData({ currentUser: null, isLoggedIn: false, setAlertInfo: makeSetAlertInfo() }),
     );
     const { years, selectedYear } = result.current;
-    expect(selectedYear).toBe(years[years.length - 1]);
+    expect(selectedYear).toBe(years[0]);
   });
 
   it('exchangeRates 默认包含 USD/HKD/CNY', () => {

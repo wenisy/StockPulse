@@ -17,7 +17,9 @@ export function OverviewSection() {
   // 问候语：早上好 / 下午好 / 晚上好
   const hour = new Date().getHours();
   const greeting = hour < 12 ? '早上好' : hour < 18 ? '下午好' : '晚上好';
-  const displayName = isLoggedIn && currentUser?.username ? currentUser.username : null;
+  const displayName = isLoggedIn && currentUser
+    ? (currentUser.nickname || currentUser.username || null)
+    : null;
 
   const totalPortfolioValue = selectedReportYear
     ? (yearData[selectedReportYear]?.stocks?.reduce(

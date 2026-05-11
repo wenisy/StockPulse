@@ -253,3 +253,118 @@ describe('useChartData - 边界保护', () => {
     }).not.toThrow();
   });
 });
+
+// ==================== 覆盖率补全：calculateCumulativeInvested ====================
+
+describe('useChartData - calculateCumulativeInvested', () => {
+  const makeWithDeposits = () => ({
+    '2023': {
+      stocks: [{ name: 'A', shares: 100, price: 40, costPrice: 40, id: 'a1' }],
+      cashTransactions: [
+        { amount: 4000, type: 'deposit' as const, date: '2023-01-01' },
+        // withdraw 存为负值：-tx.amount = -(-500) = +500，行为对齐 computeCumulativeCashInvested
+        { amount: -500, type: 'withdraw' as const, date: '2023-06-01' },
+      ],
+      stockTransactions: [],
+      cashBalance: 3500,
+    },
+    '2024': {
+      stocks: [{ name: 'A', shares: 100, price: 50, costPrice: 40, id: 'a1' }],
+      cashTransactions: [
+        { amount: 2000, type: 'deposit' as const, date: '2024-03-01' },
+      ],
+      stockTransactions: [],
+      cashBalance: 5500,
+    },
+  });
+
+  it('截至 2023：deposit 4000 + withdraw(-500) 对齐现有行为 = 4500', () => {
+    // 注意：calculateCumulativeInvested 用 -tx.amount 处理 withdraw，
+    // 当 amount=-500 时 -(-500)=+500，所以 total=4500（对齐 computeCumulativeCashInvested）
+    const { result } = renderHook(() =>
+      useChartData({
+        yearData: makeWithDeposits(),
+        years: ['2024', '2023'],
+        latestYear: '2024',
+        hiddenStocks: {},
+      }),
+    );
+    expect(result.current.calculateCumulativeInvested('2023')).toBe(4500);
+  });
+
+  it('截至 2024：4500 + 2000 = 6500', () => {
+    const { result } = renderHook(() =>
+      useChartData({
+        yearData: makeWithDeposits(),
+        years: ['2024', '2023'],
+        latestYear: '2024',
+        hiddenStocks: {},
+      }),
+    );
+    expect(result.current.calculateCumulativeInvested('2024')).toBe(6500);
+  });
+
+  it('年份不存在时返回 0', () => {
+    const { result } = renderHook(() =>
+      useChartData({
+        yearData: makeWithDeposits(),
+        years: ['2024', '2023'],
+        latestYear: '2024',
+        hiddenStocks: {},
+      }),
+    );
+    expect(result.current.calculateCumulativeInvested('2020')).toBe(0);
+  });
+
+  it('只有 buy/sell 类型的 cashTransactions（不计入投入）', () => {
+    const yearData = {
+      '2024': {
+        stocks: [],
+        cashTransactions: [
+          { amount: -5000, type: 'buy' as const, date: '2024-01-01', stockName: 'AAPL' },
+          { amount: 3000, type: 'sell' as const, date: '2024-06-01', stockName: 'AAPL' },
+        ],
+        stockTransactions: [],
+        cashBalance: -2000,
+      },
+    };
+    const { result } = renderHook(() =>
+      useChartData({
+        yearData,
+        years: ['2024'],
+        latestYear: '2024',
+        hiddenStocks: {},
+      }),
+    );
+    expect(result.current.calculateCumulativeInvested('2024')).toBe(0);
+  });
+});
+
+describe('useChartData - barChartData 覆盖率补全', () => {
+  it('yearData 含某年无 stocks 时该年 barChartData 不崩', () => {
+    const yearData = {
+      '2023': {
+        stocks: [{ name: 'A', shares: 100, price: 50, costPrice: 40, id: 'a1' }],
+        cashTransactions: [],
+        stockTransactions: [],
+        cashBalance: 0,
+      },
+      '2024': {
+        // 无 stocks key
+        cashTransactions: [],
+        stockTransactions: [],
+        cashBalance: 5000,
+      } as never,
+    };
+    expect(() =>
+      renderHook(() =>
+        useChartData({
+          yearData,
+          years: ['2024', '2023'],
+          latestYear: '2024',
+          hiddenStocks: {},
+        }),
+      ),
+    ).not.toThrow();
+  });
+});

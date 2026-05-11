@@ -195,7 +195,7 @@ export function StockHoldingCard({
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={chartData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
                 <defs>
-                  <linearGradient id={`fill-${stockName}`} x1="0" y1="0" x2="0" y2="1">
+                  <linearGradient id={`fill-${stockName.replace(/[^a-zA-Z0-9]/g, '-')}`} x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor={isClosed ? colors.fgMuted : colors.brand} stopOpacity={0.3} />
                     <stop offset="100%" stopColor={isClosed ? colors.fgMuted : colors.brand} stopOpacity={0.02} />
                   </linearGradient>
@@ -231,7 +231,7 @@ export function StockHoldingCard({
                   dataKey="value"
                   stroke={isClosed ? colors.fgMuted : colors.brand}
                   strokeWidth={1.5}
-                  fill={`url(#fill-${stockName})`}
+                  fill={`url(#fill-${stockName.replace(/[^a-zA-Z0-9]/g, '-')})`}
                   dot={false}
                   activeDot={{ r: 3, fill: isClosed ? colors.fgMuted : colors.brand }}
                 />

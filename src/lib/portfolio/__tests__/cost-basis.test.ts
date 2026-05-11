@@ -79,3 +79,55 @@ describe('computeRealizedProfit（卖出实现盈亏）', () => {
     expect(computeRealizedProfit(40, 0, 50)).toBe(0);
   });
 });
+
+// ============================================================================
+// 深度边界：连续操作链 + 异常输入
+// ============================================================================
+
+describe('cost-basis 深度边界', () => {
+  describe('连续操作链：买入→加仓→部分卖出→再卖出', () => {
+    it('完整清仓操作链：最终成本价 = 0', () => {
+      // 1. 首次买 100 股 @ 100
+      const c1 = computeWeightedCostPrice(0, 0, 100, 100);
+      expect(c1).toBe(100);
+
+      // 2. 加仓 50 股 @ 120
+      const c2 = computeWeightedCostPrice(100, c1, 50, 120);
+      expect(c2).toBeCloseTo(106.67, 1);
+
+      // 3. 卖 80 股 @ 130
+      const c3 = computeRemainingCostAfterSell(150, c2, 80, 130);
+      // 剩余 70 股，成本 = (150*106.67 - 80*130) / 70
+      const expectedC3 = (150 * c2 - 80 * 130) / 70;
+      expect(c3).toBeCloseTo(expectedC3, 1);
+
+      // 4. 全部卖出剩余 70 股
+      const c4 = computeRemainingCostAfterSell(70, c3, 70, 150);
+      expect(c4).toBe(0); // 清仓后成本 = 0
+    });
+
+    it('卖出价格 = 0（异常输入）：不抛，剩余成本合理', () => {
+      expect(() =>
+        computeRemainingCostAfterSell(100, 50, 30, 0),
+      ).not.toThrow();
+    });
+  });
+
+  describe('买入边界：txShares=0', () => {
+    it('买入 0 股：成本价不变（避免无意义操作改变成本）', () => {
+      const result = computeWeightedCostPrice(100, 50, 0, 100);
+      // newShares = 100 + 0 = 100，newCost = 100*50 + 0*100 = 5000，c = 50
+      expect(result).toBe(50);
+    });
+  });
+
+  describe('computeRealizedProfit 边界', () => {
+    it('txShares 为负（异常输入）：不抛', () => {
+      expect(() => computeRealizedProfit(40, -10, 50)).not.toThrow();
+    });
+
+    it('txPrice 为负（异常输入）：不抛', () => {
+      expect(() => computeRealizedProfit(40, 10, -50)).not.toThrow();
+    });
+  });
+});

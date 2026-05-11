@@ -158,3 +158,68 @@ describe('appendYearlySummary（仅更新 cashBalance）', () => {
     expect(next.yearlySummaries['2024']).toEqual({ cashBalance: 1500 });
   });
 });
+
+// ============================================================================
+// 深度边界
+// ============================================================================
+
+describe('incremental 深度边界', () => {
+  it('appendStockTxIncremental：同年连续多次追加，股票列表累积不丢失', () => {
+    const s1 = buildStock({ name: 'AAPL', id: 'a1' });
+    const s2 = buildStock({ name: 'TSLA', id: 'a2' });
+    const tx1 = buildStockTx({ stockName: 'AAPL', type: 'buy' });
+    const tx2 = buildStockTx({ stockName: 'TSLA', type: 'sell' });
+    const cash1 = buildCashTx({ amount: -1000 });
+    const cash2 = buildCashTx({ amount: -500 });
+
+    const a = appendStockTxIncremental(empty(), '2024', {
+      stock: s1, stockTx: tx1, cashTx: cash1, cashBalance: 9000,
+    });
+    const b = appendStockTxIncremental(a, '2024', {
+      stock: s2, stockTx: tx2, cashTx: cash2, cashBalance: 8500,
+    });
+
+    expect(b.stocks['2024']).toHaveLength(2);
+    expect(b.stocks['2024'][0].name).toBe('AAPL');
+    expect(b.stocks['2024'][1].name).toBe('TSLA');
+    expect(b.yearlySummaries['2024']).toEqual({ cashBalance: 8500 });
+  });
+
+  it('appendStockTxIncremental：不同年份数据隔离', () => {
+    const a = appendStockTxIncremental(empty(), '2024', {
+      stock: buildStock({ name: 'A', id: 'a1' }),
+      stockTx: buildStockTx({ stockName: 'A' }),
+      cashTx: buildCashTx({ amount: -1000 }),
+      cashBalance: 9000,
+    });
+    const b = appendStockTxIncremental(a, '2025', {
+      stock: buildStock({ name: 'B', id: 'b1' }),
+      stockTx: buildStockTx({ stockName: 'B' }),
+      cashTx: buildCashTx({ amount: -2000 }),
+      cashBalance: 8000,
+    });
+
+    expect(b.stocks['2024']).toHaveLength(1);
+    expect(b.stocks['2025']).toHaveLength(1);
+    expect(b.stocks['2024'][0].name).toBe('A');
+    expect(b.stocks['2025'][0].name).toBe('B');
+  });
+
+  it('appendCashTxIncremental：多次追加同年不覆盖', () => {
+    const c1 = buildCashTx({ amount: 1000, type: 'deposit' });
+    const c2 = buildCashTx({ amount: 500, type: 'deposit' });
+    const a = appendCashTxIncremental(empty(), '2024', c1, 1000);
+    const b = appendCashTxIncremental(a, '2024', c2, 1500);
+
+    expect(b.cashTransactions['2024']).toHaveLength(2);
+    expect(b.yearlySummaries['2024']).toEqual({ cashBalance: 1500 });
+  });
+
+  it('空入参：不修改原对象（纯函数）', () => {
+    const original = empty();
+    const frozen = Object.freeze(original);
+    expect(() =>
+      appendYearlySummary(frozen, '2025', 5000),
+    ).not.toThrow();
+  });
+});

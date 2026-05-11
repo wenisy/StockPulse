@@ -1,6 +1,6 @@
 import { renderHook } from '@testing-library/react';
 import { useCalculations } from '../useCalculations';
-import type { YearData } from '@/types/stock';
+import type { StockChartData, YearData } from '@/types/stock';
 
 const makeYearData = (): { [y: string]: YearData } => ({
   '2023': {
@@ -109,5 +109,61 @@ describe('useCalculations', () => {
     );
     const values = result.current.calculateYearlyValues();
     expect(values['2024']).toBe(0); // A 被隐藏，只有 cashBalance=0
+  });
+});
+
+// ==================== shares=0 防回归测试 ====================
+
+describe('useCalculations - shares=0 过滤防回归', () => {
+  const makeWithZeroShares = (): { [y: string]: YearData } => ({
+    '2023': {
+      stocks: [
+        { name: 'AAPL', shares: 100, price: 150, costPrice: 100, id: 'a1' },
+        { name: 'AMZN', shares: 50, price: 200, costPrice: 180, id: 'a2' },
+      ],
+      cashTransactions: [],
+      stockTransactions: [],
+      cashBalance: 0,
+    },
+    '2024': {
+      stocks: [
+        { name: 'AAPL', shares: 120, price: 180, costPrice: 100, id: 'a1' },
+        { name: 'AMZN', shares: 0, price: 220, costPrice: 180, id: 'a2' }, // 已清仓
+      ],
+      cashTransactions: [],
+      stockTransactions: [],
+      cashBalance: 0,
+    },
+  });
+
+  const renderZ = (yd = makeWithZeroShares()) =>
+    renderHook(() =>
+      useCalculations(
+        yd,
+        ['2023', '2024'],
+        ['2023', '2024'],
+        {},
+        convertToCurrency,
+        currency,
+      ),
+    );
+
+  it('prepareLineChartData：stockNames 不含最新年 shares=0 的股票', () => {
+    const { result } = renderZ();
+    const data = result.current.prepareLineChartData();
+    const point2024 = data.find((d: StockChartData) => d.year === '2024');
+    expect(point2024).toBeDefined();
+    expect(point2024).not.toHaveProperty('AMZN');
+    expect(point2024).toHaveProperty('AAPL');
+  });
+
+  it('prepareLineChartData：混合场景仅保留 shares>0 股票', () => {
+    const { result } = renderZ();
+    const data = result.current.prepareLineChartData();
+    // 找到任意一个 dataPoint，确认 keys 中没有 AMZN
+    const allKeys = new Set<string>();
+    data.forEach((d: StockChartData) => Object.keys(d).forEach((k) => allKeys.add(k)));
+    expect(allKeys.has('AAPL')).toBe(true);
+    expect(allKeys.has('AMZN')).toBe(false);
   });
 });

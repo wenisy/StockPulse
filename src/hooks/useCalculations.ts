@@ -33,13 +33,15 @@ export const useCalculations = (
     const data: StockChartData[] = [];
     const stockNames = new Set<string>();
 
-    // 收集所有股票名称
-    Object.values(yearData).forEach(data => {
-      data.stocks.forEach(stock => {
-        if (!hiddenStocks[stock.name]) {
-          stockNames.add(stock.name);
-        }
-      });
+    // 只收集"最新年 shares > 0"的股票，已清仓的不在折线图中显示
+    // 兼容 years 升序/降序：取 max
+    const sortedYears = [...years].sort((a, b) => parseInt(a) - parseInt(b));
+    const latestYear = sortedYears[sortedYears.length - 1];
+    const latestStocks = yearData[latestYear]?.stocks ?? [];
+    latestStocks.forEach((stock) => {
+      if (!hiddenStocks[stock.name] && stock.shares > 0) {
+        stockNames.add(stock.name);
+      }
     });
 
     filteredYears.forEach(year => {
@@ -68,7 +70,7 @@ export const useCalculations = (
     });
 
     return data.sort((a, b) => parseInt(a.year) - parseInt(b.year));
-  }, [yearData, filteredYears, hiddenStocks, convertToCurrency, currency]);
+  }, [yearData, years, filteredYears, hiddenStocks, convertToCurrency, currency]);
 
   const preparePercentageBarChartData = useCallback(() => {
     const data: StockChartData[] = [];

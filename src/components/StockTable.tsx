@@ -242,7 +242,9 @@ const StockTable: React.FC<StockTableProps> = ({
                   {yearData[year] && yearData[year].stocks
                     ? formatLargeNumber(
                       yearData[year].stocks.reduce(
-                        (acc, stock) => hiddenStocks[stock.name] ? acc : acc + stock.shares * stock.price,
+                        (acc, stock) => (hiddenStocks[stock.name] || stock.shares <= 0)
+                          ? acc
+                          : acc + stock.shares * stock.price,
                         0
                       ) + (yearData[year].cashBalance || 0),
                       currency

@@ -302,7 +302,7 @@ export function HoldingsSection() {
                 </div>
                 <div className="h-px flex-1 bg-border-subtle" />
               </div>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 opacity-75">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 grayscale opacity-60">
                 {closedNames.map((name) => (
                   <StockHoldingCard key={name} stockName={name} onEdit={setEditing} />
                 ))}

@@ -42,7 +42,7 @@ const ReportDialog: React.FC<ReportDialogProps> = ({
     const growthRate = cumulativeInvested > 0 ? (growth / cumulativeInvested) * 100 : 0;
 
     const preparePieChartData = () => {
-        const stocks = yearDataItem.stocks.filter(stock => !hiddenStocks[stock.name]);
+        const stocks = yearDataItem.stocks.filter(stock => !hiddenStocks[stock.name] && stock.shares > 0);
         const totalValue = stocks.reduce((acc, stock) => acc + stock.shares * stock.price, 0) + (yearDataItem.cashBalance || 0);
         const data = stocks.map(stock => ({
             name: stock.name,
@@ -54,7 +54,7 @@ const ReportDialog: React.FC<ReportDialogProps> = ({
     const { data: pieData, totalValue: pieTotalValue } = preparePieChartData();
 
     const prepareBarChartData = () => {
-        const stocks = yearDataItem.stocks.filter(stock => !hiddenStocks[stock.name]);
+        const stocks = yearDataItem.stocks.filter(stock => !hiddenStocks[stock.name] && stock.shares > 0);
         return stocks
             .map(stock => ({
                 name: stock.name,
@@ -64,7 +64,7 @@ const ReportDialog: React.FC<ReportDialogProps> = ({
     };
 
     const prepareTopPerformersData = () => {
-        const stocks = yearDataItem.stocks.filter(stock => !hiddenStocks[stock.name]);
+        const stocks = yearDataItem.stocks.filter(stock => !hiddenStocks[stock.name] && stock.shares > 0);
         return stocks
             .map(stock => ({
                 name: stock.name,

@@ -36,7 +36,7 @@ const GrowthInfo: React.FC<GrowthInfoProps> = ({
         const previousYear = previousYears[0];
         const calculateTotalValue = (year: string) => {
             if (!yearData[year]?.stocks) return 0;
-            const stockValue = yearData[year].stocks.reduce((acc, stock) => acc + stock.shares * stock.price, 0);
+            const stockValue = yearData[year].stocks.filter(s => s.shares > 0).reduce((acc, stock) => acc + stock.shares * stock.price, 0);
             return stockValue + (yearData[year].cashBalance || 0);
         };
 
@@ -140,7 +140,7 @@ const GrowthInfo: React.FC<GrowthInfoProps> = ({
 
 const calculateTotalValue = (yearData?: YearData) => {
     if (!yearData) return 0;
-    const stocksValue = yearData.stocks.reduce((acc, stock) => acc + stock.shares * stock.price, 0);
+    const stocksValue = yearData.stocks.filter(s => s.shares > 0).reduce((acc, stock) => acc + stock.shares * stock.price, 0);
     return stocksValue + (yearData.cashBalance || 0);
 };
 

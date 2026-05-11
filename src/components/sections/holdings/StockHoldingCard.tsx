@@ -217,13 +217,43 @@ export function StockHoldingCard({
                     fontSize: 11,
                     color: colors.fg,
                   }}
-                  formatter={(v: number) => [fmt(v), '市值']}
-                  labelFormatter={(label: string) => {
+                  content={({ active, payload, label }) => {
+                    if (!active || !payload?.length) return null;
                     const entry = chartData.find((d) => d.label === label);
                     const stk = entry ? yearData[entry.year]?.stocks?.find((s) => s.name === stockName) : null;
-                    return stk
-                      ? `${entry?.year} 年  ${stk.shares} 股 @ ${fmt(stk.price)}`
-                      : `${entry?.year} 年  已清仓`;
+                    const value = payload[0]?.value as number;
+                    const gainPct = stk && stk.costPrice > 0
+                      ? (stk.price - stk.costPrice) / stk.costPrice * 100
+                      : null;
+                    return (
+                      <div style={{
+                        background: colors.bgElevated,
+                        border: `1px solid ${colors.borderDefault}`,
+                        borderRadius: 6,
+                        padding: '6px 10px',
+                        fontSize: 11,
+                        color: colors.fg,
+                        lineHeight: 1.7,
+                        minWidth: 140,
+                      }}>
+                        <div style={{ fontWeight: 600, marginBottom: 2 }}>
+                          {entry?.year} 年{!stk ? '  已清仓' : ''}
+                        </div>
+                        {stk && (
+                          <>
+                            <div>{stk.shares.toLocaleString()} 股</div>
+                            <div>现价 <strong>{fmt(stk.price)}</strong></div>
+                            <div style={{ color: colors.fgMuted }}>成本 {fmt(stk.costPrice)}</div>
+                            {gainPct !== null && (
+                              <div style={{ color: gainPct >= 0 ? colors.success : colors.danger, fontWeight: 600 }}>
+                                浮盈 {gainPct >= 0 ? '+' : ''}{gainPct.toFixed(1)}%
+                              </div>
+                            )}
+                            <div style={{ color: colors.fgMuted, marginTop: 2 }}>市值 {fmt(value)}</div>
+                          </>
+                        )}
+                      </div>
+                    );
                   }}
                 />
                 <Area

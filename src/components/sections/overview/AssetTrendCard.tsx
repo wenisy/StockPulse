@@ -18,16 +18,19 @@ import { useResolvedColors } from '@/hooks/useResolvedColors';
 
 export function AssetTrendCard() {
   const { chartData, portfolioData, trackerState } = usePortfolio();
-  const { lineChartData } = chartData;
-  const { formatLargeNumber } = portfolioData;
+  const { lineChartData, totalValues } = chartData;
+  const { formatLargeNumber, years } = portfolioData;
   const { currency } = trackerState;
   const colors = useResolvedColors();
 
-  const empty = !lineChartData || lineChartData.length === 0;
+  // 用 totalValues（持仓市值 + 现金余额）而非 lineChartData.total（仅含股票市值）
+  // 保持与逐年总览卡片的数字一致
+  const sortedYears = [...years].sort((a, b) => parseInt(a) - parseInt(b));
+  const empty = sortedYears.length === 0;
 
-  const data = (lineChartData ?? []).map((d) => ({
-    year: d.year,
-    total: Number(d.total ?? 0),
+  const data = sortedYears.map((year) => ({
+    year,
+    total: totalValues[year] ?? 0,
   }));
 
   return (

@@ -336,27 +336,39 @@ TBD - created by archiving change add-portfolio-test-foundation. Update Purpose 
 
 ### Requirement: shares=0 持仓不得出现在任何用户可见的展示层
 
-系统在渲染以下任何 UI 时，SHALL 过滤掉当年 `shares = 0` 的股票条目，使其不出现在用户可见的内容中：
+系统在渲染以下任何 UI 时，SHALL 过滤掉当年 `shares = 0` 的股票条目：
 
-1. **持仓列表**（HoldingsSection）：仅展示历史上至少有过一年 shares > 0 的股票
-2. **折线图/柱状图**（StockCharts / lineChartData）：latestYear 股票集合仅收录 shares > 0
-3. **年报弹窗 ReportDialog**：
-   - 饼图数据 preparePieChartData：过滤 shares = 0
-   - 柱图数据 prepareBarChartData：过滤 shares = 0
-   - 持仓排名 prepareTopPerformers：过滤 shares = 0
-4. **GrowthInfo**：持仓价值计算 reduce 过滤 shares = 0（不影响数值，但语义明确）
+1. **持仓列表**（HoldingsSection）
+2. **折线图**（StockCharts/lineChartData）—— useChartData.lineChartData 收集 latestStocks 时
+3. **柱状图**（StockCharts/barChartData）—— useChartData.barChartData 收集 latestStocks 时
+4. **prepareLineChartData**（useCalculations.ts）—— 收集 stockNames 时
+5. **年报弹窗 ReportDialog**（preparePieChartData / prepareBarChartData / prepareTopPerformers）
+6. **GrowthInfo**：持仓价值 reduce 前
+7. **StockTable tfoot 合计行**：年度总市值 reduce 前
 
-#### Scenario: 2026 年 Amazon shares=0
+#### Scenario: 任意展示层含 shares=0 条目
 
-- **GIVEN** yearData["2026"].stocks 包含 `{ name: "Amazon", shares: 0, price: 200 }`
-- **WHEN** 用户打开 2026 年投资报告弹窗
-- **THEN** 报告中的饼图、柱图、持仓排名均不含 Amazon
-- **AND** Amazon 在持仓列表的"历史持仓"区域可见（因其在历史年份有过 shares > 0）
+- **GIVEN** yearData["2026"].stocks 含 `{ name: "Amazon", shares: 0 }`
+- **WHEN** 用户访问任何上述列出的展示层
+- **THEN** Amazon 不出现在该展示层中
+- **AND** 即使 hiddenStocks["Amazon"] === false（未被手动隐藏）也不出现
 
-#### Scenario: 新增股票但从未有持仓
+### Requirement: shares=0 过滤必须有单元测试防回归
 
-- **GIVEN** yearData["2026"].stocks 包含 `{ name: "TestStock", shares: 0 }`
-- **AND** 该股票在所有年份 shares 均为 0
-- **WHEN** 用户查看持仓列表
-- **THEN** TestStock 不在持仓列表的任何区域显示
+为防止本类 bug 反复出现，所有已实现 shares=0 过滤的 hook/工具函数 MUST 在对应测试文件中包含至少一个 shares=0 场景：
+
+- `useChartData.test.ts`：覆盖 lineChartData / barChartData 在含 shares=0 输入时的行为
+- `useCalculations.test.ts`：覆盖 prepareLineChartData 在含 shares=0 输入时的行为
+
+#### Scenario: useChartData lineChartData 防回归
+
+- **GIVEN** mock yearData 含 `[{ shares: 100 }, { shares: 0 }]`
+- **WHEN** 调用 useChartData，读取 lineChartData
+- **THEN** 数据点中只有 shares > 0 的股票作为 key 出现
+
+#### Scenario: useCalculations prepareLineChartData 防回归
+
+- **GIVEN** mock yearData 含 `[{ shares: 100 }, { shares: 0 }]`
+- **WHEN** 调用 prepareLineChartData
+- **THEN** 返回的 stockNames 不包含 shares=0 股票
 

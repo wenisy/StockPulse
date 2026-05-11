@@ -167,3 +167,76 @@ describe('useCalculations - shares=0 过滤防回归', () => {
     expect(allKeys.has('AMZN')).toBe(false);
   });
 });
+
+// ==================== 边界保护防回归 ====================
+
+describe('useCalculations - 边界保护', () => {
+  it('单年数据 → getLatestYearGrowthRate 返回 null', () => {
+    const yd: { [y: string]: YearData } = {
+      '2024': {
+        stocks: [{ name: 'A', shares: 100, price: 50, costPrice: 40, id: 'a1' }],
+        cashTransactions: [],
+        stockTransactions: [],
+        cashBalance: 0,
+      },
+    };
+    const { result } = renderHook(() =>
+      useCalculations(yd, ['2024'], ['2024'], {}, convertToCurrency, currency),
+    );
+    expect(result.current.getLatestYearGrowthRate()).toBeNull();
+  });
+
+  it('上一年 stocks 空 cashBalance=0 → getLatestYearGrowthRate 返回 null', () => {
+    const yd: { [y: string]: YearData } = {
+      '2023': {
+        stocks: [],
+        cashTransactions: [],
+        stockTransactions: [],
+        cashBalance: 0,
+      },
+      '2024': {
+        stocks: [{ name: 'A', shares: 100, price: 50, costPrice: 40, id: 'a1' }],
+        cashTransactions: [],
+        stockTransactions: [],
+        cashBalance: 0,
+      },
+    };
+    const { result } = renderHook(() =>
+      useCalculations(yd, ['2023', '2024'], ['2023', '2024'], {}, convertToCurrency, currency),
+    );
+    expect(result.current.getLatestYearGrowthRate()).toBeNull();
+  });
+
+  it('prepareLineChartData 在 stocks=[] 时不抛', () => {
+    const yd: { [y: string]: YearData } = {
+      '2024': {
+        stocks: [],
+        cashTransactions: [],
+        stockTransactions: [],
+        cashBalance: 0,
+      },
+    };
+    expect(() => {
+      const { result } = renderHook(() =>
+        useCalculations(yd, ['2024'], ['2024'], {}, convertToCurrency, currency),
+      );
+      result.current.prepareLineChartData();
+    }).not.toThrow();
+  });
+
+  it('preparePercentageBarChartData 在 totalValue<=0 时跳过该年（不 NaN）', () => {
+    const yd: { [y: string]: YearData } = {
+      '2024': {
+        stocks: [],
+        cashTransactions: [],
+        stockTransactions: [],
+        cashBalance: 0, // totalValue=0 应被跳过
+      },
+    };
+    const { result } = renderHook(() =>
+      useCalculations(yd, ['2024'], ['2024'], {}, convertToCurrency, currency),
+    );
+    const data = result.current.preparePercentageBarChartData();
+    expect(data).toEqual([]);
+  });
+});

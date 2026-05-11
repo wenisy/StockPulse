@@ -121,3 +121,26 @@ describe('useYearData - convertToCurrency / formatLargeNumber', () => {
     expect(result.current.convertToCurrency(100, 'HKD')).toBeCloseTo(1000, 1);
   });
 });
+
+describe('useYearData - 边界保护', () => {
+  it('latestYear 是有效非空字符串', () => {
+    const { result } = renderHook(() => useYearData({ currentUser: null }));
+    expect(typeof result.current.latestYear).toBe('string');
+    expect(result.current.latestYear.length).toBeGreaterThan(0);
+    expect(parseInt(result.current.latestYear)).not.toBeNaN();
+  });
+
+  it('selectedYear 初始化为 years[0]（最新年）', () => {
+    const { result } = renderHook(() => useYearData({ currentUser: null }));
+    expect(result.current.selectedYear).toBe(result.current.years[0]);
+  });
+
+  it('addNewYear 后 latestYear 自动更新', () => {
+    const { result } = renderHook(() => useYearData({ currentUser: null }));
+    const before = parseInt(result.current.latestYear);
+    act(() => {
+      result.current.addNewYear((before + 5).toString());
+    });
+    expect(parseInt(result.current.latestYear)).toBe(before + 5);
+  });
+});

@@ -152,3 +152,104 @@ describe('useChartData - shares=0 过滤防回归', () => {
     expect(point.total).toBe(0);
   });
 });
+
+// ==================== 数值边界 / 空数据防回归 ====================
+
+describe('useChartData - 边界保护', () => {
+  it('yearData={} 时 lineChartData 为空数组', () => {
+    const { result } = renderHook(() =>
+      useChartData({
+        yearData: {},
+        years: [],
+        latestYear: '2024',
+        hiddenStocks: {},
+      }),
+    );
+    expect(result.current.lineChartData).toEqual([]);
+  });
+
+  it('yearData={} 时 totalValues 为空对象', () => {
+    const { result } = renderHook(() =>
+      useChartData({
+        yearData: {},
+        years: [],
+        latestYear: '2024',
+        hiddenStocks: {},
+      }),
+    );
+    expect(result.current.totalValues).toEqual({});
+  });
+
+  it('years=[] 时 getLatestYearGrowthRate 返回空字符串（不 NaN）', () => {
+    const { result } = renderHook(() =>
+      useChartData({
+        yearData: {},
+        years: [],
+        latestYear: '2024',
+        hiddenStocks: {},
+      }),
+    );
+    expect(result.current.getLatestYearGrowthRate()).toBe('');
+  });
+
+  it('cashTransactions 全空 → getLatestYearGrowthRate 返回空字符串（netDeposits<=0）', () => {
+    const yearData: { [y: string]: YearData } = {
+      '2023': {
+        stocks: [{ name: 'A', shares: 100, price: 40, costPrice: 40, id: 'a1' }],
+        cashTransactions: [],
+        stockTransactions: [],
+        cashBalance: 1000,
+      },
+      '2024': {
+        stocks: [{ name: 'A', shares: 100, price: 50, costPrice: 40, id: 'a1' }],
+        cashTransactions: [],
+        stockTransactions: [],
+        cashBalance: 2000,
+      },
+    };
+    const { result } = renderHook(() =>
+      useChartData({
+        yearData,
+        years: ['2024', '2023'],
+        latestYear: '2024',
+        hiddenStocks: {},
+      }),
+    );
+    expect(result.current.getLatestYearGrowthRate()).toBe('');
+  });
+
+  it('单年数据 calculateInvestmentReturn 返回有限数（不 NaN）', () => {
+    const yearData: { [y: string]: YearData } = {
+      '2024': {
+        stocks: [{ name: 'A', shares: 100, price: 50, costPrice: 40, id: 'a1' }],
+        cashTransactions: [],
+        stockTransactions: [],
+        cashBalance: 0,
+      },
+    };
+    const { result } = renderHook(() =>
+      useChartData({
+        yearData,
+        years: ['2024'],
+        latestYear: '2024',
+        hiddenStocks: {},
+      }),
+    );
+    const ret = result.current.calculateInvestmentReturn('2024');
+    expect(Number.isFinite(ret.percentageReturn)).toBe(true);
+    expect(Number.isFinite(ret.absoluteReturn)).toBe(true);
+  });
+
+  it('barChartData 为空数据时不抛', () => {
+    expect(() => {
+      renderHook(() =>
+        useChartData({
+          yearData: {},
+          years: [],
+          latestYear: '2024',
+          hiddenStocks: {},
+        }),
+      );
+    }).not.toThrow();
+  });
+});

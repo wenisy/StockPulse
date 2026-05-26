@@ -19,6 +19,17 @@ context: |
 # 如需串行（verify 通过后才启动 review），将下面改为 serial
 review_mode: parallel
 
+# openspec-installer:pair-feature v1
+pair_feature:
+  enabled: true
+  skill_path: "~/.codebuddy/skills/openspec-pair-feature"
+  trigger_signals:
+    - '用户描述涉及前端调用后端 API（含 method/path/request/response 任一关键词）'
+    - '用户描述同时出现"前端"+"后端"或 client/server/前台/后台 关键词'
+    - '用户主动声明"跨前后端"/"前后端联调"/"前后端一起做"'
+    - '当前 repo 名匹配 backend|api|server|frontend|web|mobile|admin 关键词'
+    - '用户在 /opsx:propose 时仅给 change-id 而未描述端识别信息（隐含跨端，触发 upstream 扫描）'
+
 rules:
   archive:
     - "归档前 MUST 执行 git branch 确认当前在特性分支上（非 main/master），如果在主分支上则提示用户先切换到特性分支"
@@ -68,3 +79,16 @@ rules:
 
       编排细节（团队创建、子 agent 启动、消息回传、并行/串行模式分支等）
       由 .codebuddy/commands/tcsc/review-pipeline.md 单一维护，此处不再重复。
+
+  # openspec-installer:pair-feature v1
+  proposal:
+    - |
+      创建 proposal.md 前，AI MUST 先按 pair_feature.trigger_signals 自检当前 feature 是否跨端：
+
+      1. 逐条检查 pair_feature.trigger_signals 列表中的 5 条信号
+      2. 任一命中 → 判定为跨端 feature：
+         - Read pair_feature.skill_path 下的 SKILL.md（懒加载完整流程）
+         - 按 SKILL.md Step 1~5 执行串行协作流程
+         - MUST NOT 仅凭 config.yaml 极简段独自完成 5 步流程
+      3. 全部未命中 → 走正常 proposal 流程，不加载 pair-feature skill
+      4. 读取 SKILL.md 失败 → MUST 提示用户"未能加载 pair-feature skill，是否手动指引继续？"，不得静默退化

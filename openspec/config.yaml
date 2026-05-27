@@ -31,54 +31,31 @@ pair_feature:
     - '用户在 /opsx:propose 时仅给 change-id 而未描述端识别信息（隐含跨端，触发 upstream 扫描）'
 
 rules:
+  # openspec-installer:rules-archive v2
   archive:
-    - "归档前 MUST 执行 git branch 确认当前在特性分支上（非 main/master），如果在主分支上则提示用户先切换到特性分支"
-    - "归档前 MUST 执行 git log --oneline @{u}..HEAD 2>/dev/null 检查是否有未推送的提交，如果有则提示用户先 git push"
-    - "归档前 MUST 执行 git remote -v 获取远端仓库地址，然后提示用户确认是否已为该特性分支创建合并请求（MR/PR）"
-    - "如果以上任一条件未满足，MUST 阻止归档并明确告知用户需要先完成的步骤"
-    - |
-      归档完成后 MUST 更新索引文件：
+    - "归档时 MUST 执行 /tcsc:archive-pipeline <change-name> 走完 5 步流程（git branch 检查 / unpushed commits 检查 / MR/PR 存在性反问 / openspec archive / INDEX 语义化更新）。所有详细检查与索引更新逻辑由 .codebuddy/commands/tcsc/archive-pipeline.md 与 .claude/commands/tcsc/archive-pipeline.md 单一维护，此处不再重复。"
 
-      1. specs/INDEX.md 更新：
-         读取 openspec/specs/ 下每个子目录的 spec.md，理解其内容后生成表格：
-         - 从文档中语义提取该 spec 的用途描述（优先从 ## Purpose 段落，若无则从首个 Requirement 概括）
-         - 统计 '### Requirement:' 出现次数作为需求数
-         - 生成 Markdown 表格写入 openspec/specs/INDEX.md，格式如下：
-
-         # Specs 索引
-
-         | Spec | 用途 | 需求数 |
-         |------|------|--------|
-         | [spec-name](./spec-name/spec.md) | 用途描述 | N |
-
-         如果 specs 目录下无子目录，写入：_暂无 spec。_
-
-      2. archive/INDEX.md 更新：
-         读取 openspec/changes/archive/ 下每个子目录的 proposal.md，理解其内容后生成表格：
-         - 从目录名提取日期（YYYY-MM-DD 前缀）和变更名
-         - 从 proposal.md 的 '## Why' 段落语义提取动因摘要（一句话）
-         - 从 proposal.md 的 '### New Capabilities' 提取新增能力名称
-         - 生成 Markdown 表格按日期倒序写入 openspec/changes/archive/INDEX.md，格式如下：
-
-         # 归档变更索引
-
-         | 日期 | 变更 | 动因 | 新增能力 |
-         |------|------|------|----------|
-         | 2026-03-20 | [change-name](./2026-03-20-change-name/) | 动因摘要 | capability-a, capability-b |
-
-         如果 archive 目录下无子目录，写入：_暂无归档变更。_
-
-  # openspec-installer:rules-apply v1
+  # openspec-installer:rules-apply v2
   apply:
     - |
-      编码完成后（所有 tasks.md 中的任务均已标记为 [x]），MUST 执行：
-      /tcsc:review-pipeline <change-name>
+      编码完成后 MUST 执行：/tcsc:review-pipeline <change-name>
+
+      触发时机：所有【代码任务】标 [x] 的瞬间（不依赖元任务是否完成）。
+      代码任务 vs 元任务边界识别：见 .codebuddy/rules/openspec-config-awareness.md
+      与 .claude/rules/openspec-config-awareness.md 的"代码任务 vs 元任务边界识别"段
+      （简版 + 关键词列表），详细启发式见 /tcsc:review-pipeline 命令体 Phase 0。
+
+      输出禁令：进入审查阶段后，SHALL NOT 输出"现在可以执行 /opsx:archive"
+      "或先用 /verify / /tcsc:code-review" 等降级表达；
+      第一行 MUST 以"[审查] 启动审查流水线..."等执行声明开头。详见 bridge rule
+      "完成态输出禁令"段。
 
       pipeline 返回后暂停，等待用户决定是否 /opsx:archive。
       不得在 pipeline 未完成时直接建议 archive。
 
       编排细节（团队创建、子 agent 启动、消息回传、并行/串行模式分支等）
-      由 .codebuddy/commands/tcsc/review-pipeline.md 单一维护，此处不再重复。
+      由 .codebuddy/commands/tcsc/review-pipeline.md 与 .claude/commands/
+      tcsc/review-pipeline.md 单一维护，此处不再重复。
 
   # openspec-installer:pair-feature v1
   proposal:

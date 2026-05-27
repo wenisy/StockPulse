@@ -7,7 +7,7 @@ const getBackendDomain = () => {
     return "//stock-backend-tau.vercel.app";
 };
 
-interface MonthlySummary {
+export interface MonthlySummary {
     totalGain: number;
     totalGainPercent: number;
     tradingDaysCount: number;

@@ -1,11 +1,13 @@
 "use client";
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Calendar, EyeOff, RefreshCw, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/components/ui/toast';
 import { cn } from '@/lib/utils';
 import { useCalendarData } from '@/hooks/useCalendarData';
+import type { MonthlySummary } from '@/hooks/useCalendarData';
+import { CalendarData } from '@/types/stock';
 import { useCalendarView } from './calendar/hooks/useCalendarView';
 import { useSnapshotGeneration } from './calendar/hooks/useSnapshotGeneration';
 import { changeMonth as changeMonthUtil } from './calendar/calendarUtils';
@@ -17,6 +19,12 @@ interface ProfitLossCalendarProps {
   formatLargeNumber: (value: number, currency: string) => string;
   currency: string;
   years?: string[];
+  // External data props — when provided, component uses them instead of internal hook
+  externalCalendarData?: CalendarData[];
+  externalMonthlySummary?: MonthlySummary | null;
+  externalIsLoading?: boolean;
+  externalError?: string | null;
+  onExternalFetchCalendarData?: (year: number, month: number) => Promise<void>;
 }
 
 const ProfitLossCalendar: React.FC<ProfitLossCalendarProps> = ({
@@ -24,18 +32,36 @@ const ProfitLossCalendar: React.FC<ProfitLossCalendarProps> = ({
   formatLargeNumber,
   currency,
   years: parentYears,
+  externalCalendarData,
+  externalMonthlySummary,
+  externalIsLoading,
+  externalError,
+  onExternalFetchCalendarData,
 }) => {
-  // 数据层（IO + 业务数据）
+  // 数据层（IO + 业务数据）— always called (hooks rules), used only in non-external mode
   const {
-    calendarData,
-    monthlySummary,
+    calendarData: internalCalendarData,
+    monthlySummary: internalMonthlySummary,
     yearlySummary,
-    isLoading,
-    error,
-    fetchCalendarData,
+    isLoading: internalIsLoading,
+    error: internalError,
+    fetchCalendarData: internalFetchCalendarData,
     fetchYearlySummary,
     generateDailySnapshot,
   } = useCalendarData();
+
+  // Resolve effective values: external props take priority when provided
+  const isExternalMode = externalCalendarData !== undefined;
+  const calendarData = isExternalMode ? externalCalendarData : internalCalendarData;
+  const monthlySummary = isExternalMode
+    ? (externalMonthlySummary ?? null)
+    : internalMonthlySummary;
+  const isLoading = isExternalMode ? (externalIsLoading ?? false) : internalIsLoading;
+  const error = isExternalMode ? (externalError ?? null) : internalError;
+  const fetchCalendarData =
+    isExternalMode && onExternalFetchCalendarData
+      ? onExternalFetchCalendarData
+      : internalFetchCalendarData;
 
   const toast = useToast();
 
@@ -55,6 +81,22 @@ const ProfitLossCalendar: React.FC<ProfitLossCalendarProps> = ({
 
   // 隐藏金额（月视图 + 年视图共享）
   const [hideAmount, setHideAmount] = useState(false);
+
+  // 年度汇总独立 loading 状态（外部模式下 isLoading 绑定 externalIsLoading，
+  // 无法反映 fetchYearlySummary 的内部加载状态，需单独跟踪）
+  const [isYearlySummaryLoading, setIsYearlySummaryLoading] = useState(false);
+
+  const fetchYearlySummaryWithLoading = useCallback(
+    async (year: number) => {
+      setIsYearlySummaryLoading(true);
+      try {
+        await fetchYearlySummary(year);
+      } finally {
+        setIsYearlySummaryLoading(false);
+      }
+    },
+    [fetchYearlySummary],
+  );
 
   // 快照生成流程
   const {
@@ -78,8 +120,8 @@ const ProfitLossCalendar: React.FC<ProfitLossCalendarProps> = ({
 
   // 切到年度视图时加载年度汇总
   useEffect(() => {
-    if (viewMode === 'yearly') fetchYearlySummary(currentYear);
-  }, [viewMode, currentYear, fetchYearlySummary]);
+    if (viewMode === 'yearly') fetchYearlySummaryWithLoading(currentYear);
+  }, [viewMode, currentYear, fetchYearlySummaryWithLoading]);
 
   // 切换月份（含跨年）
   const onChangeMonth = (delta: number) => {
@@ -258,7 +300,7 @@ const ProfitLossCalendar: React.FC<ProfitLossCalendarProps> = ({
       )}
 
       {/* 年视图 */}
-      {viewMode === 'yearly' && !isLoading && (
+      {viewMode === 'yearly' && !isYearlySummaryLoading && (
         <YearlySummaryView
           yearlySummary={yearlySummary}
           currentYear={currentYear}

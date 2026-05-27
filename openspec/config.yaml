@@ -33,7 +33,7 @@ pair_feature:
 rules:
   # openspec-installer:rules-archive v2
   archive:
-    - "归档时 MUST 执行 /tcsc:archive-pipeline <change-name> 走完 5 步流程（git branch 检查 / unpushed commits 检查 / MR/PR 存在性反问 / openspec archive / INDEX 语义化更新）。所有详细检查与索引更新逻辑由 .codebuddy/commands/tcsc/archive-pipeline.md 与 .claude/commands/tcsc/archive-pipeline.md 单一维护，此处不再重复。"
+    - "归档时 MUST 执行 /tcsc:archive-pipeline <change-name> 走完 4 步流程（git branch 检查 / unpushed commits 检查 / openspec archive / INDEX 语义化更新）。所有详细检查与索引更新逻辑由 .codebuddy/commands/tcsc/archive-pipeline.md 与 .claude/commands/tcsc/archive-pipeline.md 单一维护，此处不再重复。"
 
   # openspec-installer:rules-apply v2
   apply:

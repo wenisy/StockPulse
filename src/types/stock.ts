@@ -182,6 +182,7 @@ export interface CalendarData {
     date: string;
     totalGain: number;
     totalGainPercent: number;
+    totalValue?: number;
     hasData: boolean;
     hasTransaction: boolean;
     stocks: CalendarStockData[];

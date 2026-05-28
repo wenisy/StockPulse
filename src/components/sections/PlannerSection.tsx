@@ -6,22 +6,12 @@ import RetirementCalculator from '@/components/RetirementCalculator';
 import ProfitLossCalendar from '@/components/ProfitLossCalendar';
 import DailyTrendChart from '@/components/DailyTrendChart';
 import { usePortfolio } from '@/components/shell/PortfolioContext';
-import { useCalendarData } from '@/hooks/useCalendarData';
 import { TrendingUp } from 'lucide-react';
 
 export function PlannerSection() {
   const { userSettings, chartData, portfolioData, trackerState } = usePortfolio();
   const { yearData, formatLargeNumber, latestYear } = portfolioData;
   const { currency } = trackerState;
-
-  // Lifted state: shared between ProfitLossCalendar and DailyTrendChart
-  const {
-    calendarData,
-    monthlySummary,
-    isLoading,
-    error,
-    fetchCalendarData,
-  } = useCalendarData();
 
   return (
     <div className="space-y-6">
@@ -53,11 +43,6 @@ export function PlannerSection() {
           currency={currency}
           formatLargeNumber={formatLargeNumber}
           years={Object.keys(yearData)}
-          externalCalendarData={calendarData}
-          externalMonthlySummary={monthlySummary}
-          externalIsLoading={isLoading}
-          externalError={error}
-          onExternalFetchCalendarData={fetchCalendarData}
         />
       </Section>
       <Section className="p-4 md:p-6">
@@ -66,8 +51,6 @@ export function PlannerSection() {
           每日资产走势
         </h2>
         <DailyTrendChart
-          calendarData={calendarData}
-          isLoading={isLoading}
           currency={currency}
           formatLargeNumber={formatLargeNumber}
         />

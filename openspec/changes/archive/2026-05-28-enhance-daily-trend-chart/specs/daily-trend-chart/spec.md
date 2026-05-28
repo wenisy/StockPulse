@@ -1,8 +1,5 @@
-# daily-trend-chart Specification
+## MODIFIED Requirements
 
-## Purpose
-TBD - created by archiving change add-planner-daily-value-chart. Update Purpose after archive.
-## Requirements
 ### Requirement: 折线图渲染每日资产总值
 `DailyTrendChart` 组件 SHALL 自持 `year`/`month` 状态，内部调用 `useCalendarData` 管理数据拉取，不依赖父组件注入 `calendarData`。组件接口仅需 `currency: string` 和 `formatLargeNumber` 函数（移除 `calendarData` 和 `isLoading` 外部 props）。
 
@@ -17,6 +14,17 @@ TBD - created by archiving change add-planner-daily-value-chart. Update Purpose 
 #### Scenario: 单数据点渲染
 - **WHEN** 当月只有 1 个有效数据点
 - **THEN** 渲染单个可见圆点（`r=4`），不崩溃
+
+### Requirement: 加载状态骨架屏
+`DailyTrendChart` SHALL 在内部数据加载中时显示骨架屏（`animate-pulse`），加载完成后渲染图表。
+
+#### Scenario: 内部加载中显示骨架屏
+- **WHEN** `isLoading` 为 `true`（内部状态）
+- **THEN** 渲染 240px 高的 pulse 骨架屏，不显示图表或"暂无数据"
+
+#### Scenario: 切换月份时短暂骨架屏
+- **WHEN** 用户点击导航按钮触发新月份加载
+- **THEN** 骨架屏显示直至新月份数据就绪
 
 ### Requirement: 无数据降级显示
 `DailyTrendChart` SHALL 在无有效数据点时显示"暂无数据"提示；在 API 请求失败时显示区分性错误提示（如"数据加载失败，请重试"），不与无数据状态混淆。
@@ -33,38 +41,7 @@ TBD - created by archiving change add-planner-daily-value-chart. Update Purpose 
 - **WHEN** 用户未登录，`fetchCalendarData` 因无 token 抛出错误
 - **THEN** 组件不崩溃，显示降级提示
 
-### Requirement: 加载状态骨架屏
-`DailyTrendChart` SHALL 在内部数据加载中时显示骨架屏（`animate-pulse`），加载完成后渲染图表。
-
-#### Scenario: 内部加载中显示骨架屏
-- **WHEN** `isLoading` 为 `true`（内部状态）
-- **THEN** 渲染 240px 高的 pulse 骨架屏，不显示图表或"暂无数据"
-
-#### Scenario: 切换月份时短暂骨架屏
-- **WHEN** 用户点击导航按钮触发新月份加载
-- **THEN** 骨架屏显示直至新月份数据就绪
-
-### Requirement: 与日历联动
-折线图 SHALL 与日历的年月选择器保持联动，展示相同月份的数据。
-
-#### Scenario: 月份切换同步
-- **WHEN** 用户在日历区块切换到不同月份
-- **THEN** 折线图同步展示切换后月份的每日资产曲线，**不发起额外 API 请求**
-
-#### Scenario: 切换月份时短暂 loading
-- **WHEN** 用户切换月份，`isLoading` 变为 `true`
-- **THEN** 折线图区域显示骨架屏直至新数据就绪
-
-### Requirement: Planner 页面布局位置
-`DailyTrendChart` SHALL 位于 Planner 页面月度盈亏日历 Section 的下方，作为独立 Section 渲染。
-
-#### Scenario: 页面结构顺序
-- **WHEN** 用户访问 `?view=planner`
-- **THEN** 页面从上到下依次为：退休计算器 → 月度盈亏日历 → 每日资产折线图
-
-#### Scenario: 区块标题
-- **WHEN** 折线图区块渲染
-- **THEN** Section 标题为"每日资产走势"或等价中文标题
+## ADDED Requirements
 
 ### Requirement: 月份独立导航
 `DailyTrendChart` SHALL 在图表区域上方提供 `←`（上一月）和 `→`（下一月）导航按钮及月份标签，用户可独立于日历切换任意历史或未来月份。
@@ -99,4 +76,3 @@ TBD - created by archiving change add-planner-daily-value-chart. Update Purpose 
 #### Scenario: Tooltip 显示持平
 - **WHEN** 用户悬浮到 `totalGain === 0` 的数据点
 - **THEN** Tooltip 显示资产总值 + 涨跌金额 "$0" + 涨跌幅 "0.0%"（中性颜色）
-

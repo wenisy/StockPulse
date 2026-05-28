@@ -2,6 +2,7 @@
 
 | 日期 | 变更 | 动因 | 新增能力 |
 |------|------|------|----------|
+| 2026-05-28 | [enhance-daily-trend-chart](./2026-05-28-enhance-daily-trend-chart/) | 折线图缺乏独立月份导航、无涨跌幅展示，只能查看当月数据 | 月份独立导航, Tooltip 涨跌幅 |
 | 2026-05-27 | [add-planner-daily-value-chart](./2026-05-27-add-planner-daily-value-chart/) | Planner 页缺乏每日资产总值折线图；后端快照已有 `totalValue`，只需前端补类型 + 新增组件 | daily-trend-chart, profit-loss-calendar |
 | 2026-05-11 | [harden-numeric-boundaries](./2026-05-11-harden-numeric-boundaries/) | 已有边界防护（除零/空数组）缺乏断言型测试，重构时可能静默回归 | — |
 | 2026-05-11 | [fix-zero-shares-filter](./2026-05-11-fix-zero-shares-filter/) | ReportDialog/GrowthInfo 未同步过滤 shares=0 已清仓股票，年报显示数据不一致 | portfolio-domain（delta） |

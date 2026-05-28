@@ -1,10 +1,9 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import DailyTrendChart from '@/components/DailyTrendChart';
 import { CalendarData } from '@/types/stock';
 
-// Recharts uses ResizeObserver internally; already mocked in jest.setup.js.
-// Mock recharts to avoid SVG rendering issues in jsdom.
+// Mock recharts to avoid SVG rendering issues in jsdom
 jest.mock('recharts', () => {
   const OriginalModule = jest.requireActual('recharts');
   return {
@@ -23,7 +22,6 @@ jest.mock('recharts', () => {
   };
 });
 
-// Mock useResolvedColors to return predictable values in tests
 jest.mock('@/hooks/useResolvedColors', () => ({
   useResolvedColors: () => ({
     brand: '#6366f1',
@@ -33,25 +31,20 @@ jest.mock('@/hooks/useResolvedColors', () => ({
     bgSubtle: '#f8fafc',
     borderDefault: '#e2e8f0',
     borderSubtle: '#f1f5f9',
+    success: '#22c55e',
+    danger: '#ef4444',
     chartColors: ['#6366f1'],
   }),
 }));
 
-const formatLargeNumber = (value: number, _currency: string) =>
-  value.toLocaleString('zh-CN');
-
-const emptyProps = {
-  calendarData: [] as CalendarData[],
-  isLoading: false,
-  currency: 'USD',
-  formatLargeNumber,
-};
+// Mock useCalendarData so DailyTrendChart can be tested without network calls
+const mockFetchCalendarData = jest.fn().mockResolvedValue(undefined);
 
 const withData: CalendarData[] = [
   {
     date: '2025-05-01',
     totalGain: 100,
-    totalGainPercent: 1,
+    totalGainPercent: 0.2,
     totalValue: 50000,
     hasData: true,
     hasTransaction: false,
@@ -68,40 +61,97 @@ const withData: CalendarData[] = [
   },
 ];
 
+const setupMock = (calendarData: CalendarData[], isLoading = false) => {
+  jest.mock('@/hooks/useCalendarData', () => ({
+    useCalendarData: () => ({
+      calendarData,
+      isLoading,
+      error: null,
+      fetchCalendarData: mockFetchCalendarData,
+      monthlySummary: null,
+      yearlySummary: null,
+      fetchYearlySummary: jest.fn(),
+      generateDailySnapshot: jest.fn(),
+    }),
+  }));
+};
+
+// Since jest.mock is hoisted, use a single mock with configurable return
+let mockCalendarData: CalendarData[] = [];
+let mockIsLoading = false;
+
+jest.mock('@/hooks/useCalendarData', () => ({
+  useCalendarData: () => ({
+    calendarData: mockCalendarData,
+    isLoading: mockIsLoading,
+    error: null,
+    fetchCalendarData: mockFetchCalendarData,
+    monthlySummary: null,
+    yearlySummary: null,
+    fetchYearlySummary: jest.fn(),
+    generateDailySnapshot: jest.fn(),
+  }),
+}));
+
+const defaultProps = {
+  currency: 'USD',
+  formatLargeNumber: (value: number, _currency: string) => value.toLocaleString('zh-CN'),
+};
+
 describe('DailyTrendChart', () => {
+  beforeEach(() => {
+    mockCalendarData = [];
+    mockIsLoading = false;
+    mockFetchCalendarData.mockClear();
+  });
+
   test('空数据时显示暂无数据提示', () => {
-    render(<DailyTrendChart {...emptyProps} />);
+    mockCalendarData = [];
+    render(<DailyTrendChart {...defaultProps} />);
     expect(screen.getByText('暂无数据')).toBeInTheDocument();
     expect(screen.queryByTestId('line-chart')).not.toBeInTheDocument();
   });
 
   test('isLoading 时显示骨架屏，不渲染折线图', () => {
-    render(<DailyTrendChart {...emptyProps} isLoading={true} />);
-    // Skeleton is an animated div; chart should NOT be present
+    mockIsLoading = true;
+    render(<DailyTrendChart {...defaultProps} />);
     expect(screen.queryByTestId('line-chart')).not.toBeInTheDocument();
     expect(screen.queryByText('暂无数据')).not.toBeInTheDocument();
   });
 
   test('有效数据时渲染折线图', () => {
-    render(
-      <DailyTrendChart
-        {...emptyProps}
-        calendarData={withData}
-      />,
-    );
+    mockCalendarData = withData;
+    render(<DailyTrendChart {...defaultProps} />);
     expect(screen.getByTestId('line-chart')).toBeInTheDocument();
     expect(screen.queryByText('暂无数据')).not.toBeInTheDocument();
   });
 
   test('hasData=false 的数据点被过滤，不渲染折线图', () => {
-    const noHasData: CalendarData[] = withData.map((d) => ({ ...d, hasData: false }));
-    render(<DailyTrendChart {...emptyProps} calendarData={noHasData} />);
+    mockCalendarData = withData.map((d) => ({ ...d, hasData: false }));
+    render(<DailyTrendChart {...defaultProps} />);
     expect(screen.getByText('暂无数据')).toBeInTheDocument();
   });
 
   test('totalValue=0 的数据点被过滤', () => {
-    const zeroValue: CalendarData[] = withData.map((d) => ({ ...d, totalValue: 0 }));
-    render(<DailyTrendChart {...emptyProps} calendarData={zeroValue} />);
+    mockCalendarData = withData.map((d) => ({ ...d, totalValue: 0 }));
+    render(<DailyTrendChart {...defaultProps} />);
     expect(screen.getByText('暂无数据')).toBeInTheDocument();
+  });
+
+  test('渲染月份标签和导航按钮', () => {
+    mockCalendarData = withData;
+    render(<DailyTrendChart {...defaultProps} />);
+    // Navigation buttons should be present
+    const buttons = screen.getAllByRole('button');
+    expect(buttons.length).toBeGreaterThanOrEqual(2);
+  });
+
+  test('点击上一月后 fetchCalendarData 被调用', () => {
+    mockCalendarData = withData;
+    render(<DailyTrendChart {...defaultProps} />);
+    const buttons = screen.getAllByRole('button');
+    // First button is prev month (ChevronLeft)
+    fireEvent.click(buttons[0]);
+    expect(mockFetchCalendarData).toHaveBeenCalled();
   });
 });

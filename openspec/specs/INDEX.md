@@ -4,7 +4,7 @@
 |------|------|--------|
 | [app-shell](./app-shell/spec.md) | 应用框架（AppShell）的职责边界、响应式导航形态与 section 结构 | 8 |
 | [component-structure](./component-structure/spec.md) | 大组件重构规范：测试先行、文件行数上限、组件拆分边界 | 11 |
-| [daily-trend-chart](./daily-trend-chart/spec.md) | Planner 页面每日资产总值折线图：渲染、降级、骨架屏、月份联动 | 5 |
+| [daily-trend-chart](./daily-trend-chart/spec.md) | Planner 页面每日资产折线图：自治导航、月份切换、骨架屏、降级、Tooltip 涨跌幅 | 7 |
 | [design-system](./design-system/spec.md) | Design tokens 单一事实源、CSS 变量与 TS 双轨一致、多主题无 FOUC | 8 |
 | [holdings-section](./holdings-section/spec.md) | 持仓表（Holdings Section）列集合与行交互规范 | 4 |
 | [hooks-structure](./hooks-structure/spec.md) | 单职责 hook 边界定义与聚合 hook 向下兼容策略 | 4 |

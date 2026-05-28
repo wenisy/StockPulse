@@ -149,6 +149,43 @@ describe('DailyTrendChart', () => {
     expect(screen.getByText('隐藏金额')).toBeInTheDocument();
   });
 
+  test('点击隐藏金额后按钮文字变为"已隐藏"', () => {
+    render(<DailyTrendChart {...defaultProps} />);
+    const btn = screen.getByText('隐藏金额');
+    fireEvent.click(btn);
+    expect(screen.getByText('已隐藏')).toBeInTheDocument();
+    expect(screen.queryByText('隐藏金额')).not.toBeInTheDocument();
+  });
+
+  test('再次点击隐藏金额恢复"隐藏金额"文字', () => {
+    render(<DailyTrendChart {...defaultProps} />);
+    const btn = screen.getByText('隐藏金额');
+    fireEvent.click(btn);
+    fireEvent.click(screen.getByText('已隐藏'));
+    expect(screen.getByText('隐藏金额')).toBeInTheDocument();
+  });
+
+  test('数据点 < 5 时不渲染 Brush', () => {
+    // withDailyData has 2 points, < 5
+    mockCalendarData = withDailyData;
+    render(<DailyTrendChart {...defaultProps} />);
+    expect(screen.queryByTestId('brush')).not.toBeInTheDocument();
+  });
+
+  test('数据点 ≥ 5 时渲染 Brush', () => {
+    mockCalendarData = Array.from({ length: 5 }, (_, i) => ({
+      date: `2025-05-${String(i + 1).padStart(2, '0')}`,
+      totalGain: 100 * i,
+      totalGainPercent: 0.2 * i,
+      totalValue: 50000 + i * 1000,
+      hasData: true,
+      hasTransaction: false,
+      stocks: [],
+    }));
+    render(<DailyTrendChart {...defaultProps} />);
+    expect(screen.getByTestId('brush')).toBeInTheDocument();
+  });
+
   test('月份导航按钮存在', () => {
     render(<DailyTrendChart {...defaultProps} />);
     const buttons = screen.getAllByRole('button');

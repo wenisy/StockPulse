@@ -4,23 +4,27 @@
 TBD - created by archiving change add-planner-daily-value-chart. Update Purpose after archive.
 ## Requirements
 ### Requirement: 折线图渲染每日资产总值
-`DailyTrendChart` 在 `按日` 模式（`viewMode='daily'`，默认）下 SHALL 展示当月每日资产总值折线；在 `按月` 模式（`viewMode='monthly'`）下 SHALL 展示当年每月涨跌幅（`totalGainPercent`）折线，Y 轴格式为 `+X.XX%` / `-X.XX%`。两种模式共享同一个容器组件。
+`DailyTrendChart` SHALL 根据当前时间范围自动决定数据粒度和折线渲染：
 
-#### Scenario: 按日模式默认加载
-- **WHEN** 组件初始化，`viewMode` 为 `'daily'`
-- **THEN** 加载当月数据，渲染每日 totalValue 折线；X 轴为 `M/D` 格式日期
+- `1月` → 日粒度，`totalValue` 折线（X 轴 `M/D`）
+- `3月` → 周粒度（前端聚合），`totalValue` 折线（X 轴该周末日 `M/D`）
+- `1年` → 月粒度，`totalGainPercent` 折线（X 轴 `M月`）
 
-#### Scenario: 切换到按月模式
-- **WHEN** 用户点击"按月"按钮
-- **THEN** `viewMode` 切为 `'monthly'`；调用 `fetchYearlySummary(year)`；图表 X 轴变为 `M月`（1月-12月），Y 轴为月度涨跌幅 %；导航改为年份 prev/next
+#### Scenario: 1月模式渲染日折线
+- **WHEN** `range='1月'` 且 `calendarData` 非空
+- **THEN** 折线展示当月每日 `totalValue`，X 轴 `M/D` 格式
 
-#### Scenario: 按月模式过滤无效月份
-- **WHEN** `yearlySummary` 中某月 `tradingDaysCount === 0`（无快照数据）
-- **THEN** 该月不渲染为折线数据点（连线跳过，不显示 0%）
+#### Scenario: 3月模式按 ISO 周聚合
+- **WHEN** `range='3月'` 且 3 个月的 `calendarData` 已加载
+- **THEN** 按 ISO 周（year + week number 复合 key）分组，每组取最后一个 `hasData=true && totalValue>0` 数据点的 `totalValue` 作为该周点；周累计 `totalGain` 为该周所有日 `totalGain` 之和
 
-#### Scenario: 切回按日模式
-- **WHEN** 用户点击"按日"按钮
-- **THEN** `viewMode` 切为 `'daily'`；恢复月份导航，图表重新渲染当月每日数据
+#### Scenario: 3月模式跨 ISO 年周
+- **WHEN** 3 月窗口包含跨年 ISO 周（如 2024-12-30 属于 2025 年第 1 周）
+- **THEN** 按 ISO 年 + ISO 周分组，跨年周不会被错误合并到上一年
+
+#### Scenario: 1年模式渲染月度折线
+- **WHEN** `range='1年'` 且 `yearlySummary` 非空
+- **THEN** 折线展示当年每月 `totalGainPercent`，X 轴 `M月` 格式（仅渲染 `tradingDaysCount > 0` 的月份）
 
 ### Requirement: 无数据降级显示
 `DailyTrendChart` SHALL 区分"无数据"和"加载失败"两种空态，分别显示不同提示。
@@ -67,23 +71,27 @@ TBD - created by archiving change add-planner-daily-value-chart. Update Purpose 
 - **THEN** Section 标题为"每日资产走势"或等价中文标题
 
 ### Requirement: 月份独立导航
-`DailyTrendChart` SHALL 在图表区域上方提供 `←`（上一月）和 `→`（下一月）导航按钮及月份标签，用户可独立于日历切换任意历史或未来月份。
+`DailyTrendChart` SHALL 提供时间范围切换 `[1月] [3月] [1年]` 替代原本的"按日/按月"两个 tab。三档范围共享同一个 navLabel + ← → 导航控件，导航行为按当前选中范围自动适配：
 
-#### Scenario: 点击上一月
-- **WHEN** 用户点击 `←` 按钮
-- **THEN** year/month 切换到上一个月（1月→前一年12月），图表重新加载该月数据，标题同步更新
+- `1月` 模式：导航上下月（`YYYY年M月`）
+- `3月` 模式：滑动 3 月窗口（`YYYY年M-M月`），每次 ← → 移动 1 个月
+- `1年` 模式：导航上下年（`YYYY年`）
 
-#### Scenario: 点击下一月
-- **WHEN** 用户点击 `→` 按钮
-- **THEN** year/month 切换到下一个月（12月→下一年1月），图表重新加载，标题同步更新
+#### Scenario: 默认 1月模式
+- **WHEN** 组件初始化
+- **THEN** 时间范围默认 `1月`，加载当前月数据，导航 label 显示 `YYYY年M月`，← → 上下月
 
-#### Scenario: 标题显示当前选中年月
-- **WHEN** 图表渲染完成（任意月份）
-- **THEN** 导航区域显示格式为 `YYYY年M月`（如"2025年5月"）
+#### Scenario: 切换到 3月模式
+- **WHEN** 用户点击 `3月` 按钮
+- **THEN** 触发 3 次并发 `fetchCalendarData`（当前选中月 + 前 2 个月），导航 label 改为 `YYYY年M-M月`，← → 滑动整个 3 月窗口（每次 1 个月）
 
-#### Scenario: 加载中禁用导航
-- **WHEN** `isLoading` 为 `true`
-- **THEN** `←` / `→` 按钮处于 disabled 状态，防止并发请求
+#### Scenario: 3月窗口 ← 越界 clamp
+- **WHEN** 3 月模式下用户连续点 ← 直到窗口起始月已是 1 月
+- **THEN** 不再继续后退（窗口 clamp 在 `1-3 月`）
+
+#### Scenario: 切换到 1年模式
+- **WHEN** 用户点击 `1年` 按钮
+- **THEN** 调用 `fetchYearlySummary(year)`，导航 label 改为 `YYYY年`，← → 切换上下年
 
 ### Requirement: Tooltip 显示当日涨跌信息
 `DailyTrendChart` 的 Tooltip SHALL 在用户悬浮数据点时，同时显示 `totalValue`（资产总值）、`totalGain`（当日涨跌金额）和 `totalGainPercent`（当日涨跌幅）。涨跌金额和涨跌幅须用颜色区分正负（正值绿色，负值红色）。
@@ -116,28 +124,17 @@ TBD - created by archiving change add-planner-daily-value-chart. Update Purpose 
 - **THEN** `hideAmount` 状态保持，按月模式的 Y 轴也显示 `****`
 
 ### Requirement: 按日模式 Brush 缩放
-`DailyTrendChart` 在 `按日` 模式且当月有效数据点 ≥ 5 个时，SHALL 在图表底部渲染 Recharts `<Brush>` 组件，允许用户拖拽左右边界来缩放查看的日期范围。`按月` 模式不显示 Brush。
+`DailyTrendChart` SHALL 仅在 `range='1月'` 模式且 `dailyChartData.length >= 5` 时渲染 Brush；`3月`/`1年` 模式 SHALL NOT 渲染 Brush。
 
-#### Scenario: 按日模式有效数据点 ≥ 5 时渲染 Brush
-- **WHEN** `viewMode='daily'` 且过滤后有效数据点 ≥ 5
-- **THEN** 图表底部显示 Brush 拖拽条，用户可缩放
+#### Scenario: 1月模式数据点 ≥ 5 渲染 Brush
+- **WHEN** `range='1月'` 且 `dailyChartData.length >= 5`
+- **THEN** 图表底部渲染 Brush，`startIndex/endIndex` 受控保持最少 7 天可视范围
 
-#### Scenario: 按日模式数据点 < 5 不渲染 Brush
-- **WHEN** `viewMode='daily'` 且有效数据点 < 5
-- **THEN** 不渲染 Brush（数据点太少缩放无意义）
+#### Scenario: 3月模式不渲染 Brush
+- **WHEN** `range='3月'`
+- **THEN** 不渲染 Brush（数据点是周粒度，已较少）
 
-#### Scenario: 按月模式不渲染 Brush
-- **WHEN** `viewMode='monthly'`
+#### Scenario: 1年模式不渲染 Brush
+- **WHEN** `range='1年'`
 - **THEN** 不渲染 Brush
-
-### Requirement: 视图模式导航适配
-`DailyTrendChart` SHALL 根据 `viewMode` 自动切换导航按钮行为：`按日` 模式导航为上/下月，`按月` 模式导航为上/下年。导航标签也相应变化（`按日` 显示 `YYYY年M月`，`按月` 显示 `YYYY年`）。
-
-#### Scenario: 按日模式显示月份导航
-- **WHEN** `viewMode='daily'`
-- **THEN** 导航显示 `← YYYY年M月 →`，点击切换月份
-
-#### Scenario: 按月模式显示年份导航
-- **WHEN** `viewMode='monthly'`
-- **THEN** 导航显示 `← YYYY年 →`，点击切换年份
 

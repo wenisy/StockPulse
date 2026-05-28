@@ -88,7 +88,7 @@ const DailyTooltip: React.FC<
         当日涨跌: <span className="font-semibold">{maskValue(hideAmount, `${sign}${formatLargeNumber(totalGain, currency)}`)}</span>
       </p>
       <p style={{ color: gainColor }}>
-        涨跌幅: <span className="font-semibold">{maskValue(hideAmount, `${sign}${totalGainPercent.toFixed(2)}%`)}</span>
+        涨跌幅: <span className="font-semibold" style={{ color: gainColor }}>{`${sign}${totalGainPercent.toFixed(2)}%`}</span>
       </p>
     </div>
   );
@@ -113,7 +113,7 @@ const MonthlyTooltip: React.FC<
     <div style={{ background: bgColor, border: `1px solid ${borderColor}`, color: textColor, borderRadius: '8px', padding: '8px 12px', fontSize: '12px', minWidth: '160px' }}>
       <p className="mb-2 font-medium">{label}</p>
       <p className="mb-0.5" style={{ color: gainColor }}>
-        月涨跌幅: <span className="font-semibold">{maskValue(hideAmount, `${sign}${totalGainPercent.toFixed(2)}%`)}</span>
+        月涨跌幅: <span className="font-semibold" style={{ color: gainColor }}>{`${sign}${totalGainPercent.toFixed(2)}%`}</span>
       </p>
       <p style={{ color: gainColor }}>
         月涨跌额: <span className="font-semibold">{maskValue(hideAmount, `${sign}${formatLargeNumber(totalGain, currency)}`)}</span>
@@ -131,6 +131,11 @@ const DailyTrendChart: React.FC<DailyTrendChartProps> = ({ currency, formatLarge
   const [year, setYear] = useState(initYear);
   const [month, setMonth] = useState(initMonth);
   const [hideAmount, setHideAmount] = useState(false);
+
+  // Brush range state — enforces minimum 7 visible days
+  const MIN_BRUSH_DAYS = 6; // endIndex - startIndex >= 6  →  7 days visible
+  const [brushStart, setBrushStart] = useState(0);
+  const [brushEnd, setBrushEnd] = useState(0);
 
   const { calendarData, yearlySummary, isLoading, error, fetchCalendarData, fetchYearlySummary } = useCalendarData();
   const colors = useResolvedColors();
@@ -167,6 +172,26 @@ const DailyTrendChart: React.FC<DailyTrendChartProps> = ({ currency, formatLarge
       const [, mm, dd] = d.date.split('-');
       return { date: d.date, label: `${parseInt(mm)}/${parseInt(dd)}`, totalValue: d.totalValue ?? 0, totalGain: d.totalGain, totalGainPercent: d.totalGainPercent ?? 0 };
     });
+
+  // Reset brush to full range whenever month data changes
+  useEffect(() => {
+    setBrushStart(0);
+    setBrushEnd(Math.max(0, dailyChartData.length - 1));
+  }, [dailyChartData.length]);
+
+  // Enforce minimum 7-day window; clamp the offending handle
+  const handleBrushChange = ({ startIndex, endIndex }: { startIndex?: number; endIndex?: number }) => {
+    const s = startIndex ?? brushStart;
+    const e = endIndex ?? brushEnd;
+    if (e - s >= MIN_BRUSH_DAYS) {
+      setBrushStart(s);
+      setBrushEnd(e);
+    } else {
+      // Clamp: keep span at minimum by moving whichever handle changed
+      if (s !== brushStart) setBrushStart(Math.max(0, e - MIN_BRUSH_DAYS));
+      else setBrushEnd(Math.min(dailyChartData.length - 1, s + MIN_BRUSH_DAYS));
+    }
+  };
 
   // Monthly chart data
   const monthlyChartData: MonthlyChartPoint[] = (yearlySummary ?? [])
@@ -291,6 +316,9 @@ const DailyTrendChart: React.FC<DailyTrendChartProps> = ({ currency, formatLarge
                     stroke={colors.borderDefault}
                     fill={colors.bgSubtle}
                     travellerWidth={8}
+                    startIndex={brushStart}
+                    endIndex={brushEnd}
+                    onChange={handleBrushChange}
                   />
                 )}
               </LineChart>
@@ -315,8 +343,7 @@ const DailyTrendChart: React.FC<DailyTrendChartProps> = ({ currency, formatLarge
                   tickLine={false}
                   width={56}
                   tickFormatter={(v: number) => {
-                    if (hideAmount) return '****';
-                    return `${v > 0 ? '+' : ''}${v.toFixed(2)}%`;
+                    return `${v > 0 ? '+' : ''}${v.toFixed(2)}%`;  // % 不受隐藏金额影响
                   }}
                 />
                 <Tooltip content={monthlyTooltipEl} />

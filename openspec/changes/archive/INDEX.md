@@ -2,6 +2,7 @@
 
 | 日期 | 变更 | 动因 | 新增能力 |
 |------|------|------|----------|
+| 2026-05-28 | [add-trend-chart-controls](./2026-05-28-add-trend-chart-controls/) | 折线图缺少隐藏金额、无按月视图、无缩放控件，只能看当月按天数据 | 隐藏金额, 按月视图, Brush 缩放 |
 | 2026-05-28 | [enhance-daily-trend-chart](./2026-05-28-enhance-daily-trend-chart/) | 折线图缺乏独立月份导航、无涨跌幅展示，只能查看当月数据 | 月份独立导航, Tooltip 涨跌幅 |
 | 2026-05-27 | [add-planner-daily-value-chart](./2026-05-27-add-planner-daily-value-chart/) | Planner 页缺乏每日资产总值折线图；后端快照已有 `totalValue`，只需前端补类型 + 新增组件 | daily-trend-chart, profit-loss-calendar |
 | 2026-05-11 | [harden-numeric-boundaries](./2026-05-11-harden-numeric-boundaries/) | 已有边界防护（除零/空数组）缺乏断言型测试，重构时可能静默回归 | — |

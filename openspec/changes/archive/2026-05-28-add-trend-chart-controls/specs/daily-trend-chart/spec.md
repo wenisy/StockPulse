@@ -1,8 +1,5 @@
-# daily-trend-chart Specification
+## MODIFIED Requirements
 
-## Purpose
-TBD - created by archiving change add-planner-daily-value-chart. Update Purpose after archive.
-## Requirements
 ### Requirement: 折线图渲染每日资产总值
 `DailyTrendChart` 在 `按日` 模式（`viewMode='daily'`，默认）下 SHALL 展示当月每日资产总值折线；在 `按月` 模式（`viewMode='monthly'`）下 SHALL 展示当年每月涨跌幅（`totalGainPercent`）折线，Y 轴格式为 `+X.XX%` / `-X.XX%`。两种模式共享同一个容器组件。
 
@@ -22,17 +19,6 @@ TBD - created by archiving change add-planner-daily-value-chart. Update Purpose 
 - **WHEN** 用户点击"按日"按钮
 - **THEN** `viewMode` 切为 `'daily'`；恢复月份导航，图表重新渲染当月每日数据
 
-### Requirement: 无数据降级显示
-`DailyTrendChart` SHALL 区分"无数据"和"加载失败"两种空态，分别显示不同提示。
-
-#### Scenario: API 失败显示错误提示
-- **WHEN** `error` 非空
-- **THEN** 显示红色"数据加载失败，请重试"
-
-#### Scenario: 无有效数据点显示暂无数据
-- **WHEN** 过滤后无有效数据点
-- **THEN** 显示灰色"暂无数据"
-
 ### Requirement: 加载状态骨架屏
 `DailyTrendChart` SHALL 在 `isLoading` 为 `true`（包含切换模式触发的加载）时显示骨架屏。
 
@@ -44,61 +30,18 @@ TBD - created by archiving change add-planner-daily-value-chart. Update Purpose 
 - **WHEN** `isLoading` 为 `true`
 - **THEN** 渲染 animate-pulse 骨架屏
 
-### Requirement: 与日历联动
-折线图 SHALL 与日历的年月选择器保持联动，展示相同月份的数据。
+### Requirement: 无数据降级显示
+`DailyTrendChart` SHALL 区分"无数据"和"加载失败"两种空态，分别显示不同提示。
 
-#### Scenario: 月份切换同步
-- **WHEN** 用户在日历区块切换到不同月份
-- **THEN** 折线图同步展示切换后月份的每日资产曲线，**不发起额外 API 请求**
+#### Scenario: API 失败显示错误提示
+- **WHEN** `error` 非空
+- **THEN** 显示红色"数据加载失败，请重试"
 
-#### Scenario: 切换月份时短暂 loading
-- **WHEN** 用户切换月份，`isLoading` 变为 `true`
-- **THEN** 折线图区域显示骨架屏直至新数据就绪
+#### Scenario: 无有效数据点显示暂无数据
+- **WHEN** 过滤后无有效数据点
+- **THEN** 显示灰色"暂无数据"
 
-### Requirement: Planner 页面布局位置
-`DailyTrendChart` SHALL 位于 Planner 页面月度盈亏日历 Section 的下方，作为独立 Section 渲染。
-
-#### Scenario: 页面结构顺序
-- **WHEN** 用户访问 `?view=planner`
-- **THEN** 页面从上到下依次为：退休计算器 → 月度盈亏日历 → 每日资产折线图
-
-#### Scenario: 区块标题
-- **WHEN** 折线图区块渲染
-- **THEN** Section 标题为"每日资产走势"或等价中文标题
-
-### Requirement: 月份独立导航
-`DailyTrendChart` SHALL 在图表区域上方提供 `←`（上一月）和 `→`（下一月）导航按钮及月份标签，用户可独立于日历切换任意历史或未来月份。
-
-#### Scenario: 点击上一月
-- **WHEN** 用户点击 `←` 按钮
-- **THEN** year/month 切换到上一个月（1月→前一年12月），图表重新加载该月数据，标题同步更新
-
-#### Scenario: 点击下一月
-- **WHEN** 用户点击 `→` 按钮
-- **THEN** year/month 切换到下一个月（12月→下一年1月），图表重新加载，标题同步更新
-
-#### Scenario: 标题显示当前选中年月
-- **WHEN** 图表渲染完成（任意月份）
-- **THEN** 导航区域显示格式为 `YYYY年M月`（如"2025年5月"）
-
-#### Scenario: 加载中禁用导航
-- **WHEN** `isLoading` 为 `true`
-- **THEN** `←` / `→` 按钮处于 disabled 状态，防止并发请求
-
-### Requirement: Tooltip 显示当日涨跌信息
-`DailyTrendChart` 的 Tooltip SHALL 在用户悬浮数据点时，同时显示 `totalValue`（资产总值）、`totalGain`（当日涨跌金额）和 `totalGainPercent`（当日涨跌幅）。涨跌金额和涨跌幅须用颜色区分正负（正值绿色，负值红色）。
-
-#### Scenario: Tooltip 显示正涨幅
-- **WHEN** 用户悬浮到 `totalGain > 0` 的数据点
-- **THEN** Tooltip 显示资产总值 + 绿色涨跌金额（如 "+$1,234"）+ 绿色涨跌幅（如 "+0.5%"）
-
-#### Scenario: Tooltip 显示负跌幅
-- **WHEN** 用户悬浮到 `totalGain < 0` 的数据点
-- **THEN** Tooltip 显示资产总值 + 红色跌幅金额（如 "-$567"）+ 红色涨跌幅（如 "-0.3%"）
-
-#### Scenario: Tooltip 显示持平
-- **WHEN** 用户悬浮到 `totalGain === 0` 的数据点
-- **THEN** Tooltip 显示资产总值 + 涨跌金额 "$0" + 涨跌幅 "0.0%"（中性颜色）
+## ADDED Requirements
 
 ### Requirement: 隐藏金额
 `DailyTrendChart` SHALL 提供"隐藏金额"toggle 按钮（位于导航栏最右侧）。开启时，Y 轴刻度和 Tooltip 中所有数值（`totalValue`、`totalGain`、`totalGainPercent`）均显示为 `****`，折线形状保持不变。
@@ -140,4 +83,3 @@ TBD - created by archiving change add-planner-daily-value-chart. Update Purpose 
 #### Scenario: 按月模式显示年份导航
 - **WHEN** `viewMode='monthly'`
 - **THEN** 导航显示 `← YYYY年 →`，点击切换年份
-

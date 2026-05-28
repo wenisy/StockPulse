@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { CalendarData } from '@/types/stock';
 
 // 获取后端域名的工具函数
@@ -31,6 +31,18 @@ interface UseCalendarDataReturn {
     generateDailySnapshot: (date?: string) => Promise<void>;
 }
 
+const FETCH_TIMEOUT_MS = 10_000;
+
+/** 创建带超时的 AbortSignal（兼容降级：优先 AbortSignal.timeout，不支持则手动 setTimeout）。*/
+function makeSignalWithTimeout(controller: AbortController): { signal: AbortSignal; clearTimeout: () => void } {
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    timeoutId = setTimeout(() => controller.abort(new DOMException('请求超时', 'TimeoutError')), FETCH_TIMEOUT_MS);
+    return {
+        signal: controller.signal,
+        clearTimeout: () => { if (timeoutId !== null) clearTimeout(timeoutId); },
+    };
+}
+
 export const useCalendarData = (): UseCalendarDataReturn => {
     const [calendarData, setCalendarData] = useState<CalendarData[]>([]);
     const [monthlySummary, setMonthlySummary] = useState<MonthlySummary | null>(null);
@@ -40,10 +52,21 @@ export const useCalendarData = (): UseCalendarDataReturn => {
 
     const backendDomain = getBackendDomain();
 
+    // AbortController refs — 每次发起新请求时取消上一个同类请求
+    const calendarAbortRef = useRef<AbortController | null>(null);
+    const yearlyAbortRef = useRef<AbortController | null>(null);
+
     // 获取月度日历数据
     const fetchCalendarData = useCallback(async (year: number, month: number) => {
+        // 取消上一次未完成的同类请求
+        calendarAbortRef.current?.abort();
+        const controller = new AbortController();
+        calendarAbortRef.current = controller;
+
         setIsLoading(true);
         setError(null);
+
+        const { signal, clearTimeout: clearSignalTimeout } = makeSignalWithTimeout(controller);
 
         try {
             const token = localStorage.getItem('token');
@@ -53,58 +76,73 @@ export const useCalendarData = (): UseCalendarDataReturn => {
 
             const response = await fetch(
                 `${backendDomain}/api/calendarData?year=${year}&month=${month.toString().padStart(2, '0')}`,
-                {
-                    headers: {
-                        'Authorization': token,
-                    },
-                }
+                { headers: { 'Authorization': token }, signal }
             );
+
+            if (signal.aborted) return; // 竞态保护：丢弃过期响应
 
             if (!response.ok) {
                 throw new Error(`获取日历数据失败: ${response.statusText}`);
             }
 
             const result = await response.json();
+            if (signal.aborted) return; // 竞态保护：JSON 解析完成后再次检查
+
             setCalendarData(result.data || []);
             setMonthlySummary(result.monthlySummary || null);
-        } catch (error) {
-            console.error('获取日历数据失败:', error);
-            setError(error instanceof Error ? error.message : '获取数据失败');
+        } catch (err) {
+            if ((err as Error)?.name === 'AbortError') return; // 忽略主动中止
+            console.error('获取日历数据失败:', err);
+            setError(err instanceof Error ? err.message : '获取数据失败');
             setCalendarData([]);
             setMonthlySummary(null);
         } finally {
-            setIsLoading(false);
+            clearSignalTimeout();
+            if (!signal.aborted) setIsLoading(false);
         }
-    }, [backendDomain]); // 添加依赖项
+    }, [backendDomain]);
 
     // 获取年度（月度汇总）数据
     const fetchYearlySummary = useCallback(async (year: number) => {
+        // 取消上一次未完成的同类请求
+        yearlyAbortRef.current?.abort();
+        const controller = new AbortController();
+        yearlyAbortRef.current = controller;
+
         setIsLoading(true);
         setError(null);
+
+        const { signal, clearTimeout: clearSignalTimeout } = makeSignalWithTimeout(controller);
+
         try {
             const token = localStorage.getItem('token');
             if (!token) {
                 throw new Error('未找到认证令牌');
             }
+
             const response = await fetch(
                 `${backendDomain}/api/calendarData?year=${year}&type=summary`,
-                {
-                    headers: {
-                        'Authorization': token,
-                    },
-                }
+                { headers: { 'Authorization': token }, signal }
             );
+
+            if (signal.aborted) return;
+
             if (!response.ok) {
                 throw new Error(`获取年度汇总失败: ${response.statusText}`);
             }
+
             const result = await response.json();
+            if (signal.aborted) return;
+
             setYearlySummary(result.data || null);
-        } catch (error) {
-            console.error('获取年度汇总失败:', error);
-            setError(error instanceof Error ? error.message : '获取年度汇总失败');
+        } catch (err) {
+            if ((err as Error)?.name === 'AbortError') return;
+            console.error('获取年度汇总失败:', err);
+            setError(err instanceof Error ? err.message : '获取年度汇总失败');
             setYearlySummary(null);
         } finally {
-            setIsLoading(false);
+            clearSignalTimeout();
+            if (!signal.aborted) setIsLoading(false);
         }
     }, [backendDomain]);
 

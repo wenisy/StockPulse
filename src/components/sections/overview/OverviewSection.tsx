@@ -10,7 +10,7 @@ import ReportDialog from '@/components/ReportDialog';
 
 export function OverviewSection() {
   const { trackerState, portfolioData, chartData } = usePortfolio();
-  const { yearData, formatLargeNumber } = portfolioData;
+  const { yearData, formatLargeNumber, handleTokenExpired } = portfolioData;
   const { calculateCumulativeInvested } = chartData;
   const { currency, isReportDialogOpen, setIsReportDialogOpen, selectedReportYear, hiddenStocks, currentUser, isLoggedIn } = trackerState;
 
@@ -62,6 +62,7 @@ export function OverviewSection() {
         totalPortfolioValue={totalPortfolioValue}
         cumulativeInvested={cumulativeInvested}
         currentUser={currentUser}
+        onUnauthorized={handleTokenExpired}
       />
     </div>
   );

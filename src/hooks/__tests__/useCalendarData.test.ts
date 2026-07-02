@@ -78,6 +78,22 @@ describe('useCalendarData', () => {
     expect(result.current.error).toBeTruthy();
   });
 
+  it('fetchCalendarData：401 触发 onUnauthorized', async () => {
+    localStorageMock.getItem.mockReturnValue('token123');
+    const onUnauthorized = jest.fn();
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: false,
+      status: 401,
+      json: async () => ({ message: '无效或过期的令牌' }),
+    });
+    const { result } = renderHook(() => useCalendarData({ onUnauthorized }));
+    await act(async () => {
+      await result.current.fetchCalendarData(2024, 6);
+    });
+    expect(onUnauthorized).toHaveBeenCalled();
+    expect(result.current.error).toBeNull();
+  });
+
   it('fetchCalendarData：fetch 失败时 isLoading 归零且设置 error', async () => {
     localStorageMock.getItem.mockReturnValue('token123');
     (global.fetch as jest.Mock).mockRejectedValueOnce(new Error('网络错误'));

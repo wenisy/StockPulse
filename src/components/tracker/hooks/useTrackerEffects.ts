@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import type {
   ExchangeRates,
   IncrementalChanges,
@@ -6,9 +6,14 @@ import type {
   User,
   YearData,
 } from '@/types/stock';
+import { stockInitialData } from '@/components/data';
 import type { useTrackerState } from './useTrackerState';
 
 type TrackerState = ReturnType<typeof useTrackerState>;
+
+function isInitialPortfolioData(data: { [year: string]: YearData }): boolean {
+  return JSON.stringify(data) === JSON.stringify(stockInitialData);
+}
 
 export interface UseTrackerEffectsProps {
   trackerState: TrackerState;
@@ -70,6 +75,13 @@ export function useTrackerEffects({
     isLoggedIn,
   } = trackerState;
 
+  const hasBeenLoggedInRef = useRef(false);
+  useEffect(() => {
+    if (isLoggedIn) {
+      hasBeenLoggedInRef.current = true;
+    }
+  }, [isLoggedIn]);
+
   // 1. 初始化数据
   useEffect(() => {
     const initializeData = async () => {
@@ -90,6 +102,11 @@ export function useTrackerEffects({
         setIsLoggedIn(true);
         try {
           await fetchJsonData(token);
+          if (!localStorage.getItem('token')) {
+            setIsLoggedIn(false);
+            setCurrentUser(null);
+            return;
+          }
           setIsLoading(true);
           await refreshPrices(false);
           setIsLoading(false);
@@ -160,9 +177,13 @@ export function useTrackerEffects({
     }
   }, [lastRefreshTime, setLastRefreshTime]);
 
-  // 3. 本地存储同步
+  // 3. 本地存储同步（会话过期重置为初始数据时不覆盖用户离线缓存）
   useEffect(() => {
-    if (typeof window !== 'undefined' && !isLoggedIn) {
+    if (
+      typeof window !== 'undefined' &&
+      !isLoggedIn &&
+      !(hasBeenLoggedInRef.current && isInitialPortfolioData(yearData))
+    ) {
       localStorage.setItem('stockPortfolioData', JSON.stringify(yearData));
       localStorage.setItem('stockPortfolioYears', JSON.stringify(years));
       localStorage.setItem('stockPortfolioSelectedYear', selectedYear);
@@ -189,9 +210,9 @@ export function useTrackerEffects({
     };
   }, [incrementalChanges, isLoggedIn, saveDataToBackend, saveTimeoutRef]);
 
-  // 5. 加载本地存储（未登录时）
+  // 5. 加载本地存储（仅初始未登录；从已登录登出/过期后不恢复旧缓存）
   useEffect(() => {
-    if (typeof window !== 'undefined' && !isLoggedIn) {
+    if (typeof window !== 'undefined' && !isLoggedIn && !hasBeenLoggedInRef.current) {
       const savedData = localStorage.getItem('stockPortfolioData');
       const savedYears = localStorage.getItem('stockPortfolioYears');
       const savedSelectedYear = localStorage.getItem('stockPortfolioSelectedYear');

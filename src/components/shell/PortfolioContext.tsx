@@ -44,6 +44,8 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
     currentUser: trackerState.currentUser,
     isLoggedIn: trackerState.isLoggedIn,
     setAlertInfo: trackerState.setAlertInfo,
+    setIsLoggedIn: trackerState.setIsLoggedIn,
+    setCurrentUser: trackerState.setCurrentUser,
   });
 
   const {

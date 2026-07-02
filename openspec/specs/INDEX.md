@@ -11,6 +11,6 @@
 | [overview-section](./overview-section/spec.md) | Overview 页面 KPI 指标集与资产走势图（AssetTrendCard） | 4 |
 | [portfolio-codebase-hygiene](./portfolio-codebase-hygiene/spec.md) | 代码库卫生约束：禁止集成测试在根组件、禁止调试脚本留存 | 3 |
 | [portfolio-codebase-layout](./portfolio-codebase-layout/spec.md) | 投资组合项目目录结构与 lib 层依赖方向约束 | 7 |
-| [portfolio-domain](./portfolio-domain/spec.md) | 投资组合核心业务规则：加权成本价、盈亏计算、持仓管理 | 22 |
+| [portfolio-domain](./portfolio-domain/spec.md) | 投资组合核心业务规则：加权成本价、盈亏计算、持仓管理、会话过期处理 | 25 |
 | [portfolio-test-coverage](./portfolio-test-coverage/spec.md) | 测试覆盖率阈值与 spec scenario 和测试用例的强制对应 | 8 |
 | [profit-loss-calendar](./profit-loss-calendar/spec.md) | ProfitLossCalendar 外部数据 props 注入，支持状态提升与向下兼容 | 1 |

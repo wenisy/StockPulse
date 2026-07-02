@@ -23,6 +23,8 @@ const makeProps = (overrides = {}) => {
   const setComparisonYear = jest.fn();
   const setIncrementalChanges = jest.fn();
   const setAlertInfo = jest.fn();
+  const setIsLoggedIn = jest.fn();
+  const setCurrentUser = jest.fn();
   const incrementalChanges: IncrementalChanges = {
     stocks: {},
     cashTransactions: {},
@@ -39,6 +41,8 @@ const makeProps = (overrides = {}) => {
     setComparisonYear,
     setIncrementalChanges,
     setAlertInfo,
+    setIsLoggedIn,
+    setCurrentUser,
     ...overrides,
   };
 };
@@ -61,7 +65,7 @@ describe('usePortfolioSync - 初始状态', () => {
 });
 
 describe('usePortfolioSync - handleTokenExpired', () => {
-  it('清除 token / user + 调 setAlertInfo', () => {
+  it('清除 token / user + 重置登录态 + 调 setAlertInfo', () => {
     localStorageMock.setItem('token', 'test');
     localStorageMock.setItem('user', '{}');
     const props = makeProps();
@@ -69,9 +73,20 @@ describe('usePortfolioSync - handleTokenExpired', () => {
     act(() => { result.current.handleTokenExpired(); });
     expect(localStorageMock.removeItem).toHaveBeenCalledWith('token');
     expect(localStorageMock.removeItem).toHaveBeenCalledWith('user');
+    expect(props.setIsLoggedIn).toHaveBeenCalledWith(false);
+    expect(props.setCurrentUser).toHaveBeenCalledWith(null);
     expect(props.setAlertInfo).toHaveBeenCalledWith(
       expect.objectContaining({ title: '会话已过期' }),
     );
+  });
+
+  it('token 已清除时幂等 no-op', () => {
+    localStorageMock.clear();
+    const props = makeProps();
+    const { result } = renderHook(() => usePortfolioSync(props));
+    act(() => { result.current.handleTokenExpired(); });
+    expect(props.setAlertInfo).not.toHaveBeenCalled();
+    expect(props.setIsLoggedIn).not.toHaveBeenCalled();
   });
 });
 
@@ -79,6 +94,7 @@ describe('usePortfolioSync - fetchJsonData', () => {
   beforeEach(() => { jest.clearAllMocks(); localStorageMock.clear(); });
 
   it('401 响应触发 handleTokenExpired', async () => {
+    localStorageMock.setItem('token', 'bad');
     (global.fetch as jest.Mock).mockResolvedValueOnce({ ok: false, status: 401 });
     const props = makeProps();
     const { result } = renderHook(() => usePortfolioSync(props));

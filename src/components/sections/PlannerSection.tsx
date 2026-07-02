@@ -10,6 +10,7 @@ import { TrendingUp } from 'lucide-react';
 
 export function PlannerSection() {
   const { userSettings, chartData, portfolioData, trackerState } = usePortfolio();
+  const { handleTokenExpired } = portfolioData;
   const { yearData, formatLargeNumber, latestYear } = portfolioData;
   const { currency } = trackerState;
 
@@ -43,6 +44,7 @@ export function PlannerSection() {
           currency={currency}
           formatLargeNumber={formatLargeNumber}
           years={Object.keys(yearData)}
+          onUnauthorized={handleTokenExpired}
         />
       </Section>
       <Section className="p-4 md:p-6">
@@ -53,6 +55,7 @@ export function PlannerSection() {
         <DailyTrendChart
           currency={currency}
           formatLargeNumber={formatLargeNumber}
+          onUnauthorized={handleTokenExpired}
         />
       </Section>
     </div>

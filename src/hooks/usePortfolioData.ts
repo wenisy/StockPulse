@@ -24,6 +24,8 @@ export interface UsePortfolioDataProps {
   currentUser: User | null;
   isLoggedIn: boolean;
   setAlertInfo: (info: AlertInfo | null) => void;
+  setIsLoggedIn: (value: boolean) => void;
+  setCurrentUser: (user: User | null) => void;
 }
 
 export interface UsePortfolioDataReturn {
@@ -77,6 +79,8 @@ export interface UsePortfolioDataReturn {
 export function usePortfolioData({
   currentUser,
   setAlertInfo,
+  setIsLoggedIn,
+  setCurrentUser,
 }: UsePortfolioDataProps): UsePortfolioDataReturn {
   const yearDataHook = useYearData({ currentUser });
 
@@ -90,6 +94,8 @@ export function usePortfolioData({
     setComparisonYear: yearDataHook.setComparisonYear,
     setIncrementalChanges: yearDataHook.setIncrementalChanges,
     setAlertInfo,
+    setIsLoggedIn,
+    setCurrentUser,
   });
 
   return {

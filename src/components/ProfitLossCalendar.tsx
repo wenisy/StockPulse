@@ -25,6 +25,7 @@ interface ProfitLossCalendarProps {
   externalIsLoading?: boolean;
   externalError?: string | null;
   onExternalFetchCalendarData?: (year: number, month: number) => Promise<void>;
+  onUnauthorized?: () => void;
 }
 
 const ProfitLossCalendar: React.FC<ProfitLossCalendarProps> = ({
@@ -37,6 +38,7 @@ const ProfitLossCalendar: React.FC<ProfitLossCalendarProps> = ({
   externalIsLoading,
   externalError,
   onExternalFetchCalendarData,
+  onUnauthorized,
 }) => {
   // 数据层（IO + 业务数据）— always called (hooks rules), used only in non-external mode
   const {
@@ -48,7 +50,7 @@ const ProfitLossCalendar: React.FC<ProfitLossCalendarProps> = ({
     fetchCalendarData: internalFetchCalendarData,
     fetchYearlySummary,
     generateDailySnapshot,
-  } = useCalendarData();
+  } = useCalendarData({ onUnauthorized });
 
   // Resolve effective values: external props take priority when provided
   const isExternalMode = externalCalendarData !== undefined;

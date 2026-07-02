@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef } from 'react';
 import { CalendarData } from '@/types/stock';
+import { isUnauthorizedResponse } from '@/lib/auth';
 
 // 获取后端域名的工具函数（导出供其他模块直接使用 raw fetch 时复用）
 export const getBackendDomain = () => {
@@ -18,6 +19,10 @@ export interface MonthlySummary {
 
 export interface YearlyMonthSummary extends MonthlySummary {
     month: string; // '01' ~ '12'
+}
+
+export interface UseCalendarDataOptions {
+    onUnauthorized?: () => void;
 }
 
 interface UseCalendarDataReturn {
@@ -43,7 +48,8 @@ function makeSignalWithTimeout(controller: AbortController): { signal: AbortSign
     };
 }
 
-export const useCalendarData = (): UseCalendarDataReturn => {
+export const useCalendarData = (options?: UseCalendarDataOptions): UseCalendarDataReturn => {
+    const onUnauthorized = options?.onUnauthorized;
     const [calendarData, setCalendarData] = useState<CalendarData[]>([]);
     const [monthlySummary, setMonthlySummary] = useState<MonthlySummary | null>(null);
     const [yearlySummary, setYearlySummary] = useState<YearlyMonthSummary[] | null>(null);
@@ -81,12 +87,17 @@ export const useCalendarData = (): UseCalendarDataReturn => {
 
             if (signal.aborted) return; // 竞态保护：丢弃过期响应
 
+            const result = await response.json();
+            if (signal.aborted) return;
+
+            if (isUnauthorizedResponse(response.status, result.message)) {
+                onUnauthorized?.();
+                return;
+            }
+
             if (!response.ok) {
                 throw new Error(`获取日历数据失败: ${response.statusText}`);
             }
-
-            const result = await response.json();
-            if (signal.aborted) return; // 竞态保护：JSON 解析完成后再次检查
 
             setCalendarData(result.data || []);
             setMonthlySummary(result.monthlySummary || null);
@@ -99,7 +110,7 @@ export const useCalendarData = (): UseCalendarDataReturn => {
             clearSignalTimeout();
             if (!signal.aborted) setIsLoading(false);
         }
-    }, [backendDomain]);
+    }, [backendDomain, onUnauthorized]);
 
     // 获取年度（月度汇总）数据
     const fetchYearlySummary = useCallback(async (year: number) => {
@@ -126,12 +137,17 @@ export const useCalendarData = (): UseCalendarDataReturn => {
 
             if (signal.aborted) return;
 
+            const result = await response.json();
+            if (signal.aborted) return;
+
+            if (isUnauthorizedResponse(response.status, result.message)) {
+                onUnauthorized?.();
+                return;
+            }
+
             if (!response.ok) {
                 throw new Error(`获取年度汇总失败: ${response.statusText}`);
             }
-
-            const result = await response.json();
-            if (signal.aborted) return;
 
             setYearlySummary(result.data || null);
         } catch (err) {
@@ -142,7 +158,7 @@ export const useCalendarData = (): UseCalendarDataReturn => {
             clearSignalTimeout();
             if (!signal.aborted) setIsLoading(false);
         }
-    }, [backendDomain]);
+    }, [backendDomain, onUnauthorized]);
 
     // 手动生成每日快照
     const generateDailySnapshot = useCallback(async (date?: string) => {
@@ -166,15 +182,20 @@ export const useCalendarData = (): UseCalendarDataReturn => {
                 }
             );
 
+            const result = await response.json();
+
+            if (isUnauthorizedResponse(response.status, result.message)) {
+                onUnauthorized?.();
+                return;
+            }
+
             if (!response.ok) {
                 throw new Error(`生成快照失败: ${response.statusText}`);
             }
-
-            const result = await response.json();
         } catch (error) {
             throw error;
         }
-    }, [backendDomain]);
+    }, [backendDomain, onUnauthorized]);
 
     return {
         calendarData,

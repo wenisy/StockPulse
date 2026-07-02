@@ -19,6 +19,7 @@ interface ReportDialogProps {
     totalPortfolioValue: number;
     cumulativeInvested: number;
     currentUser?: User | null;
+    onUnauthorized?: () => void;
 }
 
 const ReportDialog: React.FC<ReportDialogProps> = ({
@@ -32,6 +33,7 @@ const ReportDialog: React.FC<ReportDialogProps> = ({
     totalPortfolioValue,
     cumulativeInvested,
     currentUser,
+    onUnauthorized,
 }) => {
     const colors = useResolvedColors();
 
@@ -167,6 +169,7 @@ const ReportDialog: React.FC<ReportDialogProps> = ({
                             formatLargeNumber={formatLargeNumber}
                             currency={currency}
                             years={Object.keys(yearData).sort()}
+                            onUnauthorized={onUnauthorized}
                         />
                     </TabsContent>
                     <TabsContent value="top">

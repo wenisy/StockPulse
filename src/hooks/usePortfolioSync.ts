@@ -3,9 +3,11 @@ import {
   AlertInfo,
   IncrementalChanges,
   PriceData,
+  User,
   YearData,
 } from '@/types/stock';
 import { stockInitialData } from '@/components/data';
+import { clearAuthStorage, isUnauthorizedResponse } from '@/lib/auth';
 import { sortYearsDesc } from '@/lib/portfolio/years';
 
 const BACKEND_DOMAIN = '//stock-backend-tau.vercel.app';
@@ -20,6 +22,8 @@ export interface UsePortfolioSyncProps {
   setComparisonYear: React.Dispatch<React.SetStateAction<string>>;
   setIncrementalChanges: React.Dispatch<React.SetStateAction<IncrementalChanges>>;
   setAlertInfo: (info: AlertInfo | null) => void;
+  setIsLoggedIn: (value: boolean) => void;
+  setCurrentUser: (user: User | null) => void;
 }
 
 export interface UsePortfolioSyncReturn {
@@ -50,6 +54,8 @@ export function usePortfolioSync({
   setComparisonYear,
   setIncrementalChanges,
   setAlertInfo,
+  setIsLoggedIn,
+  setCurrentUser,
 }: UsePortfolioSyncProps): UsePortfolioSyncReturn {
   const [isLoading, setIsLoading] = useState(false);
   const [priceData, setPriceData] = useState<PriceData>({});
@@ -64,9 +70,13 @@ export function usePortfolioSync({
   }, []);
 
   const handleTokenExpired = useCallback(() => {
+    if (typeof window !== 'undefined' && !localStorage.getItem('token')) {
+      return;
+    }
     console.warn('Token invalid or expired. Logging out.');
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    clearAuthStorage();
+    setIsLoggedIn(false);
+    setCurrentUser(null);
     setYearData(stockInitialData);
     const sortedYears = sortYearsDesc(Object.keys(stockInitialData));
     setYears(sortedYears);
@@ -79,7 +89,16 @@ export function usePortfolioSync({
       description: '您的登录已过期，请重新登录。',
       onConfirm: () => setAlertInfo(null),
     });
-  }, [setYearData, setYears, setFilteredYears, setSelectedYear, setComparisonYear, setAlertInfo]);
+  }, [
+    setYearData,
+    setYears,
+    setFilteredYears,
+    setSelectedYear,
+    setComparisonYear,
+    setAlertInfo,
+    setIsLoggedIn,
+    setCurrentUser,
+  ]);
 
   const fetchJsonDataLegacy = useCallback(
     async (token: string) => {
@@ -95,10 +114,7 @@ export function usePortfolioSync({
           setFilteredYears(sortedYears);
           setSelectedYear(sortedYears[0]);
           setComparisonYear(sortedYears[0]);
-        } else if (
-          response.status === 401 ||
-          (data.message && data.message.includes('无效或过期的令牌'))
-        ) {
+        } else if (isUnauthorizedResponse(response.status, data.message)) {
           handleTokenExpired();
         } else {
         }
@@ -126,12 +142,18 @@ export function usePortfolioSync({
                 cashBalance: data.cashBalance,
               },
             }));
+          } else {
+            const data = await response.json().catch(() => ({}));
+            if (isUnauthorizedResponse(response.status, data.message)) {
+              handleTokenExpired();
+              return;
+            }
           }
         } catch (error) {
         }
       }
     },
-    [setYearData],
+    [setYearData, handleTokenExpired],
   );
 
   const fetchJsonData = useCallback(
@@ -186,9 +208,18 @@ export function usePortfolioSync({
                 },
               };
             }
+            const data = await response.json().catch(() => ({}));
+            if (isUnauthorizedResponse(response.status, data.message)) {
+              handleTokenExpired();
+              return { expired: true as const };
+            }
             return null;
           }),
         );
+
+        if (results.some((r) => r && 'expired' in r && r.expired)) {
+          return;
+        }
 
         const loadedData: { [year: string]: YearData } = {};
         results.forEach((result) => {
@@ -238,6 +269,12 @@ export function usePortfolioSync({
         });
 
         const result = await response.json();
+
+        if (isUnauthorizedResponse(response.status, result.message)) {
+          handleTokenExpired();
+          setIsLoading(false);
+          return;
+        }
 
         if (response.ok && result.success) {
           const stockData = result.data;
@@ -312,7 +349,7 @@ export function usePortfolioSync({
         setIsLoading(false);
       }
     },
-    [yearData, setYearData, setIncrementalChanges, setAlertInfo],
+    [yearData, setYearData, setIncrementalChanges, setAlertInfo, handleTokenExpired],
   );
 
   const saveDataToBackend = useCallback(async () => {
@@ -326,6 +363,10 @@ export function usePortfolioSync({
         body: JSON.stringify(incrementalChanges),
       });
       const result = await response.json();
+      if (isUnauthorizedResponse(response.status, result.message)) {
+        handleTokenExpired();
+        return;
+      }
       if (response.ok) {
         setIncrementalChanges({
           stocks: {},
@@ -349,7 +390,7 @@ export function usePortfolioSync({
         onConfirm: () => setAlertInfo(null),
       });
     }
-  }, [incrementalChanges, setIncrementalChanges, setAlertInfo]);
+  }, [incrementalChanges, setIncrementalChanges, setAlertInfo, handleTokenExpired]);
 
   return {
     isLoading,

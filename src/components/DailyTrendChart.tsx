@@ -13,6 +13,7 @@ import {
   YAxis,
 } from 'recharts';
 import { useCalendarData, YearlyMonthSummary, getBackendDomain } from '@/hooks/useCalendarData';
+import { isUnauthorizedResponse } from '@/lib/auth';
 import { CalendarData } from '@/types/stock';
 import { useResolvedColors } from '@/hooks/useResolvedColors';
 import { Button } from '@/components/ui/button';
@@ -24,6 +25,7 @@ import { cn } from '@/lib/utils';
 interface DailyTrendChartProps {
   currency: string;
   formatLargeNumber: (value: number, currency: string) => string;
+  onUnauthorized?: () => void;
 }
 
 type Range = '1M' | '3M' | '1Y';
@@ -228,7 +230,11 @@ const MonthlyTooltip: React.FC<
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-const DailyTrendChart: React.FC<DailyTrendChartProps> = ({ currency, formatLargeNumber }) => {
+const DailyTrendChart: React.FC<DailyTrendChartProps> = ({
+  currency,
+  formatLargeNumber,
+  onUnauthorized,
+}) => {
   const { year: initYear, month: initMonth } = getCurrentYearMonth();
 
   const [range, setRange] = useState<Range>('1M');
@@ -246,7 +252,8 @@ const DailyTrendChart: React.FC<DailyTrendChartProps> = ({ currency, formatLarge
   const [brushStart, setBrushStart] = useState(0);
   const [brushEnd, setBrushEnd] = useState(0);
 
-  const { calendarData, yearlySummary, isLoading, error, fetchCalendarData, fetchYearlySummary } = useCalendarData();
+  const { calendarData, yearlySummary, isLoading, error, fetchCalendarData, fetchYearlySummary } =
+    useCalendarData({ onUnauthorized });
   const colors = useResolvedColors();
 
   // ── Data fetching ─────────────────────────────────────────────────────────
@@ -277,12 +284,24 @@ const DailyTrendChart: React.FC<DailyTrendChartProps> = ({ currency, formatLarge
       if (!token) throw new Error('未找到认证令牌');
 
       const fetched = await Promise.allSettled(
-        months.map(([y, m]) =>
-          fetch(`${getBackendDomain()}/api/calendarData?year=${y}&month=${String(m).padStart(2, '0')}`, {
-            headers: { Authorization: token },
-            signal: AbortSignal.timeout ? AbortSignal.timeout(10000) : undefined,
-          }).then((r) => r.json()).then((j) => (j.data || []) as CalendarData[])
-        )
+        months.map(async ([y, m]) => {
+          const response = await fetch(
+            `${getBackendDomain()}/api/calendarData?year=${y}&month=${String(m).padStart(2, '0')}`,
+            {
+              headers: { Authorization: token },
+              signal: AbortSignal.timeout ? AbortSignal.timeout(10000) : undefined,
+            },
+          );
+          const json = await response.json();
+          if (isUnauthorizedResponse(response.status, json.message)) {
+            onUnauthorized?.();
+            throw new Error('会话已过期');
+          }
+          if (!response.ok) {
+            throw new Error(`获取日历数据失败: ${response.statusText}`);
+          }
+          return (json.data || []) as CalendarData[];
+        }),
       );
       const merged: CalendarData[] = [];
       for (const r of fetched) {
@@ -298,7 +317,7 @@ const DailyTrendChart: React.FC<DailyTrendChartProps> = ({ currency, formatLarge
     } finally {
       setThreeMonthLoading(false);
     }
-  }, []); // no dependency on hook's fetchCalendarData — uses raw fetch directly
+  }, [onUnauthorized]);
 
   useEffect(() => {
     if (range === '3M') fetchThreeMonths(year, month);

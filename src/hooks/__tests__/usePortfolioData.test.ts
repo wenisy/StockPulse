@@ -16,6 +16,15 @@ Object.defineProperty(window, 'localStorage', { value: localStorageMock });
 
 const makeSetAlertInfo = () => jest.fn();
 
+const makePortfolioDataProps = (overrides = {}) => ({
+  currentUser: null,
+  isLoggedIn: false,
+  setAlertInfo: makeSetAlertInfo(),
+  setIsLoggedIn: jest.fn(),
+  setCurrentUser: jest.fn(),
+  ...overrides,
+});
+
 describe('usePortfolioData - 初始状态', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -24,7 +33,7 @@ describe('usePortfolioData - 初始状态', () => {
 
   it('years 非空且按降序排列', () => {
     const { result } = renderHook(() =>
-      usePortfolioData({ currentUser: null, isLoggedIn: false, setAlertInfo: makeSetAlertInfo() }),
+      usePortfolioData(makePortfolioDataProps()),
     );
     const { years } = result.current;
     expect(years.length).toBeGreaterThan(0);
@@ -35,7 +44,7 @@ describe('usePortfolioData - 初始状态', () => {
 
   it('latestYear 为 years 中最大年份', () => {
     const { result } = renderHook(() =>
-      usePortfolioData({ currentUser: null, isLoggedIn: false, setAlertInfo: makeSetAlertInfo() }),
+      usePortfolioData(makePortfolioDataProps()),
     );
     const expected = Math.max(...result.current.years.map(Number)).toString();
     expect(result.current.latestYear).toBe(expected);
@@ -43,7 +52,7 @@ describe('usePortfolioData - 初始状态', () => {
 
   it('selectedYear 默认为最新年（years[0]，降序排列）', () => {
     const { result } = renderHook(() =>
-      usePortfolioData({ currentUser: null, isLoggedIn: false, setAlertInfo: makeSetAlertInfo() }),
+      usePortfolioData(makePortfolioDataProps()),
     );
     const { years, selectedYear } = result.current;
     expect(selectedYear).toBe(years[0]);
@@ -51,7 +60,7 @@ describe('usePortfolioData - 初始状态', () => {
 
   it('exchangeRates 默认包含 USD/HKD/CNY', () => {
     const { result } = renderHook(() =>
-      usePortfolioData({ currentUser: null, isLoggedIn: false, setAlertInfo: makeSetAlertInfo() }),
+      usePortfolioData(makePortfolioDataProps()),
     );
     expect(result.current.exchangeRates.USD).toBe(1);
     expect(result.current.exchangeRates.HKD).toBeGreaterThan(0);
@@ -59,7 +68,7 @@ describe('usePortfolioData - 初始状态', () => {
 
   it('isLoading 默认 false', () => {
     const { result } = renderHook(() =>
-      usePortfolioData({ currentUser: null, isLoggedIn: false, setAlertInfo: makeSetAlertInfo() }),
+      usePortfolioData(makePortfolioDataProps()),
     );
     expect(result.current.isLoading).toBe(false);
   });
@@ -70,7 +79,7 @@ describe('usePortfolioData - addNewYear', () => {
 
   it('添加不重复年份', () => {
     const { result } = renderHook(() =>
-      usePortfolioData({ currentUser: null, isLoggedIn: false, setAlertInfo: makeSetAlertInfo() }),
+      usePortfolioData(makePortfolioDataProps()),
     );
     act(() => { result.current.addNewYear('2099'); });
     expect(result.current.years).toContain('2099');
@@ -79,7 +88,7 @@ describe('usePortfolioData - addNewYear', () => {
 
   it('添加重复年份被忽略', () => {
     const { result } = renderHook(() =>
-      usePortfolioData({ currentUser: null, isLoggedIn: false, setAlertInfo: makeSetAlertInfo() }),
+      usePortfolioData(makePortfolioDataProps()),
     );
     const before = result.current.years.length;
     act(() => { result.current.addNewYear(result.current.years[0]); });
@@ -88,7 +97,7 @@ describe('usePortfolioData - addNewYear', () => {
 
   it('新年份 years 仍按降序', () => {
     const { result } = renderHook(() =>
-      usePortfolioData({ currentUser: null, isLoggedIn: false, setAlertInfo: makeSetAlertInfo() }),
+      usePortfolioData(makePortfolioDataProps()),
     );
     act(() => { result.current.addNewYear('2099'); });
     expect(result.current.years[0]).toBe('2099');
@@ -96,7 +105,7 @@ describe('usePortfolioData - addNewYear', () => {
 
   it('新年份带上年结余：cashBalance > 0 时追加结余 deposit', () => {
     const { result } = renderHook(() =>
-      usePortfolioData({ currentUser: null, isLoggedIn: false, setAlertInfo: makeSetAlertInfo() }),
+      usePortfolioData(makePortfolioDataProps()),
     );
     // 先给某年加余额
     const year = result.current.years[0];
@@ -116,7 +125,7 @@ describe('usePortfolioData - addCashTransaction', () => {
 
   it('deposit 增加 cashBalance', () => {
     const { result } = renderHook(() =>
-      usePortfolioData({ currentUser: null, isLoggedIn: false, setAlertInfo: makeSetAlertInfo() }),
+      usePortfolioData(makePortfolioDataProps()),
     );
     const year = result.current.years[0];
     const before = result.current.yearData[year]?.cashBalance ?? 0;
@@ -126,7 +135,7 @@ describe('usePortfolioData - addCashTransaction', () => {
 
   it('withdraw 减少 cashBalance', () => {
     const { result } = renderHook(() =>
-      usePortfolioData({ currentUser: null, isLoggedIn: false, setAlertInfo: makeSetAlertInfo() }),
+      usePortfolioData(makePortfolioDataProps()),
     );
     const year = result.current.years[0];
     act(() => { result.current.addCashTransaction(5000, 'deposit', year); });
@@ -137,7 +146,7 @@ describe('usePortfolioData - addCashTransaction', () => {
 
   it('incremental changes 正确追加', () => {
     const { result } = renderHook(() =>
-      usePortfolioData({ currentUser: null, isLoggedIn: false, setAlertInfo: makeSetAlertInfo() }),
+      usePortfolioData(makePortfolioDataProps()),
     );
     const year = result.current.years[0];
     act(() => { result.current.addCashTransaction(1000, 'deposit', year); });
@@ -150,7 +159,7 @@ describe('usePortfolioData - updateStock', () => {
 
   it('买入新股票后 stocks 包含该股票', () => {
     const { result } = renderHook(() =>
-      usePortfolioData({ currentUser: null, isLoggedIn: false, setAlertInfo: makeSetAlertInfo() }),
+      usePortfolioData(makePortfolioDataProps()),
     );
     const year = result.current.years[0];
     act(() => {
@@ -164,14 +173,14 @@ describe('usePortfolioData - updateStock', () => {
 describe('usePortfolioData - currency helpers', () => {
   it('convertToCurrency USD rate=1 返回原值', () => {
     const { result } = renderHook(() =>
-      usePortfolioData({ currentUser: null, isLoggedIn: false, setAlertInfo: makeSetAlertInfo() }),
+      usePortfolioData(makePortfolioDataProps()),
     );
     expect(result.current.convertToCurrency(100, 'USD')).toBe(100);
   });
 
   it('formatLargeNumber 返回字符串', () => {
     const { result } = renderHook(() =>
-      usePortfolioData({ currentUser: null, isLoggedIn: false, setAlertInfo: makeSetAlertInfo() }),
+      usePortfolioData(makePortfolioDataProps()),
     );
     expect(typeof result.current.formatLargeNumber(1234567, 'USD')).toBe('string');
   });
@@ -180,23 +189,27 @@ describe('usePortfolioData - currency helpers', () => {
 describe('usePortfolioData - getBasePath', () => {
   it('非 github.io 时返回空字符串', () => {
     const { result } = renderHook(() =>
-      usePortfolioData({ currentUser: null, isLoggedIn: false, setAlertInfo: makeSetAlertInfo() }),
+      usePortfolioData(makePortfolioDataProps()),
     );
     expect(result.current.getBasePath()).toBe('');
   });
 });
 
 describe('usePortfolioData - handleTokenExpired', () => {
-  it('清除 token 和 user', () => {
+  it('清除 token 和 user 并重置登录态', () => {
     localStorageMock.setItem('token', 'test-token');
     localStorageMock.setItem('user', '{}');
     const setAlertInfo = makeSetAlertInfo();
+    const setIsLoggedIn = jest.fn();
+    const setCurrentUser = jest.fn();
     const { result } = renderHook(() =>
-      usePortfolioData({ currentUser: null, isLoggedIn: false, setAlertInfo }),
+      usePortfolioData(makePortfolioDataProps({ setAlertInfo, setIsLoggedIn, setCurrentUser })),
     );
     act(() => { result.current.handleTokenExpired(); });
     expect(localStorageMock.removeItem).toHaveBeenCalledWith('token');
     expect(localStorageMock.removeItem).toHaveBeenCalledWith('user');
+    expect(setIsLoggedIn).toHaveBeenCalledWith(false);
+    expect(setCurrentUser).toHaveBeenCalledWith(null);
     expect(setAlertInfo).toHaveBeenCalledWith(expect.objectContaining({ title: '会话已过期' }));
   });
 });
@@ -205,10 +218,11 @@ describe('usePortfolioData - fetchJsonData', () => {
   beforeEach(() => { jest.clearAllMocks(); localStorageMock.clear(); });
 
   it('401 响应触发 token 过期处理', async () => {
+    localStorageMock.setItem('token', 'bad');
     (global.fetch as jest.Mock).mockResolvedValueOnce({ ok: false, status: 401 });
     const setAlertInfo = makeSetAlertInfo();
     const { result } = renderHook(() =>
-      usePortfolioData({ currentUser: null, isLoggedIn: false, setAlertInfo }),
+      usePortfolioData(makePortfolioDataProps({ setAlertInfo })),
     );
     await act(async () => { await result.current.fetchJsonData('bad'); });
     expect(setAlertInfo).toHaveBeenCalledWith(expect.objectContaining({ title: '会话已过期' }));
@@ -225,7 +239,7 @@ describe('usePortfolioData - fetchJsonData', () => {
       });
     const setAlertInfo = makeSetAlertInfo();
     const { result } = renderHook(() =>
-      usePortfolioData({ currentUser: null, isLoggedIn: false, setAlertInfo }),
+      usePortfolioData(makePortfolioDataProps({ setAlertInfo })),
     );
     await act(async () => { await result.current.fetchJsonData('token'); });
     // 回退成功后，years 应更新
@@ -251,7 +265,7 @@ describe('usePortfolioData - fetchJsonData', () => {
       });
     const setAlertInfo = makeSetAlertInfo();
     const { result } = renderHook(() =>
-      usePortfolioData({ currentUser: null, isLoggedIn: false, setAlertInfo }),
+      usePortfolioData(makePortfolioDataProps({ setAlertInfo })),
     );
     await act(async () => { await result.current.fetchJsonData('token'); });
     expect(result.current.years).toContain('2024');
@@ -265,7 +279,7 @@ describe('usePortfolioData - fetchJsonData', () => {
     });
     const setAlertInfo = makeSetAlertInfo();
     const { result } = renderHook(() =>
-      usePortfolioData({ currentUser: null, isLoggedIn: false, setAlertInfo }),
+      usePortfolioData(makePortfolioDataProps({ setAlertInfo })),
     );
     await act(async () => { await result.current.fetchJsonData('token'); });
     expect(result.current.years.length).toBeGreaterThan(0);
@@ -278,7 +292,7 @@ describe('usePortfolioData - refreshPrices', () => {
   it('当年无股票且手动刷新：弹提示', async () => {
     const setAlertInfo = makeSetAlertInfo();
     const { result } = renderHook(() =>
-      usePortfolioData({ currentUser: null, isLoggedIn: false, setAlertInfo }),
+      usePortfolioData(makePortfolioDataProps({ setAlertInfo })),
     );
     (global.fetch as jest.Mock).mockClear();
     await act(async () => { await result.current.refreshPrices(true); });
@@ -290,7 +304,7 @@ describe('usePortfolioData - refreshPrices', () => {
     // 需要给当年添加一个有 symbol 的股票
     const setAlertInfo = makeSetAlertInfo();
     const { result } = renderHook(() =>
-      usePortfolioData({ currentUser: null, isLoggedIn: false, setAlertInfo }),
+      usePortfolioData(makePortfolioDataProps({ setAlertInfo })),
     );
     const currentYear = new Date().getFullYear().toString();
     act(() => {
@@ -315,7 +329,7 @@ describe('usePortfolioData - refreshPrices', () => {
   it('失败响应弹 error alert', async () => {
     const setAlertInfo = makeSetAlertInfo();
     const { result } = renderHook(() =>
-      usePortfolioData({ currentUser: null, isLoggedIn: false, setAlertInfo }),
+      usePortfolioData(makePortfolioDataProps({ setAlertInfo })),
     );
     const currentYear = new Date().getFullYear().toString();
     act(() => {
@@ -343,7 +357,7 @@ describe('usePortfolioData - saveDataToBackend', () => {
 
   it('无 token 时不发请求', async () => {
     const { result } = renderHook(() =>
-      usePortfolioData({ currentUser: null, isLoggedIn: false, setAlertInfo: makeSetAlertInfo() }),
+      usePortfolioData(makePortfolioDataProps()),
     );
     await act(async () => { await result.current.saveDataToBackend(); });
     expect(global.fetch).not.toHaveBeenCalled();
@@ -356,7 +370,7 @@ describe('usePortfolioData - saveDataToBackend', () => {
       json: async () => ({}),
     });
     const { result } = renderHook(() =>
-      usePortfolioData({ currentUser: null, isLoggedIn: false, setAlertInfo: makeSetAlertInfo() }),
+      usePortfolioData(makePortfolioDataProps()),
     );
     // 先加点 incremental 数据
     const year = result.current.years[0];

@@ -92,7 +92,6 @@ export const useCalendarData = (): UseCalendarDataReturn => {
             setMonthlySummary(result.monthlySummary || null);
         } catch (err) {
             if ((err as Error)?.name === 'AbortError') return; // 忽略主动中止
-            console.error('获取日历数据失败:', err);
             setError(err instanceof Error ? err.message : '获取数据失败');
             setCalendarData([]);
             setMonthlySummary(null);
@@ -137,7 +136,6 @@ export const useCalendarData = (): UseCalendarDataReturn => {
             setYearlySummary(result.data || null);
         } catch (err) {
             if ((err as Error)?.name === 'AbortError') return;
-            console.error('获取年度汇总失败:', err);
             setError(err instanceof Error ? err.message : '获取年度汇总失败');
             setYearlySummary(null);
         } finally {
@@ -173,9 +171,7 @@ export const useCalendarData = (): UseCalendarDataReturn => {
             }
 
             const result = await response.json();
-            console.log('快照生成成功:', result);
         } catch (error) {
-            console.error('生成快照失败:', error);
             throw error;
         }
     }, [backendDomain]);

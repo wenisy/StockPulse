@@ -36,6 +36,7 @@ export interface CashTransaction {
 }
 
 export interface StockTransaction {
+    stockSymbol?: string;
     stockName: string;
     type: 'buy' | 'sell';
     shares: number;

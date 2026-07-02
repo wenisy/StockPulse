@@ -4,7 +4,7 @@ import { useUserManagement } from '../useUserManagement';
 global.fetch = jest.fn();
 
 describe('useUserManagement', () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => { jest.clearAllMocks(); localStorage.clear(); });
 
   it('初始状态：未登录、currentUser 为 null', () => {
     const { result } = renderHook(() => useUserManagement());
@@ -76,10 +76,10 @@ describe('useUserManagement', () => {
       ok: true,
       json: async () => ({ success: true }),
     });
+    localStorage.setItem('token', 'tok');
     const { result } = renderHook(() => useUserManagement());
     act(() => {
       result.current.setIsLoggedIn(true);
-      result.current.setCurrentUser({ username: 'u', uuid: 'u1', token: 'tok' } as Parameters<typeof result.current.setCurrentUser>[0]);
     });
     await act(async () => {
       await result.current.saveDataToBackend({}, {});
@@ -95,7 +95,7 @@ describe('useUserManagement', () => {
 });
 
 describe('useUserManagement - fetchJsonData 更多路径', () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => { jest.clearAllMocks(); localStorage.clear(); });
 
   it('非 404 错误：抛异常', async () => {
     (global.fetch as jest.Mock).mockResolvedValueOnce({ ok: false, status: 500 });
@@ -126,12 +126,13 @@ describe('useUserManagement - fetchJsonData 更多路径', () => {
 });
 
 describe('useUserManagement - saveDataToBackend 更多路径', () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => { jest.clearAllMocks(); localStorage.clear(); });
 
   const setupLoggedIn = (result: ReturnType<typeof renderHook>['result'] & { current: ReturnType<typeof useUserManagement> }) => {
+    localStorage.setItem('token', 'tok');
     act(() => {
       result.current.setIsLoggedIn(true);
-      result.current.setCurrentUser({ username: 'u', uuid: 'u1', token: 'tok' } as Parameters<typeof result.current.setCurrentUser>[0]);
+      result.current.setCurrentUser({ username: 'u', uuid: 'u1' } as Parameters<typeof result.current.setCurrentUser>[0]);
     });
   };
 
@@ -165,12 +166,14 @@ describe('useUserManagement - saveDataToBackend 更多路径', () => {
     ).resolves.not.toThrow();
   });
 
-  it('currentUser 没有 token 时直接返回', async () => {
+  it('未设置 token 时直接返回', async () => {
     const { result } = renderHook(() => useUserManagement());
     act(() => {
       result.current.setIsLoggedIn(true);
       result.current.setCurrentUser({ username: 'u', uuid: 'u1' } as Parameters<typeof result.current.setCurrentUser>[0]);
     });
+    // ensure no token in storage
+    localStorage.removeItem('token');
     await act(async () => {
       await result.current.saveDataToBackend({}, {});
     });
@@ -193,9 +196,9 @@ describe('useUserManagement - debouncedSave', () => {
       json: async () => ({ success: true }),
     });
     const { result } = renderHook(() => useUserManagement());
+    localStorage.setItem('token', 'tok');
     act(() => {
       result.current.setIsLoggedIn(true);
-      result.current.setCurrentUser({ username: 'u', uuid: 'u1', token: 'tok' } as Parameters<typeof result.current.setCurrentUser>[0]);
     });
     act(() => { result.current.debouncedSave({}, {}); });
     expect(global.fetch).not.toHaveBeenCalled();

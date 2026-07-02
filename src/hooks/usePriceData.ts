@@ -3,7 +3,11 @@ import { PriceData, ExchangeRates, StockSymbol, YearData } from '@/types/stock';
 
 export const usePriceData = () => {
   const [priceData, setPriceData] = useState<PriceData>({});
-  const [exchangeRates, setExchangeRates] = useState<ExchangeRates>({});
+  const [exchangeRates, setExchangeRates] = useState<ExchangeRates>({
+  USD: 1,
+  HKD: 1,
+  CNY: 1,
+});
   const [stockSymbols, setStockSymbols] = useState<StockSymbol[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState("");
@@ -19,6 +23,7 @@ export const usePriceData = () => {
   const updateLatestPrices = useCallback((prices: PriceData) => {
     setPriceData(prices);
     setExchangeRates({
+      USD: 1,
       HKD: prices["HKD"]?.price || 1,
       CNY: prices["CNY"]?.price || 1,
     });
@@ -33,7 +38,7 @@ export const usePriceData = () => {
   const refreshPrices = useCallback(async (
     isManual = false,
     yearData: { [year: string]: YearData },
-    setYearData: (data: { [year: string]: YearData }) => void
+    setYearData: React.Dispatch<React.SetStateAction<{ [year: string]: YearData }>>
   ) => {
     if (isLoading) return;
 
@@ -55,7 +60,7 @@ export const usePriceData = () => {
       const latestYear = new Date().getFullYear().toString();
       
       // 更新最新年份的股票价格
-      setYearData(prev => {
+      setYearData((prev: { [year: string]: YearData }) => {
         const newData = { ...prev };
         
         if (newData[latestYear]?.stocks) {

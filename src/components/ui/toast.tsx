@@ -117,15 +117,11 @@ function Toast({ title, description, variant = "default", onClose }: ToastProps)
 export const toast = {
   success: (message: string, description?: string) => {
     // 这个会在组件中被重写
-    console.log("Toast success:", message, description)
   },
   error: (message: string, description?: string) => {
-    console.log("Toast error:", message, description)
   },
   warning: (message: string, description?: string) => {
-    console.log("Toast warning:", message, description)
   },
   info: (message: string, description?: string) => {
-    console.log("Toast info:", message, description)
   },
 }

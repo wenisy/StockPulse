@@ -68,7 +68,6 @@ export const useStockData = () => {
     }
 
     const transaction: CashTransaction = {
-      id: uuidv4(),
       type,
       amount,
       date: new Date().toISOString(),
@@ -113,7 +112,6 @@ export const useStockData = () => {
     }
 
     const transaction: StockTransaction = {
-      id: uuidv4(),
       stockName,
       stockSymbol,
       type,

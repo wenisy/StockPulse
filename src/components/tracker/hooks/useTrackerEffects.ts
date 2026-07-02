@@ -83,7 +83,6 @@ export function useTrackerEffects({
           setCurrentUser(user);
           loadUserSettings(user);
         } catch (error) {
-          console.error('解析用户数据失败:', error);
         }
       }
 
@@ -95,7 +94,6 @@ export function useTrackerEffects({
           await refreshPrices(false);
           setIsLoading(false);
         } catch (error) {
-          console.error('初始化登录态数据失败:', error);
           setAlertInfo({
             isOpen: true,
             title: '数据加载失败',
@@ -113,7 +111,6 @@ export function useTrackerEffects({
             setStockSymbols(symbolsData.stocks || []);
           }
         } catch (error) {
-          console.error('获取股票符号失败:', error);
         }
         try {
           const pricesUrl = `${getBasePath()}/data/prices.json`;
@@ -148,7 +145,6 @@ export function useTrackerEffects({
             });
           }
         } catch (error) {
-          console.error('获取最新价格时出错:', error);
         }
       }
     };
@@ -203,14 +199,12 @@ export function useTrackerEffects({
         try {
           setYearData(JSON.parse(savedData));
         } catch (error) {
-          console.error('解析保存数据失败:', error);
         }
       }
       if (savedYears) {
         try {
           setYears(JSON.parse(savedYears));
         } catch (error) {
-          console.error('解析保存年份失败:', error);
         }
       }
       if (savedSelectedYear) setSelectedYear(savedSelectedYear);

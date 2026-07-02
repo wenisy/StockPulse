@@ -37,7 +37,6 @@ export const useUserSettings = (
             return user.retirementGoal;
           }
         } catch (error) {
-          console.error('解析用户数据失败:', error);
         }
       }
       // 如果用户未登录或没有设置退休目标金额，使用 localStorage
@@ -58,7 +57,6 @@ export const useUserSettings = (
             return user.annualReturn;
           }
         } catch (error) {
-          console.error('解析用户数据失败:', error);
         }
       }
       // 如果用户未登录或没有设置预期年回报率，使用 localStorage
@@ -79,7 +77,6 @@ export const useUserSettings = (
             return user.targetYears;
           }
         } catch (error) {
-          console.error('解析用户数据失败:', error);
         }
       }
       // 如果用户未登录或没有设置目标年限，使用 localStorage
@@ -100,7 +97,6 @@ export const useUserSettings = (
             return user.calculationMode as 'rate' | 'years';
           }
         } catch (error) {
-          console.error('解析用户数据失败:', error);
         }
       }
       // 如果用户未登录或没有设置计算模式，使用 localStorage

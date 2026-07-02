@@ -14,9 +14,6 @@ const nextConfig = {
     images: {
         unoptimized: true,
     },
-    typescript: {
-        ignoreBuildErrors: true,
-    },
     trailingSlash: true,
     // dev 阶段允许从局域网 IP 访问 _next/* 资源
     allowedDevOrigins: ['9.208.244.244', 'localhost', '127.0.0.1'],

@@ -57,7 +57,6 @@ export function useTrackerCallbacks({
         confirmText: '确定',
       });
     } catch (error) {
-      console.error('添加现金交易失败:', error);
       trackerState.setAlertInfo({
         isOpen: true,
         title: '操作失败',

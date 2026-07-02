@@ -101,10 +101,8 @@ export function usePortfolioSync({
         ) {
           handleTokenExpired();
         } else {
-          console.error('获取数据失败:', data.message || response.statusText);
         }
       } catch (error) {
-        console.error('获取数据时出错:', error);
       }
     },
     [handleTokenExpired, setYearData, setYears, setFilteredYears, setSelectedYear, setComparisonYear],
@@ -130,7 +128,6 @@ export function usePortfolioSync({
             }));
           }
         } catch (error) {
-          console.error(`加载 ${year} 年数据失败:`, error);
         }
       }
     },
@@ -149,7 +146,6 @@ export function usePortfolioSync({
             handleTokenExpired();
             return;
           }
-          console.warn('分年份加载失败，回退到全量加载');
           await fetchJsonDataLegacy(token);
           return;
         }
@@ -204,7 +200,6 @@ export function usePortfolioSync({
           loadRemainingYears(sortedYears.slice(2), token);
         }
       } catch (error) {
-        console.error('获取数据时出错:', error);
         await fetchJsonDataLegacy(token);
       }
     },
@@ -306,7 +301,6 @@ export function usePortfolioSync({
           });
         }
       } catch (error) {
-        console.error('刷新价格时出错:', error);
         const errorMessage = isManual ? '网络错误，请稍后再试' : '无法自动更新价格，请手动点击"刷新价格"按钮';
         setAlertInfo({
           isOpen: true,
@@ -339,7 +333,6 @@ export function usePortfolioSync({
           stockTransactions: {},
           yearlySummaries: {},
         });
-        console.log('数据已自动保存');
       } else {
         setAlertInfo({
           isOpen: true,

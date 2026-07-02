@@ -66,8 +66,8 @@ const CompoundGrowthDialog: React.FC<CompoundGrowthDialogProps> = ({
         principal: currentAmount,
         interest: Math.round(interest),
         isAfterGoal,
-        beforeGoalValue: year <= goalReachedYear ? Math.round(totalValue) : null,
-        afterGoalValue: year >= goalReachedYear ? Math.round(totalValue) : null
+        beforeGoalValue: year <= goalReachedYear ? Math.round(totalValue) : undefined,
+        afterGoalValue: year >= goalReachedYear ? Math.round(totalValue) : undefined
       });
     }
     return data;
@@ -148,7 +148,7 @@ const CompoundGrowthDialog: React.FC<CompoundGrowthDialogProps> = ({
                     y={goalAmount}
                     stroke={colors.danger}
                     strokeDasharray="5 5"
-                    label={{ value: `目标: ${formatLargeNumber(goalAmount, currency)}`, position: "topRight", fill: colors.fg }}
+                    label={{ value: `目标: ${formatLargeNumber(goalAmount, currency)}`, position: "insideTopRight", fill: colors.fg }}
                   />
                   <Line
                     type="monotone"

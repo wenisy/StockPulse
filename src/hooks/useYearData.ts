@@ -137,7 +137,6 @@ export function useYearData({ currentUser }: UseYearDataProps): UseYearDataRetur
         setIncrementalChanges((prev) => {
           const existingTransactions = prev.cashTransactions[year] || [];
           if (isDuplicateCashTx(existingTransactions, cashTransaction)) {
-            console.log('检测到重复的现金交易，跳过添加');
             return prev;
           }
           return appendCashTxIncremental(prev, year, cashTransaction, newCashBalance);

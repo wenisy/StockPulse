@@ -56,9 +56,11 @@ export const useUserManagement = () => {
     yearData: { [year: string]: YearData },
     userSettings: any
   ) => {
-    if (!isLoggedIn || !currentUser?.token) {
+    if (!isLoggedIn) {
       return;
     }
+    const token = localStorage.getItem('token');
+    if (!token) return;
 
     try {
       const dataToSave = {
@@ -71,7 +73,7 @@ export const useUserManagement = () => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${currentUser.token}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(dataToSave),
       });

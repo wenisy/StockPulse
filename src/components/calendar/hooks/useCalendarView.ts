@@ -75,7 +75,6 @@ export function useCalendarView({
           setGenerateDate(data.usEastern.date);
         }
       } catch (error) {
-        console.error('获取美东时间失败:', error);
       }
     };
     fetchUSEasternTime();
@@ -124,7 +123,6 @@ export function useCalendarView({
         setAvailableYears([new Date().getFullYear().toString()]);
       }
     } catch (error) {
-      console.error('获取可用年份失败:', error);
       setAvailableYears([new Date().getFullYear().toString()]);
     }
   }, [parentYears]);

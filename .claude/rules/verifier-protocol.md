@@ -26,11 +26,66 @@ alwaysApply: false
 
 不要自己逐行读代码分析——调用 `/opsx:verify` 命令获取权威验收结果。
 
+### Step 1.5：执行测试套件 + 采集增量覆盖率
+
+在 `/opsx:verify` 返回后，verifier MUST 执行测试守门步骤：
+
+1. 读取 `openspec/.tcsc-test.yml`（不存在则使用默认值 + 技术栈自动探测）：
+   - `skip: true` → 跳过本步，报告标注 `[SKIPPED] 测试守门已关闭`；但不跳过 `/opsx:verify`、review-pipeline 或 code-review
+   - `test_command` 缺省 → 按标志文件探测：`package.json` → `npm test` / `go.mod` → `go test ./...` / `pyproject.toml` → `pytest` / `Cargo.toml` → `cargo test`
+   - `coverage_command` 缺省 → 按技术栈尽力探测覆盖率命令；探测不到时只报告测试通过状态 + 覆盖率未采集 WARNING
+   - `coverage_threshold` 缺省 → `70`
+   - `coverage_mode` 缺省 → `incremental`
+
+2. 如果无法可靠探测 `test_command`：
+   - 输出 `[WARN] 未识别测试命令`
+   - 将测试执行状态记为 WARNING
+   - 提示用户在 `openspec/.tcsc-test.yml` 中配置 `test_command`
+   - SHALL NOT 伪造测试 PASS 结果
+
+3. 跑 `test_command`：
+   - 有 FAIL → 记为 CRITICAL（测试不通过等同需求未实现）
+   - 全 PASS → 继续采集覆盖率
+
+4. 跑 `coverage_command` 并提取本次变更的增量行覆盖率（或配置的 `coverage_mode`）：
+   - 覆盖率 ≥ threshold → PASS
+   - 覆盖率 < threshold → 记为 WARNING（v1.8.0 / v1.8.1 不 blocking）
+   - 无法采集覆盖率 → 记为 WARNING，说明原因，SHALL NOT 伪造覆盖率数字
+
+5. 将测试守门结果写入 `openspec/changes/<change-id>/test-result.yaml`，供 archive-pipeline 做最终兜底检查。schema MUST 为：
+   ```yaml
+   change_id: <change-id>
+   tested_at: <ISO8601>
+   test_command: <string|null>
+   coverage_command: <string|null>
+   test_status: pass | fail | skipped | unknown
+   coverage:
+     mode: incremental | total
+     value: <number|null>
+     threshold: <number>
+     status: pass | warning | skipped | unknown
+   issues:
+     - severity: critical | warning
+       message: <string>
+   ```
+
+   `test_status` 落盘规则：
+   - 测试命令全 PASS → `test_status: pass`
+   - 测试命令 FAIL → `test_status: fail`，并在 `issues` 写入 `severity: critical`
+   - `skip: true` → `test_status: skipped`，coverage.status 同步为 `skipped`
+   - 无法探测或无法执行测试命令 → `test_status: unknown`，并在 `issues` 写入 `severity: warning`
+
+测试结果必须合并进 Step 3 判定：
+
+- 测试 FAIL → 进入 CRITICAL 列表，按情况 B 处理（不启动 reviewer / 不建议 archive）
+- 覆盖率不达标或无法采集 → 进入 WARNING 列表，按情况 A 传给 reviewer 重点关注
+- `skip: true` → 在验收摘要中标注 `[SKIPPED] 测试守门已关闭`
+
 ### Step 2：解读验证报告
 
-从验收报告中提取：
-- **CRITICAL** 问题列表（未实现的核心需求、严重功能缺失）
-- **WARNING** 问题列表（部分实现、有隐患的需求）
+从验收报告和 Step 1.5 测试守门结果中提取：
+- **CRITICAL** 问题列表（未实现的核心需求、严重功能缺失、测试失败）
+- **WARNING** 问题列表（部分实现、有隐患的需求、覆盖率不足、覆盖率无法采集、测试命令无法探测）
 - **SUGGESTION** 列表（可选改进）
 
 ### Step 3：做出判定

@@ -1,0 +1,12 @@
+# TCSC 测试守门配置（可选；团队共享，建议提交到 git）
+#
+# 不存在本文件时，verifier 会按技术栈自动探测测试命令，并使用默认阈值 70。
+# 如项目是纯文档/纯配置仓，或暂不具备自动化测试，可将 skip 改为 true。
+
+# skip: false
+
+# test_command: "go test ./..."
+# coverage_command: "go test -cover ./..."
+
+# coverage_threshold: 70
+# coverage_mode: incremental  # incremental（仅本次变更增量行）| total

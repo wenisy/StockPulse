@@ -36,44 +36,71 @@ alwaysApply: false
 
 对 verifier 传递的 WARNING 涉及的文件，在 `/tcsc:code-review` 完成后额外关注其代码质量。
 
-### Step 3：解读审查报告并通知 main
+### Step 3：读取 coding-score-result.yaml 并自检
 
-审查完成后，通过 `send_message` 发送给 **main**：
+`/tcsc:code-review` 执行完成后，��写入 `openspec/changes/<change-name>/coding-score-result.yaml`。
+
+1. Read 该 yaml 文件获取编码评分结果
+2. 执行自检脚本验证 yaml 合法性：
+
+```bash
+CHANGE_ID="<change-name>"
+python3 -c "
+import yaml, sys
+path = f'openspec/changes/{sys.argv[1]}/coding-score-result.yaml'
+d = yaml.safe_load(open(path))
+assert 0 <= d['total_score'] <= 100
+assert d['quality_label'] in ('优秀','建议完善','建议返修')
+assert d['result'] in ('pass','return_to_step1')
+assert d['gate_action'] in ('proceed','block')
+assert len(d['dimensions']) == 6
+for dim in d['dimensions']:
+    assert dim['score'] >= 0
+    assert dim['level'] in ('优秀','建议完善','建议返修')
+print(f'[OK] coding-score-result.yaml 合法 | {d[\"total_score\"]}/100 | {d[\"gate_action\"]}')
+" -- "$CHANGE_ID"
+```
+
+- 自检通过 → 进入 Step 4
+- 自检失败 → 上报 main（阻塞兜底格式），不发送审查通过结论
+
+### Step 4：解读评分结果并通知 main
+
+读取 coding-score-result.yaml 后，通过 `send_message` 发送给 **main**：
 
 ```
-## 代码审查完成
+## 编码评分完成
 
 **Change**: <change-name>
-**CRITICAL**: <N> 个
-**WARNING**: <N> 个
-**SUGGESTION**: <N> 个
+**Total Score**: <total_score>/100
+**Quality**: <quality_label>
+**Gate**: <gate_action>
 
-### 审查报告摘要
+### 6 维评分
 
-#### 架构合规性
-<通过 / 有 N 个违规 / 已跳过（无 docs/）>
+| 维度 | 权重 | 得分 | 等级 |
+|------|------|------|------|
+| 安全合规 | 25% | X/100 | 优秀/建议完善/建议返修 |
+| 代码正确性与幻觉检测 | 20% | X/100 | ... |
+| 稳定性与容错 | 20% | X/100 | ... |
+| 接口契约与兼容性 | 15% | X/100 | ... |
+| 可观测性 | 10% | X/100 | ... |
+| 性能与资源效率 | 10% | X/100 | ... |
 
-#### 代码质量
-| 维度 | 状态 |
-|------|------|
-| 边界条件 | ✅/⚠️/❌ |
-| 错误处理 | ✅/⚠️/❌ |
-| 并发安全 | ✅/⚠️/❌ |
-| 数据一致性 | ✅/⚠️/❌ |
-| 安全性 | ✅/⚠️/❌ |
-| 资源管理 | ✅/⚠️/❌ |
+### 高风险问题（需立即修复）
+<逐条列出 issues 中 severity=high 的项>
 
-### CRITICAL 问题详情
-<如有，逐条列出：文件:行号 + 描述 + 修复建议>
+### 中风险问题（建议修复）
+<逐条列出 issues 中 severity=medium 的项>
 
 ### 最终建议
-<根据 CRITICAL 数量决定>
+<根据 gate_action 决定>
 ```
 
 **最终建议规则**：
-- 有 CRITICAL → `❌ 不建议 archive，需先修复 CRITICAL 问题`
-- 无 CRITICAL，有 WARNING → `⚠️ 可以 archive，建议跟进 WARNING 问题`
-- 无 CRITICAL，无 WARNING → `✅ 代码质量良好，可以执行 /opsx:archive`
+- gate_action = proceed，总分 ≥ 85 → `✅ 编码评分优秀 (<total_score>/100)，可以执行 /opsx:archive`
+- gate_action = proceed，50 ≤ 总分 < 85 → `⚠️ 编码评分通过 (<total_score>/100)，建议完善中风险问题后 archive`
+- gate_action = block → `❌ 编码评分未通过 (<total_score>/100)，请修复以上高/中风险问题后重新 apply`
 
 ## docs/ 为空时的处理
 

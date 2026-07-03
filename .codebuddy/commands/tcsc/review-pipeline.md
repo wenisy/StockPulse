@@ -14,7 +14,7 @@ argument-hint: "<change-name>"
 
 ## Phase 0：代码任务边界识别（前置必须）
 
-进入 Step 1 之前，AI MUST 先做一次"代码任务 vs 元任务"边界识别——确认是否真的进入审查阶段。本阶段是 `rules.apply` v2 触发条件的精准判定层。
+进入 Step 1 之前，AI MUST 先做一次"代码任务 vs 元任务"边界识别——确认是否真的进入审查阶段。本阶段是 `rules.apply` v3 触发条件的精准判定层。
 
 ### 0.1 启发式判别规则
 
@@ -107,9 +107,13 @@ argument-hint: "<change-name>"
 
 3. 等待两者均通过 send_message 返回结果
 
-4. 调用 `team_delete("review-pipeline")`
+4. 读取 reviewer 产出的编码评分结果：
+   Read `openspec/changes/<change-name>/coding-score-result.yaml`
+   提取 total_score / quality_label / gate_action / 6 维评分详情 / issues 列表
 
-5. 生成汇总报告
+5. 调用 `team_delete("review-pipeline")`
+
+6. 生成汇总报告
 
 ### 串行模式（review_mode: serial）
 
@@ -130,6 +134,7 @@ argument-hint: "<change-name>"
 5. **继续路径**（verifier 无 CRITICAL）：
    - spawn reviewer agent（同并行模式步骤 2 的 reviewer，额外传入 verifier 的 WARNING 列表）
    - 等待 reviewer 的 send_message
+   - 读取 `openspec/changes/<change-name>/coding-score-result.yaml`
 
 6. 调用 `team_delete("review-pipeline")`
 
@@ -138,16 +143,35 @@ argument-hint: "<change-name>"
 ## Step 4：输出汇总报告
 
 ```
+## 🔍 编码评分（部门 SDD 6 维）
+
+**总分**: <total_score>/100
+**质量**: <quality_label>
+**门禁**: <gate_action>
+
+| 维度 | 权重 | 得分 | 等级 |
+|------|------|------|------|
+| 安全合规 | 25% | X/100 | ... |
+| 代码正确性与幻觉检测 | 20% | X/100 | ... |
+| 稳定性与容错 | 20% | X/100 | ... |
+| 接口契约与兼容性 | 15% | X/100 | ... |
+| 可观测性 | 10% | X/100 | ... |
+| 性能与资源效率 | 10% | X/100 | ... |
+
+<若 gate_action=block，列出高/中风险 issues>
+
 ## 📋 需求验收
 <verifier 报告摘要：通过/未通过，CRITICAL 和 WARNING 数量，关键问题列表>
 
-## 🔍 代码审查
-<reviewer 报告摘要：CRITICAL/WARNING/SUGGESTION 数量，各维度状态，关键问题列表>
-
-## 📊 结论
+## 📊 综合结论
+- 需求验收：<通过 / 未通过>
+- 编码评分：<X>/100，<proceed / block>
+<综合判定>
 ```
 
-**结论规则：**
-- 两者均无 CRITICAL → "✅ 全部通过，建议执行 /opsx:archive"
-- 任一有 CRITICAL → "❌ 存在 CRITICAL 问题，需先修复"，列出所有 CRITICAL
+**综合结论规则：**
+- 需求验收通过 + 编码评分 proceed → "✅ 全部通过，建议执行 /opsx:archive"
+- 需求验收通过 + 编码评分 block → "❌ 编码评分未通过（<X>/100），需先修复编码问题"
+- 需求验收未通过 + 编码评分 proceed → "❌ 需求验收未通过，需先修复需求问题"
+- 需求验收未通过 + 编码评分 block → "❌ 需求验收和编码评分均未通过，需先修复需求问题再修复编码问题"
 - 并行模式且 verifier 有 CRITICAL → 额外注明"⚠️ 建议优先修复需求问题再关注代码质量"

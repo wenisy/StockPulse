@@ -45,11 +45,11 @@ argument-hint: "[<backend_repo> <frontend_repo> '<描述>'] [--resume <feature-i
 - 找到后 Read `.pair-context.yml`，按 `progress.current_phase` 跳转对应 Phase：
   - `paused` → 读 `paused_reason`，提示用户解决后再 resume，停止
   - `first_propose` → 进入 Phase 4
-  - `first_review` → 从 `.pair-context.yml` 读取 `repos.first_end`，输出"请 review 第一端（`<first_end>`）proposal，OK 后告诉我 'lock `<first_end>`'"
+  - `first_review` → 从 `.pair-context.yml` 读取 `repos.first_end`，输出"请 review 第一端（`<first_end 字面值>`）proposal，OK 后正常喊 `/opsx:apply <first-change-id>`"
   - `first_apply_in_progress` → 进入 Phase 5（检查 apply 进度接续）
   - `handover` → 进入 Phase 6
   - `second_propose` → 进入 Phase 6
-  - `second_review` → 从 `.pair-context.yml` 读取 `repos.second_end`，输出"请 review 第二端（`<second_end>`）proposal，OK 后告诉我 'lock `<second_end>`'"
+  - `second_review` → 从 `.pair-context.yml` 读取 `repos.second_end`，输出"请 review 第二端（`<second_end 字面值>`）proposal，OK 后正常喊 `/opsx:apply <second-change-id>`"
   - `second_apply_in_progress` → 进入 Phase 7（检查 apply 进度接续）
   - `completed` → 输出"流程已完成，无需 resume"
 - resume 时追加 history 事件 `{ event: "resumed", actor: "user" }`
@@ -82,7 +82,8 @@ argument-hint: "[<backend_repo> <frontend_repo> '<描述>'] [--resume <feature-i
    ```
    ❓ 这听起来像单端 feature，确认要双端吗？建议改用 /opsx:propose 单端走。
    ```
-   等待用户答复"确认双端"后才继续。
+   - 用户确认双端 → 继续 Phase 3
+   - 用户否认双端或确认这是单端需求 → MUST 停止 pair-feature 流程，建议用户改用 `/opsx:propose`，且 SHALL NOT 创建第一端 change 脚手架、`.pair-context.yml`、`.pair-context-upstream.yml` 或 `.pair-pending-review`
 
 4. **端身份识别**：
    - 若当前 cwd == backend_repo → 第一端 = backend，第二端 = frontend
@@ -103,6 +104,7 @@ argument-hint: "[<backend_repo> <frontend_repo> '<描述>'] [--resume <feature-i
    - API 契约（HTTP 方法 + 路径 + 请求/响应 schema + 错误码）
    - 边界（Out of Scope / 不做的事）
    - 已在描述中包含的维度跳过；一次只问 1~2 个维度
+   - **关键规则—跳过反问不跳过落盘**：若用户原始描述已包含全部 4 个必填维度，MAY 跳过维度反问；但 MUST NOT 跳过 change-id 确认（步骤 3）、`openspec new change`（步骤 4）和 `.pair-context.yml` 写入（步骤 5）。信息完整 ≠ 跳过 Phase 3
 
 3. **Derive 第一端 change-id**：
    - 参考 /opsx:propose 启发式：动词+名词、≤ 4 词、kebab-case，按第一端视角命名
@@ -127,28 +129,39 @@ argument-hint: "[<backend_repo> <frontend_repo> '<描述>'] [--resume <feature-i
 
 所有操作保持在第一端 cwd，每次 Bash 调用 MUST 以 `cd <first_end_repo>` 起始。
 
-1. **Read 共通事实**：
+1. **前置检查（门禁—MUST 在任何其他操作前执行）**：
+   - 确认 `<first_end_repo>/openspec/changes/<first-change-id>/.pair-context.yml` 文件存在
+   - Read 该文件，确认 `schema_version` 等于 `"2.0"`
+   - Read 该文件，确认 `shared_facts.why`、`shared_facts.ac`、`shared_facts.api_contract`、`shared_facts.boundaries` 四个必填维度均为非空字符串
+   - 前置检查全部通过 → 继续步骤 2
+   - **前置检查失败** → MUST 停止 Phase 4，回到 Phase 3 补齐缺失项：
+     - 文件不存在 → 输出"⚠️ `.pair-context.yml` 未找到，请先完成 Phase 3 脚手架创建"并退回到 Phase 3
+     - schema_version 不等于 "2.0" → 输出"⚠️ `.pair-context.yml` 的 schema_version 不是 2.0，请回到 Phase 3 修复"并退回到 Phase 3
+     - 任一必填维度为空 → 输出"⚠️ shared_facts 缺少 `<维度名>`，回到 Phase 3 补全"并退回到 Phase 3
+   - **SHALL NOT 在检查失败时直接调用 `/opsx:propose`**
+
+2. **Read 共通事实**：
    ```
    Read <first_end_repo>/openspec/changes/<first-change-id>/.pair-context.yml
    ```
    提取 `shared_facts` 段全部内容（why / ac / api_contract / boundaries 必填 + 5 可选若存在）
 
-2. **组装需求文本**：将 shared_facts 组装为人类可读的需求输入：
+3. **组装需求文本**：将 shared_facts 组装为人类可读的需求输入：
    - `why` → 业务背景段落
    - `ac` → 验收标准列表
    - `api_contract` → API 契约结构化块（YAML 转 markdown 代码块或表格）
    - `boundaries` → 不做的事列表
    - 可选 5 段（flows / non_functional / dependencies / who / error_handling）按需追加
 
-3. **调起原生 /opsx:propose**：
+4. **调起原生 /opsx:propose**：
    ```
    /opsx:propose <first-change-id>
    ```
    把上步组装的需求文本作为 propose 输入，让 OpenSpec 走原生 5 步生成 proposal / design / specs / tasks
 
-4. **命令 MUST NOT 自己 Write 任何 OpenSpec artifact**：不写 proposal.md / design.md / specs/*.md / tasks.md，也不追加任何 pair-feature 自创标记（无 `📌` / `🛠` / HTML 注释边界 / `> 🔗 Upstream:` 等）
+5. **命令 MUST NOT 自己 Write 任何 OpenSpec artifact**：不写 proposal.md / design.md / specs/*.md / tasks.md，也不追加任何 pair-feature 自创标记（无 `📌` / `🛠` / HTML 注释边界 / `> 🔗 Upstream:` 等）
 
-5. **propose 完成后 validate**：
+6. **propose 完成后 validate**：
    ```bash
    cd <first_end_repo> && openspec validate <first-change-id>
    ```
@@ -156,29 +169,40 @@ argument-hint: "[<backend_repo> <frontend_repo> '<描述>'] [--resume <feature-i
 
 ---
 
-## Phase 5：第一端 review + apply + handover
+## Phase 5：第一端 review + apply + 自动衔接
 
-1. **等待用户 lock**：
-   输出"请 review 第一端 proposal，OK 后告诉我 'lock backend'（或 'lock frontend' 若第一端是 frontend）"
-   等待用户明确给出 lock 指令后：
-   - 更新 `.pair-context.yml`：`stages.<first-end>.proposal_locked = true`，`proposal_locked_at = <ISO8601>`
+1. **创建 sentinel 文件 + 引导用户 apply**：
+   Phase 4 完成后立即创建 `.pair-pending-review` sentinel 文件到第一端 change 目录：
+   ```bash
+   cd <first_end_repo> && cat > openspec/changes/<first-change-id>/.pair-pending-review << 'EOF'
+   # sentinel 文件：标记此 change 处于跨端 review 阶段，由 apply gate 守门
+   created_by: /tcsc:pair-feature
+   phase: first_review  # first_review | second_review
+   pair_context_path: <第一端 .pair-context.yml 绝对路径>
+   EOF
+   ```
+   输出"请 review 第一端（`<first_end 字面值如 backend>`）proposal，OK 后正常喊 `/opsx:apply <first-change-id>`"
+   （运行时 AI MUST 将 `<first_end>` 替换为从 `.pair-context.yml.repos.first_end` 读取的字面值再展示）
+
+   等待用户喊 `/opsx:apply`（apply 入口的 sentinel 检查由 `rules.apply` bridge rule 负责守门反问）。
+
+2. **sentinel 被 apply gate 删除后**（用户确认 yes）：
    - `progress.current_phase` 设为 `first_apply_in_progress`
    - 追加 history 事件 `{ event: "first_proposal_locked", actor: "user" }`
-
-2. **调起原生 /opsx:apply**：
-   ```
-   /opsx:apply <first-change-id>
-   ```
-   保持在第一端 cwd（每次 Bash 调用前缀 `cd <first_end_repo>`）
+   - `/opsx:apply <first-change-id>` 正常执行（每次 Bash 调用前缀 `cd <first_end_repo>`）
 
 3. **apply 完成检测**（tasks.md 全 [x]）后：
    - 更新 `.pair-context.yml`：`stages.<first-end>.apply_completed = true`，`apply_completed_at = <ISO8601>`
    - `linked_changes.<first-end>.apply_status = done`
    - `progress.current_phase` 设为 `handover`
    - 追加 history 事件 `{ event: "first_apply_completed", actor: "AI" }`
-   - 输出"✅ 第一端 apply 完成，自动切到第二端..."
+   - 输出"✅ 第一端（`<first_end 字面值>`）apply 完成，自动切到第二端（`<second_end 字面值>`）..."
 
-4. **MUST NOT 等待 archive**：apply 完成即自动进入 Phase 6，不等用户 archive
+4. **自动衔接第二端**：apply 完成后读 `.pair-context.yml.linked_changes.<second-end>.change_id`：
+   - **值为 null**（第二端从未启动）→ AI 自动 cd 到第二端 repo + 进入 Phase 6 全流程
+   - **值非 null**（resume 场景）→ 按 `progress.current_phase` 跳转对应状态接续
+
+5. **MUST NOT 等待 archive**：apply 完成即自动进入 Phase 6，不等用户 archive
 
 ---
 
@@ -253,7 +277,18 @@ argument-hint: "[<backend_repo> <frontend_repo> '<描述>'] [--resume <feature-i
 1. 通过指针文件路径 Read 第一端 `.pair-context.yml` 获取 `shared_facts`
 2. 组装同 Phase 4 的需求文本（第二端视角，frontend 关注 UI 调用）
 3. 调起原生 `/opsx:propose <derived-second-id>`（在第二端 repo 执行）
-4. propose 完成后：更新 linked_changes.second_end.artifacts_status，`progress.current_phase` = `second_review`（写回权威源）
+4. propose + validate 完成后：更新 linked_changes.second_end.artifacts_status，`progress.current_phase` = `second_review`（写回权威源）
+5. **立即创建第二端 sentinel**：
+   ```bash
+   cd <second_end_repo> && cat > openspec/changes/<derived-second-id>/.pair-pending-review << 'EOF'
+   # sentinel 文件：标记此 change 处于跨端 review 阶段，由 apply gate 守门
+   created_by: /tcsc:pair-feature
+   phase: second_review  # first_review | second_review
+   pair_context_path: <第一端 .pair-context.yml 绝对路径>
+   EOF
+   ```
+6. 输出"请 review 第二端（`<second_end 字面值如 frontend>`）proposal，OK 后正常喊 `/opsx:apply <derived-second-id>`"
+   （运行时 AI MUST 将 `<second_end>` 替换为从 `.pair-context.yml.repos.second_end` 读取的字面值再展示）
 
 ---
 
@@ -261,14 +296,11 @@ argument-hint: "[<backend_repo> <frontend_repo> '<描述>'] [--resume <feature-i
 
 每次 Bash 调用 MUST 以 `cd <second_end_repo>` 起始。
 
-1. **等待用户 lock 第二端 proposal**：
-   输出"请 review 第二端 proposal，OK 后告诉我 'lock <second-end>'"
-   收到后更新 stages.second_end（写回第一端权威源；若第一端已归档则写本地 `.pair-context-local-state.yml`）
+1. **等待用户喊 `/opsx:apply <derived-second-id>`**：
+   （apply gate 守门 sentinel——用户喊 apply 时 bridge rule 检测 sentinel 存在会反问确认，确认后删除 sentinel + 写回审计字段）
+   sentinel 被删除后：更新 `stages.<second-end>.proposal_locked = true`（审计记录，写回第一端权威源；若第一端已归档则写本地 `.pair-context-local-state.yml`）
 
-2. **调起原生 /opsx:apply**：
-   ```
-   /opsx:apply <derived-second-id>
-   ```
+2. **`/opsx:apply` 正常执行**
 
 3. **apply 完成后**：
    - 更新 stages.second_end.apply_completed = true（写回权威源或本地 state 文件）
@@ -281,9 +313,10 @@ argument-hint: "[<backend_repo> <frontend_repo> '<描述>'] [--resume <feature-i
    🎉 跨端 feature 编排完成！
    
    请双端各自归档：
-   - 第一端：在 <first_end_repo> 运行 /opsx:archive <first-change-id>
-   - 第二端：在 <second_end_repo> 运行 /opsx:archive <derived-second-id>
+   - <first_end 字面值>：在 <first_end_repo> 运行 /opsx:archive <first-change-id>
+   - <second_end 字面值>：在 <second_end_repo> 运行 /opsx:archive <derived-second-id>
    ```
+   （运行时 AI MUST 将占位符替换为字面值再展示）
 
 ---
 

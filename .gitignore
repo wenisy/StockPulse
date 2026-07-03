@@ -49,3 +49,5 @@ CODEBUDDY.md
 
 # mcp config (may contain tokens)
 .mcp.json
+.pair-pending-review
+**/.pair-pending-review

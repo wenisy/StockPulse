@@ -41,6 +41,10 @@ export const buildMockPortfolio = (overrides: Record<string, unknown> = {}) => (
     newYear: '',
     setNewYear: jest.fn(),
     cashTransactionType: 'deposit',
+    cashTransactionAmount: '',
+    setCashTransactionAmount: jest.fn(),
+    setCashTransactionType: jest.fn(),
+    isCashTransactionLoading: false,
     ...((overrides.trackerState as object) ?? {}),
   },
   portfolioData: {
@@ -85,6 +89,7 @@ export const buildMockPortfolio = (overrides: Record<string, unknown> = {}) => (
     handleLegendClick: jest.fn(),
     handleReportClick: jest.fn(),
     addNewYear: jest.fn(),
+    addCashTransaction: jest.fn().mockResolvedValue(true),
     toggleStockVisibility: jest.fn(),
     ...((overrides.callbacks as object) ?? {}),
   },

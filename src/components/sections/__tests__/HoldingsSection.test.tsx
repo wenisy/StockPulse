@@ -64,6 +64,24 @@ describe('HoldingsSection', () => {
     expect(screen.getByText('新交易')).toBeInTheDocument();
   });
 
+  it('点击「添加入金」按钮后现金表单展开', () => {
+    render(<HoldingsSection />);
+    fireEvent.click(screen.getByRole('button', { name: /添加入金/ }));
+    expect(screen.getByText('现金操作')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /添加现金交易/ })).toBeInTheDocument();
+  });
+
+  it('现金表单与股票表单互斥展示', () => {
+    render(<HoldingsSection />);
+    fireEvent.click(screen.getByRole('button', { name: /添加入金/ }));
+    expect(screen.getByText('现金操作')).toBeInTheDocument();
+    expect(screen.queryByText('新交易')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /添加交易/ }));
+    expect(screen.getByText('新交易')).toBeInTheDocument();
+    expect(screen.queryByText('现金操作')).not.toBeInTheDocument();
+  });
+
   it('页面标题包含持仓数', () => {
     render(<HoldingsSection />);
     // description 格式: "1 只持仓中"

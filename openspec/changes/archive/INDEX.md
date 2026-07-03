@@ -2,6 +2,7 @@
 
 | 日期 | 变更 | 动因 | 新增能力 |
 |------|------|------|----------|
+| 2026-07-03 | [restore-cash-deposit-ui](./2026-07-03-restore-cash-deposit-ui/) | UI 重构时现金入金表单未迁移，用户无法记录入金/出金 | transactions-section |
 | 2026-07-02 | [fix-session-expiry-handling](./2026-07-02-fix-session-expiry-handling/) | 登录 token 过期后 UI 仍显示已登录，请求失败却无引导回登录流程 | — |
 | 2026-05-28 | [unify-trend-chart-zoom](./2026-05-28-unify-trend-chart-zoom/) | "按日/按月"两个 tab 割裂了连续缩放体验，缺失"3 个月 · 周粒度"中间档位 | 3月/周粒度视图, ISO 周聚合, 统一时间范围选择器 |
 | 2026-05-28 | [add-trend-chart-controls](./2026-05-28-add-trend-chart-controls/) | 折线图缺少隐藏金额、无按月视图、无缩放控件，只能看当月按天数据 | 隐藏金额, 按月视图, Brush 缩放 |

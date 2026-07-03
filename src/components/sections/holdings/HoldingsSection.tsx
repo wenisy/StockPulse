@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Inbox, Plus } from 'lucide-react';
+import { Coins, Inbox, Plus } from 'lucide-react';
 import { PageHeader } from '@/components/ui/page-header';
 import { Section } from '@/components/ui/section';
 import { Button } from '@/components/ui/button';
@@ -11,13 +11,14 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { usePortfolio } from '@/components/shell/PortfolioContext';
 import { StockHoldingCard } from './StockHoldingCard';
 import { HoldingDetailDrawer } from './HoldingDetailDrawer';
+import { CashTransactionForm } from '../CashTransactionForm';
 
 export function HoldingsSection() {
   const { stockOperations, portfolioData, callbacks, trackerState } = usePortfolio();
   const { latestYear, yearData, years, selectedYear, setSelectedYear } = portfolioData;
 
   const [editing, setEditing] = useState<string | null>(null);
-  const [showForm, setShowForm] = useState(false);
+  const [formMode, setFormMode] = useState<'stock' | 'cash' | null>(null);
   const [newYearInput, setNewYearInput] = useState('');
 
   const {
@@ -99,7 +100,7 @@ export function HoldingsSection() {
 
   const submitNewTx = () => {
     callbacks.onAddStock();
-    setShowForm(false);
+    setFormMode(null);
   };
 
   // 年份排序（降序供选择器使用）
@@ -134,7 +135,16 @@ export function HoldingsSection() {
             </div>
             <Button
               size="sm"
-              onClick={() => setShowForm((v) => !v)}
+              variant="outline"
+              onClick={() => setFormMode((m) => (m === 'cash' ? null : 'cash'))}
+              className="border-border-default text-fg hover:bg-bg-subtle"
+            >
+              <Coins className="h-4 w-4" />
+              添加入金
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => setFormMode((m) => (m === 'stock' ? null : 'stock'))}
               className="bg-brand text-brand-fg hover:bg-brand/90"
             >
               <Plus className="h-4 w-4" />
@@ -144,8 +154,10 @@ export function HoldingsSection() {
         }
       />
 
+      {formMode === 'cash' ? <CashTransactionForm onClose={() => setFormMode(null)} /> : null}
+
       {/* 添加交易表单 */}
-      {showForm ? (
+      {formMode === 'stock' ? (
         <Section className="p-4">
           {/* 当前年份余额提示 */}
           <div className="mb-3 flex items-center justify-between">
@@ -244,7 +256,7 @@ export function HoldingsSection() {
             </label>
           </div>
           <div className="mt-3 flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setShowForm(false)}>取消</Button>
+            <Button variant="outline" onClick={() => setFormMode(null)}>取消</Button>
             <Button onClick={submitNewTx} className="bg-brand text-brand-fg hover:bg-brand/90">
               确认
             </Button>

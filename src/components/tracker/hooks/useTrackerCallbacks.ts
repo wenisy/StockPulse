@@ -33,15 +33,15 @@ export function useTrackerCallbacks({
     trackerState.setNewYear('');
   }, [portfolioAddNewYear, trackerState]);
 
-  const addCashTransaction = useCallback(async () => {
+  const addCashTransaction = useCallback(async (): Promise<boolean> => {
     if (
       !trackerState.cashTransactionAmount ||
       !selectedYear ||
       trackerState.isCashTransactionLoading
     )
-      return;
+      return false;
     const amount = parseFloat(trackerState.cashTransactionAmount);
-    if (isNaN(amount)) return;
+    if (isNaN(amount) || amount <= 0) return false;
 
     trackerState.setIsCashTransactionLoading(true);
     try {
@@ -56,6 +56,7 @@ export function useTrackerCallbacks({
         onConfirm: () => trackerState.setAlertInfo(null),
         confirmText: '确定',
       });
+      return true;
     } catch (error) {
       trackerState.setAlertInfo({
         isOpen: true,
@@ -64,6 +65,7 @@ export function useTrackerCallbacks({
         onConfirm: () => trackerState.setAlertInfo(null),
         confirmText: '确定',
       });
+      return false;
     } finally {
       setTimeout(() => {
         trackerState.setIsCashTransactionLoading(false);

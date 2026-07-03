@@ -1,10 +1,12 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { ArrowDownLeft, ArrowUpRight, Coins, ListFilter, Inbox } from 'lucide-react';
+import { ArrowDownLeft, ArrowUpRight, Coins, ListFilter, Inbox, Plus } from 'lucide-react';
 import { PageHeader } from '@/components/ui/page-header';
 import { Section } from '@/components/ui/section';
+import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
+import { CashTransactionForm } from './CashTransactionForm';
 import { cn } from '@/lib/utils';
 import { usePortfolio } from '@/components/shell/PortfolioContext';
 
@@ -26,6 +28,7 @@ export function TransactionsSection() {
 
   const [typeFilter, setTypeFilter] = useState<'all' | 'buy' | 'sell' | 'cash'>('all');
   const [yearFilter, setYearFilter] = useState<string>('all');
+  const [showCashForm, setShowCashForm] = useState(false);
 
   const rows: Row[] = useMemo(() => {
     const list: Row[] = [];
@@ -92,7 +95,15 @@ export function TransactionsSection() {
         title="交易流水"
         description={`共 ${filtered.length} 条记录`}
         actions={
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              size="sm"
+              onClick={() => setShowCashForm((v) => !v)}
+              className="bg-brand text-brand-fg hover:bg-brand/90"
+            >
+              <Plus className="h-4 w-4" aria-hidden />
+              添加入金
+            </Button>
             <ListFilter className="h-4 w-4 text-fg-muted" aria-hidden />
             <select
               value={typeFilter}
@@ -117,6 +128,8 @@ export function TransactionsSection() {
           </div>
         }
       />
+
+      {showCashForm ? <CashTransactionForm onClose={() => setShowCashForm(false)} /> : null}
 
       {filtered.length === 0 ? (
         <Section className="p-6">

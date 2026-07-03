@@ -6,7 +6,8 @@
 | [component-structure](./component-structure/spec.md) | 大组件重构规范：测试先行、文件行数上限、组件拆分边界 | 11 |
 | [daily-trend-chart](./daily-trend-chart/spec.md) | Planner 页面资产趋势图：统一 1月/3月/1年 时间范围，日/周/月粒度自动切换，含 Brush 缩放、隐藏金额、Tooltip 涨跌幅 | 9 |
 | [design-system](./design-system/spec.md) | Design tokens 单一事实源、CSS 变量与 TS 双轨一致、多主题无 FOUC | 8 |
-| [holdings-section](./holdings-section/spec.md) | 持仓表（Holdings Section）列集合与行交互规范 | 4 |
+| [holdings-section](./holdings-section/spec.md) | 持仓表与 PageHeader 入口：股票交易、现金入金/出金 | 5 |
+| [transactions-section](./transactions-section/spec.md) | 交易流水页：时间线渲染、筛选、现金入金入口 | 4 |
 | [hooks-structure](./hooks-structure/spec.md) | 单职责 hook 边界定义与聚合 hook 向下兼容策略 | 4 |
 | [overview-section](./overview-section/spec.md) | Overview 页面 KPI 指标集与资产走势图（AssetTrendCard） | 4 |
 | [portfolio-codebase-hygiene](./portfolio-codebase-hygiene/spec.md) | 代码库卫生约束：禁止集成测试在根组件、禁止调试脚本留存 | 3 |

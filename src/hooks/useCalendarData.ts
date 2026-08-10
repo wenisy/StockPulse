@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef } from 'react';
 import { CalendarData } from '@/types/stock';
-import { isUnauthorizedResponse } from '@/lib/auth';
+import { getBearerAuthHeader, isUnauthorizedResponse } from '@/lib/auth';
 
 // 获取后端域名的工具函数（导出供其他模块直接使用 raw fetch 时复用）
 export const getBackendDomain = () => {
@@ -82,7 +82,7 @@ export const useCalendarData = (options?: UseCalendarDataOptions): UseCalendarDa
 
             const response = await fetch(
                 `${backendDomain}/api/calendarData?year=${year}&month=${month.toString().padStart(2, '0')}`,
-                { headers: { 'Authorization': token }, signal }
+                { headers: { 'Authorization': getBearerAuthHeader(token) }, signal }
             );
 
             if (signal.aborted) return; // 竞态保护：丢弃过期响应
@@ -132,7 +132,7 @@ export const useCalendarData = (options?: UseCalendarDataOptions): UseCalendarDa
 
             const response = await fetch(
                 `${backendDomain}/api/calendarData?year=${year}&type=summary`,
-                { headers: { 'Authorization': token }, signal }
+                { headers: { 'Authorization': getBearerAuthHeader(token) }, signal }
             );
 
             if (signal.aborted) return;
@@ -176,7 +176,7 @@ export const useCalendarData = (options?: UseCalendarDataOptions): UseCalendarDa
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': token,
+                        'Authorization': getBearerAuthHeader(token),
                     },
                     body: JSON.stringify({ date: targetDate })
                 }

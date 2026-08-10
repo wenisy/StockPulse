@@ -1,5 +1,9 @@
 const EXPIRED_TOKEN_MESSAGE = '无效或过期的令牌';
 
+export function getBearerAuthHeader(token: string): string {
+  return `Bearer ${token}`;
+}
+
 export function isUnauthorizedResponse(
   status: number,
   message?: string | null,

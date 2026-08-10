@@ -158,6 +158,11 @@ describe('usePortfolioSync - saveDataToBackend', () => {
     const { result } = renderHook(() => usePortfolioSync(props));
     await act(async () => { await result.current.saveDataToBackend(); });
     expect(props.setIncrementalChanges).toHaveBeenCalledWith(expect.objectContaining({ stocks: {} }));
+    expect((global.fetch as jest.Mock).mock.calls[0][1]).toEqual(
+      expect.objectContaining({
+        headers: expect.objectContaining({ Authorization: 'Bearer test-token' }),
+      }),
+    );
   });
 });
 
@@ -175,6 +180,7 @@ describe('usePortfolioSync - refreshPrices', () => {
 
   it('成功响应：调用 setYearData 和 setIncrementalChanges', async () => {
     const currentYear = new Date().getFullYear().toString();
+    localStorageMock.setItem('token', 'test-token');
     const yearData = {
       [currentYear]: {
         stocks: [{ name: 'AAPL', shares: 10, price: 150, costPrice: 120, id: 'a1', symbol: 'AAPL' }],
@@ -190,6 +196,11 @@ describe('usePortfolioSync - refreshPrices', () => {
     await act(async () => { await result.current.refreshPrices(true); });
     expect(props.setYearData).toHaveBeenCalled();
     expect(props.setIncrementalChanges).toHaveBeenCalled();
+    expect((global.fetch as jest.Mock).mock.calls[0][1]).toEqual(
+      expect.objectContaining({
+        headers: expect.objectContaining({ Authorization: 'Bearer test-token' }),
+      }),
+    );
     expect(props.setAlertInfo).toHaveBeenCalledWith(
       expect.objectContaining({ title: '价格已更新' }),
     );

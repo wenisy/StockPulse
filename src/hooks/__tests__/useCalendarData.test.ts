@@ -68,6 +68,11 @@ describe('useCalendarData', () => {
     });
     expect(result.current.calendarData.length).toBeGreaterThan(0);
     expect(result.current.error).toBeNull();
+    expect((global.fetch as jest.Mock).mock.calls[0][1]).toEqual(
+      expect.objectContaining({
+        headers: expect.objectContaining({ Authorization: 'Bearer token123' }),
+      }),
+    );
   });
 
   it('fetchYearlySummary：无 token 时设置 error', async () => {

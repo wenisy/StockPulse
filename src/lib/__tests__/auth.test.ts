@@ -1,10 +1,14 @@
-import { clearAuthStorage, isUnauthorizedResponse } from '../auth';
+import { clearAuthStorage, getBearerAuthHeader, isUnauthorizedResponse } from '../auth';
 
 describe('auth helpers', () => {
   beforeEach(() => {
     localStorage.clear();
     localStorage.setItem('token', 'test');
     localStorage.setItem('user', '{}');
+  });
+
+  it('getBearerAuthHeader: 按后端契约生成 Bearer 认证头', () => {
+    expect(getBearerAuthHeader('test-token')).toBe('Bearer test-token');
   });
 
   it('isUnauthorizedResponse: 401 返回 true', () => {

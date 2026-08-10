@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { getBearerAuthHeader } from '@/lib/auth';
 
 const BACKEND_DOMAIN = 'https://stock-backend-tau.vercel.app';
 
@@ -96,7 +97,7 @@ export function useCalendarView({
       }
 
       const response = await fetch(`//stock-backend-tau.vercel.app/api/data`, {
-        headers: { Authorization: token },
+        headers: { Authorization: getBearerAuthHeader(token) },
       });
 
       if (response.ok) {

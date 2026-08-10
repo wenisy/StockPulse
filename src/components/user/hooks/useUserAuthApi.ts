@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import type { User } from '@/types/stock';
+import { getBearerAuthHeader } from '@/lib/auth';
 
 const BACKEND_DOMAIN = '//stock-backend-tau.vercel.app';
 
@@ -128,7 +129,7 @@ export function useUserAuthApi() {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: token,
+            Authorization: getBearerAuthHeader(token),
           },
           body: JSON.stringify(body),
         });

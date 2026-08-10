@@ -7,7 +7,7 @@ import {
   YearData,
 } from '@/types/stock';
 import { stockInitialData } from '@/components/data';
-import { clearAuthStorage, isUnauthorizedResponse } from '@/lib/auth';
+import { clearAuthStorage, getBearerAuthHeader, isUnauthorizedResponse } from '@/lib/auth';
 import { sortYearsDesc } from '@/lib/portfolio/years';
 
 const BACKEND_DOMAIN = '//stock-backend-tau.vercel.app';
@@ -104,7 +104,7 @@ export function usePortfolioSync({
     async (token: string) => {
       try {
         const response = await fetch(`${BACKEND_DOMAIN}/api/data`, {
-          headers: { Authorization: token },
+          headers: { Authorization: getBearerAuthHeader(token) },
         });
         const data = await response.json();
         if (response.ok) {
@@ -263,7 +263,7 @@ export function usePortfolioSync({
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            ...(token ? { Authorization: token } : {}),
+            ...(token ? { Authorization: getBearerAuthHeader(token) } : {}),
           } as Record<string, string>,
           body: JSON.stringify({ symbols }),
         });
@@ -359,7 +359,7 @@ export function usePortfolioSync({
     try {
       const response = await fetch(`${BACKEND_DOMAIN}/api/updateNotion`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: token },
+        headers: { 'Content-Type': 'application/json', Authorization: getBearerAuthHeader(token) },
         body: JSON.stringify(incrementalChanges),
       });
       const result = await response.json();

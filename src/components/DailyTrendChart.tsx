@@ -13,7 +13,7 @@ import {
   YAxis,
 } from 'recharts';
 import { useCalendarData, YearlyMonthSummary, getBackendDomain } from '@/hooks/useCalendarData';
-import { isUnauthorizedResponse } from '@/lib/auth';
+import { getBearerAuthHeader, isUnauthorizedResponse } from '@/lib/auth';
 import { CalendarData } from '@/types/stock';
 import { useResolvedColors } from '@/hooks/useResolvedColors';
 import { Button } from '@/components/ui/button';
@@ -288,7 +288,7 @@ const DailyTrendChart: React.FC<DailyTrendChartProps> = ({
           const response = await fetch(
             `${getBackendDomain()}/api/calendarData?year=${y}&month=${String(m).padStart(2, '0')}`,
             {
-              headers: { Authorization: token },
+              headers: { Authorization: getBearerAuthHeader(token) },
               signal: AbortSignal.timeout ? AbortSignal.timeout(10000) : undefined,
             },
           );

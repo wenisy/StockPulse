@@ -1,47 +1,47 @@
 {
   "HKD": {
-    "price": 0.12752987,
+    "price": 0.12755786,
     "name": "HKD-USD",
-    "lastUpdated": "2026-09-02"
+    "lastUpdated": "2026-09-03"
   },
   "CNY": {
-    "price": 0.1490313,
+    "price": 0.14903796,
     "name": "CNY-USD",
-    "lastUpdated": "2026-09-02"
+    "lastUpdated": "2026-09-03"
   },
   "ORCL": {
-    "price": 145.75,
+    "price": 154.04,
     "name": "Oracle Corporation",
-    "lastUpdated": "2026-09-02"
+    "lastUpdated": "2026-09-03"
   },
   "IBM": {
-    "price": 231.7,
+    "price": 234.71,
     "name": "International Business Machines Corporation",
-    "lastUpdated": "2026-09-02"
+    "lastUpdated": "2026-09-03"
   },
   "JPM": {
-    "price": 356.22,
+    "price": 362.06,
     "name": "JPMorgan Chase & Co.",
-    "lastUpdated": "2026-09-02"
+    "lastUpdated": "2026-09-03"
   },
   "JNJ": {
-    "price": 275.21,
+    "price": 278.43,
     "name": "Johnson & Johnson",
-    "lastUpdated": "2026-09-02"
+    "lastUpdated": "2026-09-03"
   },
   "WMT": {
-    "price": 106.09,
+    "price": 108.42,
     "name": "Walmart Inc.",
-    "lastUpdated": "2026-09-02"
+    "lastUpdated": "2026-09-03"
   },
   "INTC": {
-    "price": 90.05,
+    "price": 91.67,
     "name": "Intel Corporation",
-    "lastUpdated": "2026-09-02"
+    "lastUpdated": "2026-09-03"
   },
   "CSCO": {
-    "price": 109.455,
+    "price": 108.61,
     "name": "Cisco Systems Inc.",
-    "lastUpdated": "2026-09-02"
+    "lastUpdated": "2026-09-03"
   }
 }
